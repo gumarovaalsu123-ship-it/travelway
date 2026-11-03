@@ -2274,34 +2274,46 @@
 }
 
 /* Зум-контроллы */
+
 .map-zoom-controls {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 20;
+    position: absolute;
+    z-index: 1000;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .zoom-btn {
-  width: 38px;
-  height: 38px;
-  background: var(--color-white);
-  border-radius: 10px;
-  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 400;
-  font-size: 22px;
-  color: var(--color-text-dark);
-  transition: background 0.2s;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #fff;
+    color: #374151;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    transition: background 0.2s, transform 0.2s;
 }
 
 .zoom-btn:hover {
-  background: #f0f4f1;
+    background: #f1f5f0;
 }
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+.zoom-btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
 
 /* Легенда карты */
 .map-legend-box {
@@ -4500,4 +4512,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.custom-user-location {
+    background: transparent;
+    border: none;
+}
+
+.user-loc-dot {
+    width: 14px;
+    height: 14px;
+    background: #3685ff;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    z-index: 2;
+}
+
+.user-loc-pulse {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: rgba(54, 133, 255, 0.25);
+    border-radius: 50%;
+    animation: locationPulse 2s infinite;
+}
+
+@keyframes locationPulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
 }

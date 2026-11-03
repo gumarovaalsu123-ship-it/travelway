@@ -11,6 +11,7 @@ import PlaceFormOverlay from '../Components/Map/UI/PlaceFormOverlay';
 import MapClickHandler from '../Components/Map/Logic/MapClickHandler';
 import UserLocation from '../Components/Map/Logic/UserLocation';
 import { fixLeafletIcons } from '../utils/leafletIconFix';
+import LocateButton from '../Components/Map/UI/LocateButton';
 
 
 export default function InteractiveMap() {
@@ -50,11 +51,11 @@ export default function InteractiveMap() {
                         <MapClickHandler setPosition={setSelectedPosition} />
 
                         <UserLocation />
+                        <CustomZoomControl />
 
                         {selectedPosition && <Marker position={selectedPosition} />}
                     </MapContainer>
 
-                    <CustomZoomControl />
 
                     <PlaceFormOverlay
                         position={selectedPosition}

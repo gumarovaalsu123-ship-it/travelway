@@ -1,23 +1,47 @@
+
 import { useMapEvents } from 'react-leaflet';
 
 export default function MapClickHandler({ setPosition }) {
     useMapEvents({
         async click(e) {
+            // Игнорируем клики по элементам управления карты
+            const target = e.originalEvent?.target;
+
+            if (
+                target?.closest('.map-zoom-controls') ||
+                target?.closest('.leaflet-control') ||
+                target?.closest('.leaflet-control-container')
+            ) {
+                return;
+            }
+
             const { lat, lng } = e.latlng;
 
-            // 1. Сразу показываем маркер и статус загрузки в боковой панели
-            setPosition({ lat, lng, name: 'Ищем название...', category: 'Загрузка...' });
+            setPosition({
+                lat,
+                lng,
+                name: 'Ищем название...',
+                category: 'Загрузка...'
+            });
 
             try {
-                // 2. Делаем запрос к гео-базе OpenStreetMap (просим ответ на русском)
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`);
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`
+                );
+
+                if (!response.ok) {
+                    throw new Error('Ошибка получения данных');
+                }
+
                 const data = await response.json();
 
-                // 3. Вытаскиваем название заведения, парка или хотя бы улицу
-                const placeName = data.name || data.address?.road || 'Неизвестное место';
+                const placeName =
+                    data.name ||
+                    data.address?.road ||
+                    'Неизвестное место';
 
-                // 4. Переводим базовые категории для красоты (API отдает их на английском)
                 const rawType = data.type || 'Объект';
+
                 const categoryMap = {
                     cafe: 'Кофейня',
                     restaurant: 'Ресторан',
@@ -29,14 +53,28 @@ export default function MapClickHandler({ setPosition }) {
                     viewpoint: 'Смотровая площадка',
                     attraction: 'Достопримечательность'
                 };
+
                 const category = categoryMap[rawType] || rawType;
 
-                // 5. Обновляем стейт готовыми данными
-                setPosition({ lat, lng, name: placeName, category: category });
+                setPosition({
+                    lat,
+                    lng,
+                    name: placeName,
+                    category
+                });
+
             } catch (error) {
-                setPosition({ lat, lng, name: 'Не удалось определить', category: 'Ошибка сети' });
+                console.error('Ошибка определения места:', error);
+
+                setPosition({
+                    lat,
+                    lng,
+                    name: 'Не удалось определить',
+                    category: 'Ошибка сети'
+                });
             }
-        },
+        }
     });
+
     return null;
 }

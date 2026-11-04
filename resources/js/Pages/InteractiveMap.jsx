@@ -1,29 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
+import Toast from '../Components/Toast';
 import CustomZoomControl from '../Components/Map/UI/CustomZoomControl';
+import MapLayerToggle from '../Components/Map/UI/MapLayerToggle';
+import MapSearch from '../Components/Map/UI/MapSearch';
 import PlaceFormOverlay from '../Components/Map/UI/PlaceFormOverlay';
+import PlaceMarker from '../Components/Map/UI/PlaceMarker';
+import FitToPlaces from '../Components/Map/Logic/FitToPlaces';
 import MapClickHandler from '../Components/Map/Logic/MapClickHandler';
 import UserLocation from '../Components/Map/Logic/UserLocation';
-import { fixLeafletIcons } from '../utils/leafletIconFix';
-import LocateButton from '../Components/Map/UI/LocateButton';
+import { reverseGeocode } from '../utils/geocoding';
+import { draftIcon } from '../utils/mapIcons';
+import { flyToPointBesideForm, revealPointBesideForm } from '../utils/mapView';
 
+const DEFAULT_CENTER = [55.7963, 49.1089]; // Казань
 
-export default function InteractiveMap() {
-    // 1. Инициализируем фикс иконок при первой загрузке
-    useEffect(() => {
-        fixLeafletIcons();
+const layerFilters = {
+    all: () => true,
+    trips: (place) => place.visits.length > 0,
+    favorites: (place) => place.isFavorite,
+};
+
+export default function InteractiveMap({ categories, trips, places }) {
+    const [map, setMap] = useState(null);
+    const [draft, setDraft] = useState(null);
+    const [layer, setLayer] = useState('all');
+    const geocodeRequest = useRef(null);
+
+    const visiblePlaces = useMemo(() => places.filter(layerFilters[layer]), [places, layer]);
+
+    const closeDraft = useCallback(() => {
+        geocodeRequest.current?.abort();
+        setDraft(null);
     }, []);
-    // 2. Вся логика состояния страницы (стейт)
-    const [selectedPosition, setSelectedPosition] = useState(null);
-    // 3. Константы
-    const defaultCenter = [55.7963, 49.1089];
-    // 4. Чистый рендер
+
+    /** Новая точка на карте: показываем маркер и форму сразу, название подтягиваем из OSM. */
+    const selectPoint = useCallback(async ({ lat, lng }) => {
+        map?.closePopup();
+        geocodeRequest.current?.abort();
+        geocodeRequest.current = new AbortController();
+
+        const key = `${lat}:${lng}:${Date.now()}`;
+        setDraft({ key, lat, lng, isLoading: true });
+        if (map) {
+            revealPointBesideForm(map, [lat, lng]);
+        }
+
+        try {
+            const result = await reverseGeocode(lat, lng, geocodeRequest.current.signal);
+            setDraft((current) => (current?.key === key ? { ...current, ...result, lat, lng, isLoading: false } : current));
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                setDraft((current) => (current?.key === key ? { ...current, isLoading: false } : current));
+            }
+        }
+    }, [map]);
+
+    /** Результат поиска уже содержит название и адрес — геокодировать повторно не нужно. */
+    const selectSearchResult = useCallback((result) => {
+        geocodeRequest.current?.abort();
+        setDraft({ ...result, key: `search:${result.id}`, isLoading: false });
+        if (map) {
+            flyToPointBesideForm(map, [result.lat, result.lng], 17);
+        }
+    }, [map]);
+
+    const addExistingPlaceToTrip = useCallback((place) => {
+        map?.closePopup();
+        setDraft({ key: `place:${place.id}:${Date.now()}`, lat: place.lat, lng: place.lng, place, isLoading: false });
+        if (map) {
+            revealPointBesideForm(map, [place.lat, place.lng]);
+        }
+    }, [map]);
+
     return (
         <div className="page-bg-light">
             <Head title="Интерактивная карта | Тревелвей" />
@@ -36,37 +90,55 @@ export default function InteractiveMap() {
                     <Link href="/my-trips" className="btn btn--outline-dark">Перейти к путешествиям</Link>
                 </header>
 
-                <div className="full-map-area mt-16" style={{ position: 'relative', height: '600px', borderRadius: '16px', overflow: 'hidden' }}>
-                    <MapContainer
-                        center={defaultCenter}
-                        zoom={14}
-                        zoomControl={false}
-                        style={{ width: '100%', height: '100%' }}
-                    >
+                <div className="full-map-area mt-16">
+                    <MapContainer center={DEFAULT_CENTER} zoom={13} zoomControl={false} ref={setMap}>
                         <TileLayer
                             attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
 
-                        <MapClickHandler setPosition={setSelectedPosition} />
-
+                        <FitToPlaces places={places} />
+                        <MapClickHandler onSelect={selectPoint} />
                         <UserLocation />
                         <CustomZoomControl />
 
-                        {selectedPosition && <Marker position={selectedPosition} />}
+                        {visiblePlaces.map((place) => (
+                            <PlaceMarker
+                                key={place.id}
+                                place={place}
+                                isSelected={draft?.place?.id === place.id}
+                                onAddToTrip={addExistingPlaceToTrip}
+                            />
+                        ))}
+
+                        {draft && !draft.place && (
+                            <Marker position={[draft.lat, draft.lng]} icon={draftIcon(draft.lat, draft.lng)} interactive={false} />
+                        )}
                     </MapContainer>
 
+                    <div className="map-toolbar">
+                        <MapSearch map={map} onSelect={selectSearchResult} />
+                        <MapLayerToggle value={layer} onChange={setLayer} />
+                    </div>
 
-                    <PlaceFormOverlay
-                        position={selectedPosition}
-                        onClose={() => setSelectedPosition(null)}
-                    />
+                    {places.length === 0 && !draft && (
+                        <div className="map-empty-hint">Нажмите на карту или найдите место, чтобы сохранить его</div>
+                    )}
 
+                    {draft && (
+                        <PlaceFormOverlay
+                            draft={draft}
+                            categories={categories}
+                            trips={trips}
+                            onClose={closeDraft}
+                            onSaved={closeDraft}
+                        />
+                    )}
                 </div>
             </main>
 
             <Footer />
-
+            <Toast />
         </div>
     );
 }

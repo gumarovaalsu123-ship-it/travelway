@@ -1,79 +1,29 @@
-
+import { useRef } from 'react';
 import { useMapEvents } from 'react-leaflet';
 
-export default function MapClickHandler({ setPosition }) {
-    useMapEvents({
-        async click(e) {
-            // Игнорируем клики по элементам управления карты
-            const target = e.originalEvent?.target;
+/**
+ * Сообщает координаты клика по карте. Клик, которым пользователь просто закрыл попап,
+ * не считается выбором новой точки.
+ */
+export default function MapClickHandler({ onSelect }) {
+    const popupJustClosed = useRef(false);
 
-            if (
-                target?.closest('.map-zoom-controls') ||
-                target?.closest('.leaflet-control') ||
-                target?.closest('.leaflet-control-container')
-            ) {
+    useMapEvents({
+        popupclose() {
+            popupJustClosed.current = true;
+            setTimeout(() => {
+                popupJustClosed.current = false;
+            }, 0);
+        },
+        click(event) {
+            const target = event.originalEvent?.target;
+
+            if (popupJustClosed.current || target?.closest('.leaflet-control, .map-zoom-controls')) {
                 return;
             }
 
-            const { lat, lng } = e.latlng;
-
-            setPosition({
-                lat,
-                lng,
-                name: 'Ищем название...',
-                category: 'Загрузка...'
-            });
-
-            try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`
-                );
-
-                if (!response.ok) {
-                    throw new Error('Ошибка получения данных');
-                }
-
-                const data = await response.json();
-
-                const placeName =
-                    data.name ||
-                    data.address?.road ||
-                    'Неизвестное место';
-
-                const rawType = data.type || 'Объект';
-
-                const categoryMap = {
-                    cafe: 'Кофейня',
-                    restaurant: 'Ресторан',
-                    fast_food: 'Фастфуд',
-                    hotel: 'Отель',
-                    museum: 'Музей',
-                    park: 'Парк',
-                    monument: 'Памятник',
-                    viewpoint: 'Смотровая площадка',
-                    attraction: 'Достопримечательность'
-                };
-
-                const category = categoryMap[rawType] || rawType;
-
-                setPosition({
-                    lat,
-                    lng,
-                    name: placeName,
-                    category
-                });
-
-            } catch (error) {
-                console.error('Ошибка определения места:', error);
-
-                setPosition({
-                    lat,
-                    lng,
-                    name: 'Не удалось определить',
-                    category: 'Ошибка сети'
-                });
-            }
-        }
+            onSelect(event.latlng);
+        },
     });
 
     return null;

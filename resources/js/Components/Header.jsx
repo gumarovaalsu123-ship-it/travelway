@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+
+const navItems = [
+    { href: '/interactive-map', label: 'Интерактивная карта' },
+    { href: '/my-trips', label: 'Мои путешествия' },
+    { href: '/favorites', label: 'Избранное' },
+];
 
 export default function Header() {
+    const { props, url } = usePage();
+    const auth = props.auth ?? {};
+
     return (
         <header className="navbar">
             <div className="container navbar__inner">
@@ -12,13 +21,35 @@ export default function Header() {
                         <span className="brand-tagline">маршруты</span>
                     </div>
                 </Link>
-                <nav className="navbar__nav">
-                    <Link href="/interactive-map" className="nav-link active">Интерактивная карта</Link>
-                    <Link href="/my-trips" className="nav-link">Мои путешествия</Link>
-                    <Link href="#" className="nav-link">Избранное</Link>
-                    <Link href="#" className="nav-link">Профиль</Link>
-                </nav>
+
+                {auth.user && (
+                    <nav className="navbar__nav">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`nav-link ${url.startsWith(item.href) ? 'active' : ''}`}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
+                )}
+
+                {auth.user ? (
+                    <div className="navbar__user">
+                        <span className="navbar__user-name">{auth.user.name}</span>
+                        <Link href="/logout" method="post" as="button" className="nav-link nav-logout">
+                            Выйти
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="auth-actions">
+                        <Link href="/login" className="btn btn--outline">Войти</Link>
+                        <Link href="/register" className="btn btn--solid">Регистрация</Link>
+                    </div>
+                )}
             </div>
-        </header >
+        </header>
     );
 }

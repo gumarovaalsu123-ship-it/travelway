@@ -26,7 +26,6 @@ class TripFactory extends Factory
             'destination' => fake()->city(),
             'start_date' => $startDate,
             'end_date' => (clone $startDate)->modify('+2 days'),
-            'status' => 'planned',
             'is_public' => false,
         ];
     }

@@ -4901,3 +4901,77 @@
         text-align: center;
     }
 }
+
+/* =========================================
+   МОИ ПУТЕШЕСТВИЯ — ДОПОЛНЕНИЯ
+   ========================================= */
+
+.trip-card__status--current {
+    background: var(--color-accent-green);
+    color: var(--color-white);
+}
+
+.trip-card__status--completed {
+    background: #ECEAE5;
+    color: var(--color-text-muted);
+}
+
+.trip-card__status--draft {
+    background: #F7EDE7;
+    color: var(--color-accent-orange);
+}
+
+.trip-card__actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+    background: transparent;
+}
+
+.trips-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 64px 24px;
+    text-align: center;
+    background: var(--color-white);
+    border: 1px dashed var(--color-border-warm);
+    border-radius: 24px;
+}
+
+.trips-empty__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-dark);
+}
+
+.trips-empty__text {
+    max-width: 420px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.filter-btn {
+    font-family: var(--font-main);
+}
+
+textarea.form-input {
+    resize: vertical;
+    min-height: 88px;
+}
+
+.link-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--color-accent-green);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.form-actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}

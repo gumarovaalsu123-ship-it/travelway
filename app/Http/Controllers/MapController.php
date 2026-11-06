@@ -33,7 +33,7 @@ class MapController extends Controller
                     'days' => $trip->days->map(fn (TripDay $day) => [
                         'id' => $day->id,
                         'number' => $day->day_number,
-                        'date' => $day->date->toDateString(),
+                        'date' => $day->date?->toDateString(),
                     ]),
                 ]),
             'places' => $this->placesFor($user),
@@ -91,12 +91,12 @@ class MapController extends Controller
                 'category' => $place->category?->only(['id', 'slug', 'name']),
                 'isFavorite' => (bool) $place->is_favorite,
                 'visits' => $place->tripPlaces
-                    ->sortBy(fn (TripPlace $visit) => [$visit->day->date->toDateString(), $visit->visit_order])
+                    ->sortBy(fn (TripPlace $visit) => [$visit->trip_id, $visit->day->day_number, $visit->visit_order])
                     ->map(fn (TripPlace $visit) => [
                         'id' => $visit->id,
                         'tripTitle' => $visit->trip->title,
                         'dayNumber' => $visit->day->day_number,
-                        'date' => $visit->day->date->toDateString(),
+                        'date' => $visit->day->date?->toDateString(),
                         'startTime' => $visit->start_time ? substr($visit->start_time, 0, 5) : null,
                     ])
                     ->values(),

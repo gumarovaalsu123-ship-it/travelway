@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\FavoritePlaceController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/interactive-map', [MapController::class, 'index'])->name('map.index');
     Route::post('/interactive-map/places', [MapController::class, 'store'])->name('map.places.store');
+
+    Route::resource('my-trips', TripController::class)
+        ->except('show')
+        ->parameters(['my-trips' => 'trip'])
+        ->names('trips');
 
     Route::post('/places/{place}/favorite', [FavoritePlaceController::class, 'store'])->name('places.favorite');
     Route::delete('/places/{place}/favorite', [FavoritePlaceController::class, 'destroy'])->name('places.unfavorite');

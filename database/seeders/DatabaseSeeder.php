@@ -76,5 +76,20 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $user->favoritePlaces()->attach($favorite->id, ['created_at' => now()]);
+
+        Trip::factory()->for($user)->create([
+            'title' => 'Майские каникулы в горах Грузии',
+            'destination' => 'Грузия, Тбилиси',
+            'start_date' => null,
+            'end_date' => null,
+            'days_count' => 5,
+        ]);
+
+        Trip::factory()->for($user)->create([
+            'title' => 'Осенний Петербург',
+            'destination' => 'Санкт-Петербург',
+            'start_date' => now()->subMonth()->toDateString(),
+            'end_date' => now()->subMonth()->addDays(3)->toDateString(),
+        ]);
     }
 }

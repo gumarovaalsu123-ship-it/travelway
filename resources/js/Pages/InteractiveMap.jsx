@@ -1,11 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import Header from '../Components/Header';
-import Footer from '../Components/Footer';
-import Toast from '../Components/Toast';
+import AppLayout from '../Components/AppLayout';
 import CustomZoomControl from '../Components/Map/UI/CustomZoomControl';
 import MapLayerToggle from '../Components/Map/UI/MapLayerToggle';
 import MapSearch from '../Components/Map/UI/MapSearch';
@@ -79,11 +77,7 @@ export default function InteractiveMap({ categories, trips, places }) {
     }, [map]);
 
     return (
-        <div className="page-bg-light">
-            <Head title="Интерактивная карта | Тревелвей" />
-
-            <Header />
-
+        <AppLayout title="Интерактивная карта">
             <main className="container interactive-map-main">
                 <header className="section-header section-header--spaced">
                     <h1 className="section-title">Интерактивная карта</h1>
@@ -136,9 +130,6 @@ export default function InteractiveMap({ categories, trips, places }) {
                     )}
                 </div>
             </main>
-
-            <Footer />
-            <Toast />
-        </div>
+        </AppLayout>
     );
 }

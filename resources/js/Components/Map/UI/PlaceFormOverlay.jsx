@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
 import { formatDayLabel } from '../../../utils/format';
 
 function ChevronIcon() {
@@ -214,7 +214,8 @@ export default function PlaceFormOverlay({ draft, categories, trips, onClose, on
                     </>
                 ) : (
                     <p className="form-hint">
-                        У вас пока нет путешествий, поэтому место можно сохранить только в избранное.
+                        У вас пока нет путешествий, поэтому место можно сохранить только в избранное.{' '}
+                        <Link href="/my-trips/create">Создать путешествие</Link>
                     </p>
                 )}
 

@@ -1,24 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 
 /**
  * Показывает короткое уведомление из flash-данных сервера (Inertia::flash('toast', ...)).
+ * Срабатывает и после перехода на другую страницу, и после запроса на той же странице.
  */
 export default function Toast() {
+    const { flash } = usePage();
     const [message, setMessage] = useState(null);
 
-    useEffect(() => router.on('flash', (event) => {
-        if (event.detail.flash?.toast) {
-            setMessage(event.detail.flash.toast);
+    useEffect(() => {
+        if (flash?.toast) {
+            setMessage(flash.toast);
         }
-    }), []);
+    }, [flash]);
 
     useEffect(() => {
         if (!message) {
             return undefined;
         }
 
-        const timer = setTimeout(() => setMessage(null), 3000);
+        const timer = setTimeout(() => setMessage(null), 3500);
 
         return () => clearTimeout(timer);
     }, [message]);

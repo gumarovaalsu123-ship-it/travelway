@@ -5183,7 +5183,8 @@ section[id] {
     .acc-actions__delete {
         margin-left: 0;
     }
-=======
+}
+
 /* Список вещей: кнопки удаления, переименование по клику и формы быстрого добавления */
 .packing-header-actions {
     display: flex;

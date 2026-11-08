@@ -59,8 +59,8 @@ function LandingHeader({ user }) {
                 </div>
             </Link>
             <nav className="navigation-links">
-                <a href="#how-it-works">Как это работает</a>
                 <a href="#features">Возможности</a>
+                <a href="#how-it-works">Как это работает</a>
                 <a href="#examples">Примеры</a>
             </nav>
             <div className="auth-actions">

@@ -24,8 +24,9 @@ const layerFilters = {
     favorites: (place) => place.isFavorite,
 };
 
-export default function InteractiveMap({ categories, trips, places }) {
+export default function InteractiveMap({ categories, trips, places, focusPlaceId = null }) {
     const [map, setMap] = useState(null);
+    const focusPlace = useMemo(() => places.find((place) => place.id === focusPlaceId) ?? null, [places, focusPlaceId]);
     const [draft, setDraft] = useState(null);
     const [layer, setLayer] = useState('all');
     const geocodeRequest = useRef(null);
@@ -91,7 +92,7 @@ export default function InteractiveMap({ categories, trips, places }) {
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
 
-                        <FitToPlaces places={places} />
+                        <FitToPlaces places={places} focusPlace={focusPlace} />
                         <MapClickHandler onSelect={selectPoint} />
                         <UserLocation />
                         <CustomZoomControl />
@@ -101,6 +102,7 @@ export default function InteractiveMap({ categories, trips, places }) {
                                 key={place.id}
                                 place={place}
                                 isSelected={draft?.place?.id === place.id}
+                                isFocused={place.id === focusPlace?.id}
                                 onAddToTrip={addExistingPlaceToTrip}
                             />
                         ))}

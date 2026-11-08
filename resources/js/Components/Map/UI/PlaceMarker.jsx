@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import { Marker, Popup } from 'react-leaflet';
 import { placeIcon } from '../../../utils/mapIcons';
@@ -6,8 +6,16 @@ import { formatDayLabel } from '../../../utils/format';
 
 const requestOptions = { preserveScroll: true, preserveState: true };
 
-export default function PlaceMarker({ place, isSelected, onAddToTrip }) {
+export default function PlaceMarker({ place, isSelected, isFocused = false, onAddToTrip }) {
     const icon = useMemo(() => placeIcon(place, isSelected), [place, isSelected]);
+    const markerRef = useRef(null);
+
+    /** Пришли со страницы «Избранное» — сразу открываем карточку этого места. */
+    useEffect(() => {
+        if (isFocused) {
+            markerRef.current?.openPopup();
+        }
+    }, [isFocused]);
 
     const toggleFavorite = () => {
         if (place.isFavorite) {
@@ -24,7 +32,7 @@ export default function PlaceMarker({ place, isSelected, onAddToTrip }) {
     };
 
     return (
-        <Marker position={[place.lat, place.lng]} icon={icon} title={place.name}>
+        <Marker ref={markerRef} position={[place.lat, place.lng]} icon={icon} title={place.name}>
             <Popup className="place-popup" closeButton>
                 <div className="place-popup__body">
                     {place.category && <span className="place-popup__category">{place.category.name}</span>}

@@ -34,4 +34,6 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/places/{place}/trip-places', [TripPlaceController::class, 'store'])->name('trip-places.store');
     Route::delete('/trip-places/{tripPlace}', [TripPlaceController::class, 'destroy'])->name('trip-places.destroy');
+
+    Route::get('/favorites', [FavoritePlaceController::class, 'index'])->name('favorites.index');
 });

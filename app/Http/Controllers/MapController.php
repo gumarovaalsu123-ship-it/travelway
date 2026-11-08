@@ -37,6 +37,7 @@ class MapController extends Controller
                     ]),
                 ]),
             'places' => $this->placesFor($user),
+            'focusPlaceId' => $request->integer('place') ?: null,
         ]);
     }
 

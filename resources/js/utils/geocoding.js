@@ -197,6 +197,8 @@ function shortDescription(text) {
  * Любая ошибка (нет статьи, сеть, таймаут 4 с) означает просто «данных нет» — пользователю её не показываем.
  * signal — отмена снаружи: форму закрыли или кликнули в другую точку.
  */
+const WIKIMEDIA_IMAGE = /^https:\/\/(upload|thumb)\.wikimedia\.org\//;
+
 export async function fetchWikipediaSummary(wikipediaTag, signal) {
     const empty = { image: null, description: null };
     const article = parseWikipediaTag(wikipediaTag);
@@ -220,11 +222,13 @@ export async function fetchWikipediaSummary(wikipediaTag, signal) {
         }
 
         const summary = await response.json();
-        const image = summary.thumbnail?.source ?? null;
+        // Метки ?utm_source=… Википедия добавляет для статистики — для показа картинки они не нужны.
+        const image = summary.thumbnail?.source?.split('?')[0] ?? null;
 
         return {
-            // Сервер принимает фото только с upload.wikimedia.org — другие ссылки сразу отбрасываем.
-            image: image?.startsWith('https://upload.wikimedia.org/') ? image : null,
+            // Сервер принимает фото только с серверов картинок Википедии
+            // (upload.wikimedia.org или thumb.wikimedia.org) — другие ссылки сразу отбрасываем.
+            image: WIKIMEDIA_IMAGE.test(image ?? '') ? image : null,
             description: summary.type === 'disambiguation' ? null : shortDescription(summary.extract),
         };
     } catch {

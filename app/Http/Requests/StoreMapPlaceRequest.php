@@ -23,7 +23,8 @@ class StoreMapPlaceRequest extends StoreTripPlaceRequest
             'destination' => ['required', 'in:trip,favorite'],
             'trip_day_id' => ['exclude_unless:destination,trip', 'required', 'integer', $this->ownTripDayRule()],
             'start_time' => ['exclude_unless:destination,trip', 'nullable', 'date_format:H:i'],
-            'image' => ['nullable', 'string', 'max:2000', 'url:https', 'starts_with:https://upload.wikimedia.org/'],
+            // Миниатюры Википедия отдаёт с thumb.wikimedia.org, оригиналы — с upload.wikimedia.org.
+            'image' => ['nullable', 'string', 'max:2000', 'url:https', 'regex:#^https://(upload|thumb)\.wikimedia\.org/#'],
             'description' => ['nullable', 'string', 'max:2000'],
             'opening_hours' => ['nullable', 'string', 'max:255'],
             'website' => ['nullable', 'string', 'max:500', 'url:http,https'],
@@ -58,8 +59,8 @@ class StoreMapPlaceRequest extends StoreTripPlaceRequest
     {
         return [
             ...parent::messages(),
-            'image.url' => 'Фото должно быть ссылкой на upload.wikimedia.org.',
-            'image.starts_with' => 'Фото должно быть ссылкой на upload.wikimedia.org.',
+            'image.url' => 'Фото должно быть ссылкой на картинку из Википедии.',
+            'image.regex' => 'Фото должно быть ссылкой на картинку из Википедии.',
             'website.url' => 'Сайт должен быть ссылкой, начинающейся с http:// или https://.',
             'wiki_url.url' => 'Ссылка должна вести на статью Википедии.',
             'wiki_url.regex' => 'Ссылка должна вести на статью Википедии.',

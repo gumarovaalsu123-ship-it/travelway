@@ -105,8 +105,21 @@ class MapPlaceDetailsTest extends TestCase
             'другой домен' => ['https://example.com/a.jpg'],
             'не https' => ['http://upload.wikimedia.org/wikipedia/commons/a/ab/Kazan.jpg'],
             'похожий домен' => ['https://upload.wikimedia.org.evil.com/a.jpg'],
+            'похожий домен thumb' => ['https://thumb.wikimedia.org.evil.com/a.jpg'],
             'не ссылка' => ['upload.wikimedia.org/a.jpg'],
         ];
+    }
+
+    /**
+     * Так сейчас выглядят миниатюры из Wikipedia summary API.
+     */
+    public function test_image_from_thumb_wikimedia_is_accepted(): void
+    {
+        $imageUrl = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Kazan_Kremlin_Qolsharif_Mosque.jpg/330px-Kazan_Kremlin_Qolsharif_Mosque.jpg';
+
+        $this->storePlace(['image' => $imageUrl])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('places', ['image' => $imageUrl]);
     }
 
     #[DataProvider('foreignImageUrls')]

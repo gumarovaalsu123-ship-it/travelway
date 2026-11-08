@@ -45,11 +45,11 @@ class TripShowTest extends TestCase
         $trip = Trip::factory()->for($user)->create();
 
         $this->actingAs($user)
-            ->get("/my-trips/{$trip->id}/transport")
+            ->get("/my-trips/{$trip->id}/plan")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Trips/ComingSoon')
-                ->where('tab', 'transport')
+                ->where('tab', 'plan')
                 ->where('trip.id', $trip->id));
     }
 

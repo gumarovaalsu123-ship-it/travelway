@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
+use App\Http\Controllers\TripTransportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -39,7 +40,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/my-trips/{trip}/map', [TripController::class, 'comingSoon'])->defaults('tab', 'map')->name('trips.map');
 
-    Route::get('/my-trips/{trip}/transport', [TripController::class, 'comingSoon'])->defaults('tab', 'transport')->name('trips.transport');
+    Route::get('/my-trips/{trip}/transport', [TripTransportController::class, 'index'])->name('trips.transport');
+    // scopeBindings: {transport} ищется только среди записей этой поездки ($trip->transports()), иначе 404.
+    Route::scopeBindings()->group(function () {
+        Route::post('/my-trips/{trip}/transport', [TripTransportController::class, 'store'])->name('trips.transport.store');
+        Route::put('/my-trips/{trip}/transport/{transport}', [TripTransportController::class, 'update'])->name('trips.transport.update');
+        Route::delete('/my-trips/{trip}/transport/{transport}', [TripTransportController::class, 'destroy'])->name('trips.transport.destroy');
+    });
 
     Route::get('/my-trips/{trip}/accommodation', [TripController::class, 'comingSoon'])->defaults('tab', 'accommodation')->name('trips.accommodation');
 

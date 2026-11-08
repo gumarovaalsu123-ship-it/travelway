@@ -75,6 +75,14 @@ class Trip extends Model
         return $this->hasMany(TripPlace::class);
     }
 
+    /**
+     * @return HasMany<Transport, $this>
+     */
+    public function transports(): HasMany
+    {
+        return $this->hasMany(Transport::class);
+    }
+
     public function hasDates(): bool
     {
         return $this->start_date !== null && $this->end_date !== null;

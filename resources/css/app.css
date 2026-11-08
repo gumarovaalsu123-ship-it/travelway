@@ -5121,3 +5121,19 @@ section[id] {
         font-size: 28px;
     }
 }
+
+/* Вкладка «Транспорт»: кнопки на карточке и отступ под заголовком */
+.transport-grid {
+    margin-top: 24px;
+}
+
+.transport-card__actions {
+    display: flex;
+    gap: 8px;
+    flex: none;
+}
+
+.transport-card__actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}

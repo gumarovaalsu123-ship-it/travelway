@@ -5137,3 +5137,50 @@ section[id] {
     cursor: pointer;
     font-family: var(--font-main);
 }
+
+/* =========================================
+   ВКЛАДКА «ПРОЖИВАНИЕ»: ДОПОЛНЕНИЯ К МАКЕТУ
+   ========================================= */
+
+/* Переносы строк из данных брони и заметки сохраняем как ввёл пользователь */
+.acc-text {
+    white-space: pre-line;
+}
+
+.acc-divider {
+    margin: 0;
+}
+
+.acc-actions {
+    flex-wrap: wrap;
+}
+
+.acc-actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.acc-actions__delete {
+    margin-left: auto;
+}
+
+.acc-form {
+    padding: 32px;
+    gap: 24px;
+}
+
+.acc-form__search {
+    align-self: flex-start;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .check-blocks-row {
+        flex-direction: column;
+    }
+
+    .acc-actions__delete {
+        margin-left: 0;
+    }
+}

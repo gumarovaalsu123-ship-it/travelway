@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\FavoritePlaceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
 use App\Http\Controllers\TripTransportController;
@@ -48,7 +49,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('/my-trips/{trip}/transport/{transport}', [TripTransportController::class, 'destroy'])->name('trips.transport.destroy');
     });
 
-    Route::get('/my-trips/{trip}/accommodation', [TripController::class, 'comingSoon'])->defaults('tab', 'accommodation')->name('trips.accommodation');
+    Route::get('/my-trips/{trip}/accommodation', [TripAccommodationController::class, 'index'])->name('trips.accommodation');
+    // scopeBindings: {accommodation} ищется только среди жилья этой {trip}, иначе 404.
+    Route::scopeBindings()->controller(TripAccommodationController::class)->group(function () {
+        Route::post('/my-trips/{trip}/accommodation', 'store')->name('trips.accommodation.store');
+        Route::put('/my-trips/{trip}/accommodation/{accommodation}', 'update')->name('trips.accommodation.update');
+        Route::delete('/my-trips/{trip}/accommodation/{accommodation}', 'destroy')->name('trips.accommodation.destroy');
+    });
 
     Route::get('/my-trips/{trip}/packing', [TripController::class, 'comingSoon'])->defaults('tab', 'packing')->name('trips.packing');
 

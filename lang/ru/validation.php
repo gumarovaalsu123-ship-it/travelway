@@ -35,4 +35,5 @@ return [
     'required_without' => 'Заполните поле «:attribute».',
     'string' => 'Поле «:attribute» должно быть строкой.',
     'unique' => 'Такое значение поля «:attribute» уже занято.',
+    'url' => 'Поле «:attribute» должно быть корректной ссылкой.',
 ];

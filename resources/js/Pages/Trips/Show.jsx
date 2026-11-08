@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import TripLayout from '../../Components/TripLayout';
 import { formatDateRange, formatDayLabel } from '../../utils/format';
+import { PlacePhoto, WikipediaCredit } from '../../Components/PlaceInfo';
 
 /**
  * Соседние пустые дни склеиваем в одну строку («Дни 4–6»), чтобы длинная поездка не превращалась в простыню.
@@ -47,9 +48,11 @@ function PlannedDay({ day }) {
                 {day.places.map((place) => (
                     <li key={place.id} className="stop-item">
                         <div className="stop-time">{place.startTime ?? '—'}</div>
+                        <PlacePhoto image={place.image} categorySlug={place.categorySlug} alt={place.name} size="thumb" />
                         <div className="stop-info">
                             <div className="stop-name">{place.name}</div>
                             <div className="stop-desc">{[place.category, place.address].filter(Boolean).join(' · ')}</div>
+                            {place.image && <WikipediaCredit url={place.wikiUrl} />}
                         </div>
                     </li>
                 ))}

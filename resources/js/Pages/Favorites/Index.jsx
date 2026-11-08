@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { plural } from '../../utils/format';
+import { PlacePhoto, WikipediaCredit } from '../../Components/PlaceInfo';
 
 const WITHOUT_CATEGORY = 'none';
 
@@ -14,11 +15,14 @@ function FavoriteCard({ place }) {
 
     return (
         <article className="favorite-card">
+            <PlacePhoto image={place.image} categorySlug={place.category?.slug} alt={place.name} />
             <span className="favorite-card__category">{place.category?.name ?? 'Без категории'}</span>
             <h3 className="favorite-card__title">{place.name}</h3>
             {place.address && place.address !== place.name && (
                 <p className="favorite-card__address">{place.address}</p>
             )}
+            {place.description && <p className="favorite-card__description">{place.description}</p>}
+            {(place.image || place.description) && <WikipediaCredit url={place.wikiUrl} />}
             <div className="favorite-card__actions">
                 <Link href={`/interactive-map?place=${place.id}`} className="btn btn--solid btn--sm">
                     Показать на карте

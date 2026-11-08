@@ -26,6 +26,7 @@ class FavoritePlaceController extends Controller
                 'lat' => $place->latitude,
                 'lng' => $place->longitude,
                 'category' => $place->category?->only(['slug', 'name']),
+                ...$place->details(),
             ]),
         ]);
     }

@@ -10,7 +10,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['user_id', 'category_id', 'name', 'description', 'address', 'latitude', 'longitude', 'image'])]
+#[Fillable([
+    'user_id', 'category_id', 'name', 'description', 'address', 'latitude', 'longitude',
+    'image', 'opening_hours', 'website', 'phone', 'wiki_url',
+])]
 class Place extends Model
 {
     /** @use HasFactory<PlaceFactory> */
@@ -57,6 +60,23 @@ class Place extends Model
     public function favoritedBy(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'wishlists')->withPivot('created_at');
+    }
+
+    /**
+     * Сведения о месте из открытых источников — одинаковые для карты, избранного и страницы поездки.
+     *
+     * @return array{image: ?string, description: ?string, openingHours: ?string, website: ?string, phone: ?string, wikiUrl: ?string}
+     */
+    public function details(): array
+    {
+        return [
+            'image' => $this->image,
+            'description' => $this->description,
+            'openingHours' => $this->opening_hours,
+            'website' => $this->website,
+            'phone' => $this->phone,
+            'wikiUrl' => $this->wiki_url,
+        ];
     }
 
     /**

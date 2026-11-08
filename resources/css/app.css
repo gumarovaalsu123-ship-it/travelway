@@ -5257,3 +5257,107 @@ section[id] {
 .packing-add-form__note {
     max-width: 140px;
 }
+
+/* === ФОТО И ИНФОРМАЦИЯ О МЕСТЕ (OpenStreetMap + Википедия) === */
+
+.place-photo {
+    display: block;
+    width: 100%;
+    object-fit: cover;
+    background: var(--color-bg-alt);
+    border-radius: 16px;
+}
+
+/* Заглушка без фото: иконка категории на тёплом фоне */
+.place-photo--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--color-bg-alt), var(--color-border-warm));
+    font-size: 40px;
+}
+
+.place-photo--cover {
+    height: 160px;
+}
+
+.place-photo--popup {
+    height: 120px;
+    border-radius: 12px;
+}
+
+.place-photo--thumb {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    font-size: 24px;
+}
+
+.place-credit {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.place-credit a,
+.place-contacts a {
+    color: var(--color-accent-green);
+    text-decoration: underline;
+}
+
+.place-contacts {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-dark);
+}
+
+.place-contacts__label {
+    color: var(--color-text-muted);
+}
+
+.place-popup__description,
+.favorite-card__description {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-text-dark);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.place-form-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.place-form-info .btn {
+    align-self: flex-start;
+    cursor: pointer;
+}
+
+/* Пока ждём Википедию — мягко пульсирующая строка */
+.place-form-info__loading {
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    animation: placeInfoPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes placeInfoPulse {
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.map-overlay__form .place-contacts,
+.map-overlay__form .place-credit {
+    margin-bottom: 12px;
+}

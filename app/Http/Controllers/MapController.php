@@ -46,7 +46,10 @@ class MapController extends Controller
         $user = $request->user();
 
         $place = Place::create([
-            ...$request->safe()->only(['name', 'category_id', 'address', 'latitude', 'longitude']),
+            ...$request->safe()->only([
+                'name', 'category_id', 'address', 'latitude', 'longitude',
+                'image', 'description', 'opening_hours', 'website', 'phone', 'wiki_url',
+            ]),
             'user_id' => $user->id,
         ]);
 
@@ -90,6 +93,7 @@ class MapController extends Controller
                 'lat' => $place->latitude,
                 'lng' => $place->longitude,
                 'category' => $place->category?->only(['id', 'slug', 'name']),
+                ...$place->details(),
                 'isFavorite' => (bool) $place->is_favorite,
                 'visits' => $place->tripPlaces
                     ->sortBy(fn (TripPlace $visit) => [$visit->trip_id, $visit->day->day_number, $visit->visit_order])

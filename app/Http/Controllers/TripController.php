@@ -72,6 +72,8 @@ class TripController extends Controller
                     'name' => $visit->place->name,
                     'address' => $visit->place->address,
                     'category' => $visit->place->category?->name,
+                    'categorySlug' => $visit->place->category?->slug,
+                    ...$visit->place->details(),
                     // В базе время хранится как «10:00:00», показываем «10:00».
                     'startTime' => $visit->start_time ? substr($visit->start_time, 0, 5) : null,
                 ])->values(),

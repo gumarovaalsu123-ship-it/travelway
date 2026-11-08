@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import { formatDayLabel } from '../../../utils/format';
+import { fetchWikipediaSummary } from '../../../utils/geocoding';
+import { PlaceContacts, PlacePhoto, WikipediaCredit } from '../../PlaceInfo';
 
 function ChevronIcon() {
     return (
@@ -34,8 +36,15 @@ export default function PlaceFormOverlay({ draft, categories, trips, onClose, on
         longitude: draft.lng,
         trip_day_id: trips[0]?.days[0]?.id ?? '',
         start_time: '',
+        image: null,
+        description: '',
+        opening_hours: null,
+        website: null,
+        phone: null,
+        wiki_url: null,
     });
     const { data, setData, errors, processing, clearErrors } = form;
+    const [isWikiLoading, setIsWikiLoading] = useState(false);
 
     // Новая точка — заполняем форму заново.
     useEffect(() => {
@@ -48,6 +57,12 @@ export default function PlaceFormOverlay({ draft, categories, trips, onClose, on
             latitude: draft.lat,
             longitude: draft.lng,
             start_time: '',
+            image: null,
+            description: '',
+            opening_hours: null,
+            website: null,
+            phone: null,
+            wiki_url: null,
         }));
     }, [draft.key]);
 
@@ -62,8 +77,42 @@ export default function PlaceFormOverlay({ draft, categories, trips, onClose, on
             name: current.name || draft.name || '',
             address: draft.address ?? '',
             category_id: current.category_id || categoryIdFor(categories, draft.categorySlug),
+            opening_hours: draft.openingHours ?? null,
+            website: draft.website ?? null,
+            phone: draft.phone ?? null,
+            wiki_url: draft.wikiUrl ?? null,
         }));
     }, [draft.key, draft.isLoading]);
+
+    // Если у объекта есть статья в Википедии — подтягиваем фото и описание как предпросмотр.
+    // При закрытии формы или клике в другую точку запрос отменяется, чтобы его ответ не попал в новую форму.
+    useEffect(() => {
+        if (existingPlace || draft.isLoading || !draft.wikipedia) {
+            return undefined;
+        }
+
+        const controller = new AbortController();
+        setIsWikiLoading(true);
+
+        fetchWikipediaSummary(draft.wikipedia, controller.signal).then((summary) => {
+            if (controller.signal.aborted) {
+                return;
+            }
+
+            setIsWikiLoading(false);
+            setData((current) => ({
+                ...current,
+                image: summary.image,
+                // Описание, которое пользователь уже успел ввести сам, не затираем.
+                description: current.description || summary.description || '',
+            }));
+        });
+
+        return () => {
+            controller.abort();
+            setIsWikiLoading(false);
+        };
+    }, [draft.key, draft.isLoading, draft.wikipedia]);
 
     const changeTrip = (value) => {
         setTripId(value);
@@ -160,6 +209,38 @@ export default function PlaceFormOverlay({ draft, categories, trips, onClose, on
                             </div>
                             {errors.category_id && <span className="form-error">{errors.category_id}</span>}
                         </div>
+
+                        {isWikiLoading && <p className="place-form-info__loading">Загружаем информацию о месте…</p>}
+
+                        {data.image && (
+                            <div className={`place-form-info ${errors.image ? 'has-error' : ''}`}>
+                                <PlacePhoto image={data.image} alt={data.name} size="popup" />
+                                <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => setData('image', null)}>
+                                    Убрать фото
+                                </button>
+                                {errors.image && <span className="form-error">{errors.image}</span>}
+                            </div>
+                        )}
+
+                        <div className={`form-group ${errors.description ? 'has-error' : ''}`}>
+                            <label className="form-label" htmlFor="place-description">Описание (необязательно)</label>
+                            <textarea
+                                id="place-description"
+                                className="form-input form-input--filled"
+                                rows={isWikiLoading ? 2 : 3}
+                                value={data.description}
+                                onChange={(event) => setData('description', event.target.value)}
+                                placeholder={isWikiLoading ? 'Ищем описание…' : 'Чем интересно это место'}
+                                maxLength={2000}
+                            />
+                            {errors.description && <span className="form-error">{errors.description}</span>}
+                        </div>
+
+                        <PlaceContacts openingHours={data.opening_hours} phone={data.phone} website={data.website} />
+                        {['opening_hours', 'website', 'phone', 'wiki_url'].map((field) => (
+                            errors[field] && <span key={field} className="form-error">{errors[field]}</span>
+                        ))}
+                        {(data.image || data.description) && <WikipediaCredit url={data.wiki_url} />}
                     </>
                 )}
 

@@ -5049,3 +5049,75 @@ section[id] {
     cursor: pointer;
     font-family: var(--font-main);
 }
+
+/* === СТРАНИЦА ПОЕЗДКИ (каркас с вкладками) === */
+
+/* Компактная обложка: ниже, чем в макете, — на всех вкладках важнее содержимое */
+.trip-hero--compact {
+    height: auto;
+    min-height: 220px;
+    padding-top: 32px;
+}
+
+.trip-hero--compact .trip-hero__inner {
+    padding-bottom: 32px;
+}
+
+.trip-hero--compact .trip-hero__title {
+    font-size: 36px;
+}
+
+.trip-hero__back {
+    color: var(--color-white);
+    font-size: 14px;
+    text-decoration: none;
+    opacity: 0.85;
+}
+
+.trip-hero__back:hover {
+    opacity: 1;
+}
+
+/* Цвет плашки статуса — как на карточках «Моих путешествий» («Запланировано» остаётся оранжевым) */
+.trip-hero__badge--current {
+    background: var(--color-accent-green);
+}
+
+.trip-hero__badge--completed {
+    background: #ECEAE5;
+    color: var(--color-text-muted);
+}
+
+.trip-hero__badge--draft {
+    background: #F7EDE7;
+    color: var(--color-accent-orange);
+}
+
+.overview-map-col .btn {
+    text-align: center;
+}
+
+.trip-overview__description {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--color-text-dark);
+    white-space: pre-line;
+}
+
+/* Кнопка «Открыть» добавилась к остальным на карточках «Моих путешествий» */
+.featured-trip__action {
+    justify-content: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.trip-card__actions {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .trip-hero--compact .trip-hero__title {
+        font-size: 28px;
+    }
+}

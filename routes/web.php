@@ -25,9 +25,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/interactive-map/places', [MapController::class, 'store'])->name('map.places.store');
 
     Route::resource('my-trips', TripController::class)
-        ->except('show')
         ->parameters(['my-trips' => 'trip'])
         ->names('trips');
+
+    /*
+     * Вкладки страницы поездки. Каждая вкладка — свой адрес: /my-trips/{trip}/<вкладка>,
+     * «Обзор» — это сама страница поездки /my-trips/{trip} (trips.show).
+     * Пока вкладка не готова, она открывает заглушку «Скоро появится» (TripController@comingSoon).
+     * Чтобы сделать вкладку: замените её строку здесь на свой контроллер (имя маршрута оставьте),
+     * а страницу соберите в Pages/Trips/<Вкладка>.jsx внутри Components/TripLayout.jsx.
+     */
+    Route::get('/my-trips/{trip}/plan', [TripController::class, 'comingSoon'])->defaults('tab', 'plan')->name('trips.plan');
+
+    Route::get('/my-trips/{trip}/map', [TripController::class, 'comingSoon'])->defaults('tab', 'map')->name('trips.map');
+
+    Route::get('/my-trips/{trip}/transport', [TripController::class, 'comingSoon'])->defaults('tab', 'transport')->name('trips.transport');
+
+    Route::get('/my-trips/{trip}/accommodation', [TripController::class, 'comingSoon'])->defaults('tab', 'accommodation')->name('trips.accommodation');
+
+    Route::get('/my-trips/{trip}/packing', [TripController::class, 'comingSoon'])->defaults('tab', 'packing')->name('trips.packing');
 
     Route::post('/places/{place}/favorite', [FavoritePlaceController::class, 'store'])->name('places.favorite');
     Route::delete('/places/{place}/favorite', [FavoritePlaceController::class, 'destroy'])->name('places.unfavorite');

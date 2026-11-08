@@ -2,13 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { formatDateRange, formatDuration, plural } from '../../utils/format';
-
-const STATUS_LABELS = {
-    current: 'Текущая',
-    planned: 'Запланировано',
-    completed: 'Завершено',
-    draft: 'Черновик',
-};
+import { STATUS_LABELS, coverFor } from '../../utils/trips';
 
 const FILTERS = [
     { value: 'all', label: 'Все' },
@@ -17,10 +11,6 @@ const FILTERS = [
     { value: 'completed', label: 'Завершённые' },
     { value: 'draft', label: 'Черновики' },
 ];
-
-const COVERS = ['/images/trips-first.png', '/images/trips-second.png', '/images/card1.png', '/images/card2.png', '/images/card3.png'];
-
-const coverFor = (trip) => COVERS[trip.id % COVERS.length];
 
 function FeaturedTrip({ trip, featured }) {
     const places = featured.placeNames;
@@ -41,6 +31,7 @@ function FeaturedTrip({ trip, featured }) {
                     {places.length > 0 ? places.join(', ') : 'На этот день пока ничего не запланировано.'}
                 </p>
                 <div className="featured-trip__action">
+                    <Link href={`/my-trips/${trip.id}`} className="btn btn--solid">Открыть</Link>
                     <Link href="/interactive-map" className="btn btn--outline">Добавить места на карте</Link>
                 </div>
             </div>
@@ -82,6 +73,7 @@ function TripCard({ trip }) {
                     </div>
                 </div>
                 <div className="trip-card__actions">
+                    <Link href={`/my-trips/${trip.id}`} className="btn btn--solid btn--sm">Открыть</Link>
                     <Link href={`/my-trips/${trip.id}/edit`} className="btn btn--outline btn--sm">Настройки</Link>
                     <button type="button" className="btn btn--outline btn--sm" onClick={remove}>Удалить</button>
                 </div>

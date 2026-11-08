@@ -103,6 +103,25 @@ class Trip extends Model
     }
 
     /**
+     * Data for the trip page header that every tab shows (see Components/TripLayout.jsx).
+     *
+     * @return array{id: int, title: string, destination: string, startDate: ?string, endDate: ?string, daysCount: int, status: string, placesCount: int}
+     */
+    public function toHeader(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'destination' => $this->destination,
+            'startDate' => $this->start_date?->toDateString(),
+            'endDate' => $this->end_date?->toDateString(),
+            'daysCount' => $this->days_count,
+            'status' => $this->status,
+            'placesCount' => $this->tripPlaces()->count(),
+        ];
+    }
+
+    /**
      * Make the trip days match the trip: one day per date (or per planned day for a draft).
      * Days beyond the new length are removed together with the places planned on them.
      */

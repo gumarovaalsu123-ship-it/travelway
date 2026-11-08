@@ -50,6 +50,48 @@ class TripController extends Controller
         return to_route('map.index');
     }
 
+    /**
+     * Trip page, the "Overview" tab: every day of the trip with the places planned on it.
+     */
+    public function show(Trip $trip): Response
+    {
+        Gate::authorize('view', $trip);
+
+        $trip->load('days.tripPlaces.place.category');
+
+        return Inertia::render('Trips/Show', [
+            'trip' => $trip->toHeader(),
+            'description' => $trip->description,
+            'days' => $trip->days->map(fn (TripDay $day) => [
+                'id' => $day->id,
+                'number' => $day->day_number,
+                'date' => $day->date?->toDateString(),
+                'title' => $day->title,
+                'places' => $day->tripPlaces->map(fn (TripPlace $visit) => [
+                    'id' => $visit->id,
+                    'name' => $visit->place->name,
+                    'address' => $visit->place->address,
+                    'category' => $visit->place->category?->name,
+                    // В базе время хранится как «10:00:00», показываем «10:00».
+                    'startTime' => $visit->start_time ? substr($visit->start_time, 0, 5) : null,
+                ])->values(),
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Placeholder for a trip tab that is not built yet (see the tab routes in routes/web.php).
+     */
+    public function comingSoon(Trip $trip, string $tab): Response
+    {
+        Gate::authorize('view', $trip);
+
+        return Inertia::render('Trips/ComingSoon', [
+            'trip' => $trip->toHeader(),
+            'tab' => $tab,
+        ]);
+    }
+
     public function edit(Trip $trip): Response
     {
         Gate::authorize('update', $trip);

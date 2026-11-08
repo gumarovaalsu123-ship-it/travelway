@@ -35,7 +35,8 @@
       margin: 0 auto;
       background: var(--color-bg-main);
       position: relative;
-      overflow: hidden;
+      /* clip, а не hidden: hidden ломает «липкую» шапку (position: sticky) */
+      overflow-x: clip;
     }
 
     /* === HEADER === */
@@ -74,7 +75,7 @@
       align-items: center;
       padding: 80px;
       height: 600px;
-      background: linear-gradient(0deg, rgba(30, 38, 32, 0.55), rgba(30, 38, 32, 0.55)), url('../images/Hero.png') center/cover no-repeat;
+      background: linear-gradient(0deg, rgba(30, 38, 32, 0.55), rgba(30, 38, 32, 0.55)), url('/images/Hero.png') center/cover no-repeat;
     }
 
     .hero-info { display: flex; flex-direction: column; gap: 32px; width: 640px; }
@@ -148,7 +149,7 @@
     .stat-label { font-weight: 400; font-size: 15px; line-height: 20px; color: var(--color-white); opacity: 0.8; text-align: center; }
 
     /* === CTA SECTION === */
-    .cta-section { padding: 120px 80px; display: flex; flex-direction: column; align-items: center; gap: 32px; background: linear-gradient(0deg, rgba(30, 38, 32, 0.512), rgba(30, 38, 32, 0.7)), url('../images/cta.png') center/cover; }
+    .cta-section { padding: 120px 80px; display: flex; flex-direction: column; align-items: center; gap: 32px; background: linear-gradient(0deg, rgba(30, 38, 32, 0.512), rgba(30, 38, 32, 0.7)), url('/images/cta.png') center/cover; }
     .cta-content { max-width: 720px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
     .cta-title { font-weight: 800; font-size: 40px; line-height: 55px; color: var(--color-white); }
     .cta-desc { font-weight: 400; font-size: 16px; line-height: 22px; color: var(--color-white); opacity: 0.8; }
@@ -4974,4 +4975,30 @@ textarea.form-input {
 .form-actions .btn {
     cursor: pointer;
     font-family: var(--font-main);
+}
+
+/* =========================================
+   ЗАКРЕПЛЁННАЯ ШАПКА
+   ========================================= */
+
+/* .header — шапка главной, .navbar — шапка внутренних страниц.
+   z-index выше, чем у элементов карты Leaflet (до 1000), но ниже уведомлений (2000). */
+.header,
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+}
+
+.navbar {
+    box-shadow: 0 1px 0 var(--color-border-warm);
+}
+
+/* Переход по якорям (#features и т. п.): плавно и с отступом под закреплённую шапку */
+html {
+    scroll-behavior: smooth;
+}
+
+section[id] {
+    scroll-margin-top: 100px;
 }

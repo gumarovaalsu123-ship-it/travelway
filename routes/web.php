@@ -5,6 +5,9 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\FavoritePlaceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\PackingController;
+use App\Http\Controllers\PackingItemController;
+use App\Http\Controllers\PackingListController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
@@ -57,7 +60,19 @@ Route::middleware('auth')->group(function () {
         Route::delete('/my-trips/{trip}/accommodation/{accommodation}', 'destroy')->name('trips.accommodation.destroy');
     });
 
-    Route::get('/my-trips/{trip}/packing', [TripController::class, 'comingSoon'])->defaults('tab', 'packing')->name('trips.packing');
+    Route::get('/my-trips/{trip}/packing', [PackingController::class, 'index'])->name('trips.packing');
+
+    // Список вещей: группы и вещи. scopeBindings — группа/вещь ищется только среди записей этой поездки.
+    Route::scopeBindings()->prefix('/my-trips/{trip}')->name('trips.')->group(function () {
+        Route::post('/packing-lists/defaults', [PackingController::class, 'storeDefaults'])->name('packing-lists.defaults');
+        Route::post('/packing-lists', [PackingListController::class, 'store'])->name('packing-lists.store');
+        Route::patch('/packing-lists/{packingList}', [PackingListController::class, 'update'])->name('packing-lists.update');
+        Route::delete('/packing-lists/{packingList}', [PackingListController::class, 'destroy'])->name('packing-lists.destroy');
+        Route::post('/packing-lists/{packingList}/items', [PackingItemController::class, 'store'])->name('packing-items.store');
+        Route::patch('/packing-items/{packingItem}', [PackingItemController::class, 'update'])->name('packing-items.update');
+        Route::patch('/packing-items/{packingItem}/toggle', [PackingItemController::class, 'toggle'])->name('packing-items.toggle');
+        Route::delete('/packing-items/{packingItem}', [PackingItemController::class, 'destroy'])->name('packing-items.destroy');
+    });
 
     Route::post('/places/{place}/favorite', [FavoritePlaceController::class, 'store'])->name('places.favorite');
     Route::delete('/places/{place}/favorite', [FavoritePlaceController::class, 'destroy'])->name('places.unfavorite');

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable(['user_id', 'title', 'description', 'destination', 'start_date', 'end_date', 'days_count', 'cover_image', 'is_public'])]
 class Trip extends Model
@@ -73,6 +74,25 @@ class Trip extends Model
     public function tripPlaces(): HasMany
     {
         return $this->hasMany(TripPlace::class);
+    }
+
+    /**
+     * @return HasMany<PackingList, $this>
+     */
+    public function packingLists(): HasMany
+    {
+        return $this->hasMany(PackingList::class)->orderBy('position');
+    }
+
+    /**
+     * All things to pack, from every group of the trip.
+     * Also used by scoped route bindings: /my-trips/{trip}/packing-items/{packingItem}.
+     *
+     * @return HasManyThrough<PackingItem, PackingList, $this>
+     */
+    public function packingItems(): HasManyThrough
+    {
+        return $this->hasManyThrough(PackingItem::class, PackingList::class);
     }
 
     public function hasDates(): bool

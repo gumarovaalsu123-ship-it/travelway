@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { formatDistance, searchPlaces } from '../../../utils/geocoding';
+import { formatDistance, isTimeoutError, searchPlaces } from '../../../utils/geocoding';
+import Loader, { Spinner } from '../../Loader';
 
 export default function MapSearch({ map, onSelect }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
+    // idle — ждём ввода или показываем результаты, loading — идёт запрос, error / timeout — запрос не удался.
     const [status, setStatus] = useState('idle');
     const abortController = useRef(null);
 
@@ -25,7 +27,7 @@ export default function MapSearch({ map, onSelect }) {
         } catch (error) {
             if (error.name !== 'AbortError') {
                 setResults([]);
-                setStatus('error');
+                setStatus(isTimeoutError(error) ? 'timeout' : 'error');
             }
         }
     };
@@ -39,10 +41,13 @@ export default function MapSearch({ map, onSelect }) {
         <form className="map-search" onSubmit={submit} role="search">
             <div className="map-search__field">
                 <span className="map-search__icon">
+                    {/* Пока идёт запрос, вместо лупы крутится индикатор. */}
+                    {status === 'loading' ? <Spinner /> : (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="11" cy="11" r="7" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
+                    )}
                 </span>
                 <input
                     type="search"
@@ -59,11 +64,19 @@ export default function MapSearch({ map, onSelect }) {
                 />
             </div>
 
-            {status === 'loading' && <div className="map-search__results"><div className="map-search__empty">Ищем…</div></div>}
-
-            {status === 'error' && (
+            {status === 'loading' && (
                 <div className="map-search__results">
-                    <div className="map-search__empty">Поиск сейчас недоступен. Попробуйте позже.</div>
+                    <div className="map-search__empty"><Loader text="Ищем место…" /></div>
+                </div>
+            )}
+
+            {(status === 'error' || status === 'timeout') && (
+                <div className="map-search__results">
+                    <div className="map-search__empty">
+                        {status === 'timeout'
+                            ? 'Поиск не ответил за 15 секунд. Попробуйте ещё раз чуть позже.'
+                            : 'Поиск сейчас недоступен. Проверьте интернет или попробуйте позже.'}
+                    </div>
                 </div>
             )}
 

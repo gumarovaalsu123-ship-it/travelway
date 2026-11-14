@@ -115,10 +115,21 @@ function toPlace(result) {
     };
 }
 
+// Дольше 15 секунд ответа Nominatim не ждём: человек увидит понятную ошибку вместо бесконечной загрузки.
+const NOMINATIM_TIMEOUT_MS = 15_000;
+
+/** Ошибка «сервис не ответил вовремя» — чтобы показать человеку отдельный текст. */
+export const isTimeoutError = (error) => error?.name === 'TimeoutError';
+
 async function request(path, params, signal) {
     // extratags=1 — Nominatim вместе с адресом отдаёт теги объекта; отдельного запроса не нужно.
     const query = new URLSearchParams({ format: 'jsonv2', 'accept-language': 'ru', addressdetails: '1', extratags: '1', ...params });
-    const response = await fetch(`${NOMINATIM_URL}/${path}?${query}`, { signal });
+    // AbortSignal.any — запрос отменится по любой из причин: снаружи (новый поиск, закрыли форму) или по таймауту.
+    // При таймауте fetch бросает ошибку с именем TimeoutError, при отмене снаружи — AbortError.
+    const timeoutSignal = AbortSignal.timeout(NOMINATIM_TIMEOUT_MS);
+    const response = await fetch(`${NOMINATIM_URL}/${path}?${query}`, {
+        signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
+    });
 
     if (!response.ok) {
         throw new Error(`Nominatim ответил ${response.status}`);

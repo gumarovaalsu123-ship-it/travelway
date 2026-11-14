@@ -6,6 +6,7 @@ use App\Models\Transport;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Date;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -20,6 +21,9 @@ class TripTransportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // «Сегодня» — до поездки: прошедшие поездки менять нельзя (TripPolicy::update).
+        Date::setTestNow('2026-06-01');
 
         $this->user = User::factory()->create();
         // 15–17 июня: дорога туда — 14–16 июня, обратно и дальше — 16–18 июня (±1 день).

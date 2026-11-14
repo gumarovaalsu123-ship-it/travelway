@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import { formatDayLabel } from '../../../utils/format';
 import { fetchWikipediaSummary } from '../../../utils/geocoding';
+import Loader from '../../Loader';
 import { PlaceContacts, PlacePhoto, WikipediaCredit } from '../../PlaceInfo';
 
 function ChevronIcon() {
@@ -168,9 +169,11 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                     <>
                         <span className="draft-status__title">Пока не сохранено</span>
                         <p className="draft-status__desc">
-                            {draft.isLoading
-                                ? 'Определяем, что находится в этой точке…'
-                                : 'Вы выбрали точку на карте. Заполните данные, чтобы добавить её в избранное или маршрут путешествия.'}
+                            {draft.isLoading && <Loader text="Определяем, что находится в этой точке…" />}
+                            {!draft.isLoading && draft.geocodeFailed
+                                && 'Не удалось узнать адрес этой точки — сервис OpenStreetMap не ответил. Заполните название сами.'}
+                            {!draft.isLoading && !draft.geocodeFailed
+                                && 'Вы выбрали точку на карте. Заполните данные, чтобы добавить её в избранное или маршрут путешествия.'}
                         </p>
                     </>
                 )}
@@ -187,7 +190,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                                 className="form-input form-input--filled"
                                 value={data.name}
                                 onChange={(event) => setData('name', event.target.value)}
-                                placeholder={draft.isLoading ? 'Ищем название…' : 'Введите название'}
+                                placeholder="Введите название"
                                 maxLength={255}
                             />
                             {errors.name && <span className="form-error">{errors.name}</span>}
@@ -212,7 +215,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             {errors.category_id && <span className="form-error">{errors.category_id}</span>}
                         </div>
 
-                        {isWikiLoading && <p className="place-form-info__loading">Загружаем информацию о месте…</p>}
+                        {isWikiLoading && <Loader variant="block" rows={1} text="Загружаем фото и описание из Википедии…" />}
 
                         {data.image && (
                             <div className={`place-form-info ${errors.image ? 'has-error' : ''}`}>
@@ -232,7 +235,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                                 rows={isWikiLoading ? 2 : 3}
                                 value={data.description}
                                 onChange={(event) => setData('description', event.target.value)}
-                                placeholder={isWikiLoading ? 'Ищем описание…' : 'Чем интересно это место'}
+                                placeholder="Чем интересно это место"
                                 maxLength={2000}
                             />
                             {errors.description && <span className="form-error">{errors.description}</span>}

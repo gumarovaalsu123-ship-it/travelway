@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Accommodation;
 use App\Models\Place;
+use App\Models\PlaceCategory;
 use App\Models\Transport;
 use App\Models\Trip;
 use App\Models\TripPlace;
@@ -37,7 +38,11 @@ class TripAdvanceTest extends TestCase
 
     private function addVisit(): TripPlace
     {
-        return $this->trip->days()->first()->addPlace(Place::factory()->create(['name' => 'Кремль']));
+        return $this->trip->days()->first()->addPlace(Place::factory()->create([
+            'name' => 'Кремль',
+            // Категория задана явно: от неё зависит текст дела («Купить билет» у музея).
+            'category_id' => PlaceCategory::firstWhere('slug', 'museum')->id,
+        ]));
     }
 
     public function test_guest_is_redirected_to_login(): void

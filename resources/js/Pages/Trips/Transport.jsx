@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
 import TripLayout from '../../Components/TripLayout';
 
@@ -162,7 +162,20 @@ function Field({ id, label, required = false, error, children }) {
 /**
  * Страница поездки, вкладка «Транспорт»: переезды по времени и форма добавления/редактирования справа.
  */
-export default function TripTransport({ trip, transports, types, directions, typesWithoutTicket }) {
+/**
+ * Цепочка городов: после записи «Дальше» предлагаем создать поездку в следующий город.
+ * Город и дату начала форма создания возьмёт из этого переезда (TripController@create, ?previous=).
+ */
+function NextTripOffer({ trip, city }) {
+    return (
+        <section className="chain-offer">
+            <p className="chain-offer__text">Вы едете дальше — в {city}. Создать следующую поездку?</p>
+            <Link href={`/my-trips/create?previous=${trip.id}`} className="btn btn--solid-dark btn--sm">Создать поездку</Link>
+        </section>
+    );
+}
+
+export default function TripTransport({ trip, transports, types, directions, typesWithoutTicket, onwardCity }) {
     // id записи, которую сейчас редактируем; null — форма добавляет новую запись.
     const [editingId, setEditingId] = useState(null);
     const firstFieldRef = useRef(null);
@@ -241,6 +254,8 @@ export default function TripTransport({ trip, transports, types, directions, typ
                     </div>
                     <button type="button" className="btn btn--solid-dark" onClick={startAdding}>+ Добавить запись</button>
                 </header>
+
+                {onwardCity && <NextTripOffer trip={trip} city={onwardCity} />}
 
                 <div className="trip-plan-grid transport-grid">
                     <div className="transport-list">

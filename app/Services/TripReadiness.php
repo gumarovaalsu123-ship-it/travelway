@@ -170,12 +170,14 @@ class TripReadiness
     }
 
     /**
-     * Есть ли дорога «Туда». Этап 5 (цепочка поездок) добавит сюда:
-     * «или у предыдущей поездки цепочки есть переезд „Дальше“».
+     * Есть ли дорога «Туда»: своя запись «Туда» или, если поездка — следующий город цепочки,
+     * переезд «Дальше» у предыдущей поездки (это одна и та же дорога, второй раз её не записывают).
+     * Если предыдущую поездку удалили, previous_trip_id стал null — и дорога туда снова нужна своя.
      */
     protected function hasWayThere(): bool
     {
-        return $this->trip->transports->contains('direction', 'to');
+        return $this->trip->transports->contains('direction', 'to')
+            || (bool) $this->trip->previousTrip?->transports->contains('direction', 'onward');
     }
 
     /**

@@ -43,6 +43,13 @@ export default function TripLayout({ trip, activeTab, children }) {
                             <span className="meta-item">{formatDateRange(trip.startDate, trip.endDate)}</span>
                             <span className="meta-item">{trip.placesCount} {plural(trip.placesCount, ['место', 'места', 'мест'])}</span>
                         </div>
+                        {/* Цепочка городов (поездки, связанные переездом «Дальше»). */}
+                        {(trip.previousTrip || trip.nextTrip) && (
+                            <div className="trip-chain-nav">
+                                {trip.previousTrip && <Link href={`/my-trips/${trip.previousTrip.id}`}>← {trip.previousTrip.destination}</Link>}
+                                {trip.nextTrip && <Link href={`/my-trips/${trip.nextTrip.id}`}>{trip.nextTrip.destination} →</Link>}
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

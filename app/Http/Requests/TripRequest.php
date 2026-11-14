@@ -27,6 +27,14 @@ class TripRequest extends FormRequest
             'end_date' => ['nullable', 'required_with:start_date', 'date', 'after_or_equal:start_date'],
             'days_count' => [Rule::excludeIf($hasDates), 'required', 'integer', 'min:1', 'max:'.Trip::MaxDays],
             'is_private' => ['boolean'],
+            // Предыдущий город цепочки (только при создании, форма редактирования его не шлёт):
+            // своя поездка, у которой ещё нет следующей.
+            'previous_trip_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('trips', 'id')->where('user_id', $this->user()->id),
+                Rule::unique('trips', 'previous_trip_id'),
+            ],
         ];
     }
 
@@ -92,6 +100,8 @@ class TripRequest extends FormRequest
     {
         return [
             'title.min' => 'Название должно быть не менее 3 символов.',
+            'previous_trip_id.exists' => 'Предыдущая поездка не найдена.',
+            'previous_trip_id.unique' => 'У предыдущей поездки уже есть следующий город.',
             'end_date.after_or_equal' => 'Дата окончания не может быть раньше даты начала.',
             'days_count.required' => 'Укажите даты поездки или количество дней.',
         ];

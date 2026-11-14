@@ -15,6 +15,16 @@ function daysBetween(startDate, endDate) {
 }
 
 /**
+ * Дата окончания поездки длиной daysCount дней, начиная со startDate (формат «2026-06-15»).
+ */
+function endDateFor(startDate, daysCount) {
+    const endDate = new Date(`${startDate}T00:00:00Z`);
+    endDate.setUTCDate(endDate.getUTCDate() + Number(daysCount) - 1);
+
+    return endDate.toISOString().slice(0, 10);
+}
+
+/**
  * Поле формы с подсказкой: при ошибке подсказка заменяется текстом ошибки (как в макете).
  */
 function Field({ id, label, required = false, hint, error, children }) {
@@ -29,17 +39,23 @@ function Field({ id, label, required = false, hint, error, children }) {
     );
 }
 
-export default function TripForm({ trip }) {
+/**
+ * Форма поездки. previousTrip — когда создаём следующий город цепочки (после переезда «Дальше»):
+ * город и дата начала уже подставлены из этого переезда.
+ */
+export default function TripForm({ trip, previousTrip = null }) {
     const isEditing = Boolean(trip);
+    const chainStartDate = previousTrip?.startDate ?? '';
 
     const { data, setData, post, put, processing, errors } = useForm({
-        title: trip?.title ?? '',
-        destination: trip?.destination ?? '',
+        title: trip?.title ?? previousTrip?.destination ?? '',
+        destination: trip?.destination ?? previousTrip?.destination ?? '',
         description: trip?.description ?? '',
-        start_date: trip?.startDate ?? '',
-        end_date: trip?.endDate ?? '',
+        start_date: trip?.startDate ?? chainStartDate,
+        end_date: trip?.endDate ?? (chainStartDate ? endDateFor(chainStartDate, 3) : ''),
         days_count: trip?.daysCount ?? 3,
         is_private: trip ? !trip.isPublic : true,
+        previous_trip_id: previousTrip?.id ?? null,
     });
 
     const hasDates = Boolean(data.start_date || data.end_date);
@@ -74,10 +90,7 @@ export default function TripForm({ trip }) {
                 return { ...current, start_date: value };
             }
 
-            const endDate = new Date(`${value}T00:00:00Z`);
-            endDate.setUTCDate(endDate.getUTCDate() + Number(current.days_count) - 1);
-
-            return { ...current, start_date: value, end_date: endDate.toISOString().slice(0, 10) };
+            return { ...current, start_date: value, end_date: endDateFor(value, current.days_count) };
         });
     };
 
@@ -101,6 +114,20 @@ export default function TripForm({ trip }) {
                                     : 'Заполните обязательные поля — после создания вы сможете добавить места и детали поездки'}
                             </p>
                         </header>
+
+                        {previousTrip && (
+                            <div className="draft-status-box">
+                                <span className="draft-status__title">Следующий город после «{previousTrip.title}»</span>
+                                <p className="draft-status__desc">
+                                    Поездки свяжутся в цепочку: переезд «Дальше» из предыдущей поездки станет дорогой туда.
+                                </p>
+                            </div>
+                        )}
+                        {errors.previous_trip_id && (
+                            <div className="form-group has-error">
+                                <span className="form-hint">{errors.previous_trip_id}</span>
+                            </div>
+                        )}
 
                         <form className="create-trip-form" onSubmit={submit} noValidate>
                             <Field id="title" label="Название путешествия" required hint="Название должно быть не менее 3 символов" error={errors.title}>

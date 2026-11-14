@@ -48,6 +48,8 @@ class TripTransportController extends Controller
             'types' => Transport::Types,
             'directions' => Transport::Directions,
             'typesWithoutTicket' => Transport::TypesWithoutTicket,
+            // Предложение «Создать следующую поездку»: есть переезд «Дальше», а следующего города ещё нет.
+            'onwardCity' => $trip->nextTrip()->exists() ? null : $trip->lastOnwardRide()?->arrival_place,
         ]);
     }
 

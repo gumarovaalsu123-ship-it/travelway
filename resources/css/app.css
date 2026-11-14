@@ -5814,7 +5814,7 @@ section[id] {
     }
 }
 
-/* =========================================
+/* ==================================
    ВКЛАДКА «ЗАРАНЕЕ» и отметки брони в плане дня
    ========================================= */
 
@@ -5876,4 +5876,44 @@ section[id] {
     font-size: 12px;
     font-weight: 600;
     color: var(--color-accent-green);
+}
+
+/* Цепочка поездок: ссылки на соседние города в шапке, строка в карточке, предложение на «Транспорте» */
+.trip-chain-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.trip-chain-nav a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.trip-card__chain {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.chain-offer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-left: 4px solid var(--color-accent-green);
+    border-radius: 16px;
+}
+
+.chain-offer__text {
+    font-weight: 600;
+    color: var(--color-text-dark);
 }

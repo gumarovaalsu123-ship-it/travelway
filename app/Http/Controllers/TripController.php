@@ -20,14 +20,15 @@ class TripController extends Controller
 {
     /**
      * Trip relations that TripReadiness reads, loaded in advance with one query each.
+     * previousTrip.transports — переезд «Дальше» предыдущего города считается дорогой «Туда».
      */
-    protected const ReadinessRelations = ['transports', 'accommodations', 'packingItems', 'days', 'tripPlaces.place.category', 'tripPlaces.day', 'tasks'];
+    protected const ReadinessRelations = ['transports', 'accommodations', 'packingItems', 'days', 'tripPlaces.place.category', 'tripPlaces.day', 'tasks', 'previousTrip.transports'];
 
     public function index(Request $request): Response
     {
         $trips = $request->user()->trips()
             ->withCount('tripPlaces')
-            ->with(self::ReadinessRelations)
+            ->with([...self::ReadinessRelations, 'nextTrip'])
             ->latest()
             ->get();
 
@@ -37,15 +38,38 @@ class TripController extends Controller
         ]);
     }
 
-    public function create(): Response
+    /**
+     * Form of a new trip. With ?previous={id} it is the next city of a chain:
+     * the city and the start date come from the last "onward" ride of that trip.
+     */
+    public function create(Request $request): Response
     {
-        return Inertia::render('Trips/Form', ['trip' => null]);
+        $previousTrip = $request->filled('previous')
+            ? $request->user()->trips()->find($request->integer('previous'))
+            : null;
+
+        $onwardRide = $previousTrip?->lastOnwardRide();
+
+        return Inertia::render('Trips/Form', [
+            'trip' => null,
+            'previousTrip' => $previousTrip ? [
+                'id' => $previousTrip->id,
+                'title' => $previousTrip->title,
+                'destination' => $onwardRide?->arrival_place ?? '',
+                // Начало следующей поездки — день прибытия (или отправления, если прибытие не указано).
+                'startDate' => ($onwardRide?->arrival_at ?? $onwardRide?->departure_at)?->toDateString(),
+            ] : null,
+        ]);
     }
 
     public function store(TripRequest $request): RedirectResponse
     {
         $trip = DB::transaction(function () use ($request) {
-            $trip = $request->user()->trips()->create($request->tripAttributes());
+            $trip = $request->user()->trips()->create([
+                ...$request->tripAttributes(),
+                // Предыдущий город задаётся только при создании (см. TripRequest).
+                'previous_trip_id' => $request->validated('previous_trip_id'),
+            ]);
             $trip->syncDays();
 
             return $trip;
@@ -155,6 +179,8 @@ class TripController extends Controller
             'isPublic' => $trip->is_public,
             'placesCount' => $trip->trip_places_count,
             'readiness' => (new TripReadiness($trip))->percent(),
+            'previousTrip' => $trip->previousTrip?->only(['id', 'destination']),
+            'nextTrip' => $trip->nextTrip?->only(['id', 'destination']),
         ];
     }
 

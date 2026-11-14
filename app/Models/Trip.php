@@ -10,8 +10,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['user_id', 'title', 'description', 'destination', 'start_date', 'end_date', 'days_count', 'cover_image', 'is_public'])]
+#[Fillable(['user_id', 'previous_trip_id', 'title', 'description', 'destination', 'start_date', 'end_date', 'days_count', 'cover_image', 'is_public'])]
 class Trip extends Model
 {
     /** @use HasFactory<TripFactory> */
@@ -111,6 +112,39 @@ class Trip extends Model
         return $this->hasManyThrough(PackingItem::class, PackingList::class);
     }
 
+    /**
+     * Цепочка городов: поездка, из которой сюда приехали переездом «Дальше».
+     * Что это поездка того же пользователя, проверяет TripRequest при создании.
+     *
+     * @return BelongsTo<Trip, $this>
+     */
+    public function previousTrip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class, 'previous_trip_id');
+    }
+
+    /**
+     * Следующий город цепочки. Следующая поездка у каждой одна (unique в миграции).
+     *
+     * @return HasOne<Trip, $this>
+     */
+    public function nextTrip(): HasOne
+    {
+        return $this->hasOne(Trip::class, 'previous_trip_id');
+    }
+
+    /**
+     * Последний переезд «Дальше» (при пересадках их несколько) — по нему видно,
+     * в какой город и когда человек едет дальше. Записи без времени считаются самыми ранними.
+     */
+    public function lastOnwardRide(): ?Transport
+    {
+        return $this->transports
+            ->where('direction', 'onward')
+            ->sortBy(fn (Transport $ride) => [$ride->departure_at?->timestamp ?? 0, $ride->id])
+            ->last();
+    }
+
     public function hasDates(): bool
     {
         return $this->start_date !== null && $this->end_date !== null;
@@ -141,7 +175,9 @@ class Trip extends Model
     /**
      * Data for the trip page header that every tab shows (see Components/TripLayout.jsx).
      *
-     * @return array{id: int, title: string, destination: string, startDate: ?string, endDate: ?string, daysCount: int, status: string, placesCount: int}
+     * previousTrip / nextTrip — соседние города цепочки для ссылок «← Предыдущий город / Следующий →».
+     *
+     * @return array{id: int, title: string, destination: string, startDate: ?string, endDate: ?string, daysCount: int, status: string, placesCount: int, previousTrip: ?array{id: int, destination: string}, nextTrip: ?array{id: int, destination: string}}
      */
     public function toHeader(): array
     {
@@ -154,6 +190,8 @@ class Trip extends Model
             'daysCount' => $this->days_count,
             'status' => $this->status,
             'placesCount' => $this->tripPlaces()->count(),
+            'previousTrip' => $this->previousTrip?->only(['id', 'destination']),
+            'nextTrip' => $this->nextTrip?->only(['id', 'destination']),
         ];
     }
 

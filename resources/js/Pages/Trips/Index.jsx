@@ -66,6 +66,14 @@ function TripCard({ trip }) {
                     {/* Ссылка растянута на всю карточку (см. .trip-card__link в app.css): клик по карточке открывает поездку. */}
                     <Link href={`/my-trips/${trip.id}`} className="trip-card__link">{trip.title}</Link>
                 </h3>
+                {/* Поездка — звено цепочки городов: откуда приехали и куда едут дальше. */}
+                {(trip.previousTrip || trip.nextTrip) && (
+                    <p className="trip-card__chain">
+                        {trip.previousTrip && `${trip.previousTrip.destination} → `}
+                        <strong>{trip.destination}</strong>
+                        {trip.nextTrip && ` → ${trip.nextTrip.destination}`}
+                    </p>
+                )}
                 <div className="trip-card__progress">
                     <div className="progress-info">
                         <span className="progress-label">Готовность</span>

@@ -23,7 +23,16 @@ class TripMapController extends Controller
         Gate::authorize('view', $trip);
 
         $days = $trip->days()->withCount('tripPlaces')->get();
-        $selectedDay = $trip->dayByNumber($days, $request->integer('day'));
+
+        // «Показать на карте» на вкладке «Проживание» ведёт сюда с ?lodging=id: это жильё подсвечиваем.
+        // Ищем только среди жилья этой поездки и только с координатами — иначе показать нечего.
+        $focusLodging = $request->filled('lodging')
+            ? $trip->accommodations()->whereKey($request->integer('lodging'))->whereNotNull('latitude')->first()
+            : null;
+
+        // Без ?day= при переходе к жилью открываем день заезда в него.
+        $dayNumber = $request->integer('day') ?: $this->checkInDayNumber($trip, $focusLodging);
+        $selectedDay = $trip->dayByNumber($days, $dayNumber);
 
         $selectedDay?->load('tripPlaces.place.category', 'trip.accommodations', 'trip.transports');
         $summary = $selectedDay ? $schedule->summary($selectedDay) : null;
@@ -65,7 +74,22 @@ class TripMapController extends Controller
                     'travelMinutes' => $visit->travel_minutes,
                 ]),
             ] : null,
+            'focusLodging' => $this->lodging($focusLodging),
         ]);
+    }
+
+    /**
+     * Номер дня поездки, в который заезжаем в жильё (заезд накануне начала — день 1). 0 — день неизвестен.
+     */
+    private function checkInDayNumber(Trip $trip, ?Accommodation $lodging): int
+    {
+        if ($lodging?->check_in === null || ! $trip->hasDates()) {
+            return 0;
+        }
+
+        $daysFromStart = (int) $trip->start_date->diffInDays($lodging->check_in->copy()->startOfDay(), false);
+
+        return max($daysFromStart, 0) + 1;
     }
 
     /**

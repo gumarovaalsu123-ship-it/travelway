@@ -5633,6 +5633,117 @@ section[id] {
 }
 
 /* =========================================
+   МОДАЛЬНОЕ ОКНО (Components/Modal.jsx): формы транспорта и жилья
+   ========================================= */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(30, 38, 32, 0.45);
+}
+
+.modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: var(--color-white);
+    border-radius: 24px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal--wide {
+    max-width: 680px;
+}
+
+.modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal__title {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--color-text-dark);
+}
+
+.modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Поле станции с кнопкой «Найти вокзал» справа */
+.station-input {
+    display: flex;
+    gap: 8px;
+}
+
+.station-input .form-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.station-input__button {
+    flex-shrink: 0;
+    min-width: 140px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.station-input__status {
+    color: var(--color-text-muted);
+}
+
+/* Крутящийся кружок «ищем…» */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spinnerRotate 0.7s linear infinite;
+}
+
+@keyframes spinnerRotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Жильё, к которому перешли по «Показать на карте», — оранжевое и крупнее остальных значков */
+.place-pin--lodging.place-pin--active .place-pin__point {
+    background: var(--color-accent-orange);
+    transform: scale(1.25);
+}
+
+.map-stop-card.map-stop-card--focused {
+    border-color: var(--color-accent-orange);
+}
+
+@media (max-width: 768px) {
+    .modal {
+        padding: 20px;
+    }
+
+    .station-input {
+        flex-direction: column;
+    }
+}
+
+/* =========================================
    КАРТОЧКА ПОЕЗДКИ ЦЕЛИКОМ КЛИКАБЕЛЬНА («Мои путешествия»)
    ========================================= */
 

@@ -28,7 +28,6 @@ class TransportFactory extends Factory
             'arrival_place' => fake()->city(),
             'departure_at' => $departureAt,
             'arrival_at' => (clone $departureAt)->modify('+3 hours'),
-            'booking_info' => fake()->optional()->bothify('??####'),
             'is_booked' => fake()->boolean(),
             'note' => null,
         ];

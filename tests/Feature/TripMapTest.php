@@ -131,4 +131,44 @@ class TripMapTest extends TestCase
             ->get($this->mapUrl())
             ->assertForbidden();
     }
+
+    public function test_show_on_map_opens_the_check_in_day_with_the_lodging_focused(): void
+    {
+        $lodging = Accommodation::factory()->for($this->trip)->create([
+            'name' => 'Отель «Волга»',
+            'latitude' => 55.79,
+            'longitude' => 49.12,
+            'check_in' => today()->addMonth()->addDay()->setTime(15, 0),
+        ]);
+
+        $this->actingAs($this->user)
+            ->get($this->mapUrl("?lodging={$lodging->id}"))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('selectedDay.number', 2)
+                ->where('focusLodging.id', $lodging->id)
+                ->where('focusLodging.name', 'Отель «Волга»')
+                ->where('focusLodging.lat', 55.79)
+                ->where('focusLodging.lng', 49.12));
+
+        // Выбранный вручную день важнее дня заезда.
+        $this->actingAs($this->user)
+            ->get($this->mapUrl("?lodging={$lodging->id}&day=3"))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('selectedDay.number', 3)
+                ->where('focusLodging.id', $lodging->id));
+    }
+
+    public function test_lodging_of_another_trip_or_without_coordinates_is_not_focused(): void
+    {
+        $foreign = Accommodation::factory()->create(['latitude' => 55.79, 'longitude' => 49.12]);
+        $withoutCoordinates = Accommodation::factory()->for($this->trip)->create(['latitude' => null, 'longitude' => null]);
+
+        foreach ([$foreign, $withoutCoordinates] as $lodging) {
+            $this->actingAs($this->user)
+                ->get($this->mapUrl("?lodging={$lodging->id}"))
+                ->assertOk()
+                ->assertInertia(fn (AssertableInertia $page) => $page->where('focusLodging', null));
+        }
+    }
 }

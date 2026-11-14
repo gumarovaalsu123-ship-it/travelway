@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -53,10 +53,11 @@ function DaysNav({ tripId, days, selectedDayId }) {
 
 /**
  * Жильё в списке остановок: без номера, просто начало или конец дня.
+ * isFocused — к этому жилью перешли по «Показать на карте», карточка подсвечена.
  */
-function LodgingCard({ lodging, label }) {
+function LodgingCard({ lodging, label, isFocused = false }) {
     return (
-        <div className="map-stop-card map-stop-card--lodging">
+        <div className={`map-stop-card map-stop-card--lodging ${isFocused ? 'map-stop-card--focused' : ''}`}>
             <div className="stop-number-badge stop-number-badge--lodging">⌂</div>
             <div className="map-stop-card__info">
                 <h4 className="map-stop-card__title">{lodging.name}</h4>
@@ -71,10 +72,11 @@ function LodgingCard({ lodging, label }) {
  * Один день на карте: список остановок слева и карта справа.
  * Компонент создаётся заново при смене дня (key в TripMap), поэтому выбор и масштаб карты сбрасываются сами.
  */
-function DayMap({ trip, day }) {
+function DayMap({ trip, day, focusLodging }) {
     const [map, setMap] = useState(null);
     const [selectedId, setSelectedId] = useState(null);
     const markerRefs = useRef({});
+    const focusMarkerRef = useRef(null);
     const cardRefs = useRef({});
 
     const { morningLodging, eveningLodging, places } = day;
@@ -98,9 +100,21 @@ function DayMap({ trip, day }) {
     const hasStraightLines = !isLoading && lines.some((line) => line.isStraight);
 
     // Утром и вечером обычно одно и то же жильё — показываем его одним значком.
-    const lodgings = [morningLodging, eveningLodging]
+    // Жильё из «Показать на карте» добавляем, даже если в этот день маршрут его не касается.
+    const lodgings = [morningLodging, eveningLodging, focusLodging]
         .filter(Boolean)
         .filter((lodging, index, all) => all.findIndex((other) => other.id === lodging.id) === index);
+    const isFocusOutsideRoute = Boolean(focusLodging) && ![morningLodging?.id, eveningLodging?.id].includes(focusLodging.id);
+
+    // В дне может не быть ни мест, ни жилья — тогда карту строим вокруг одного жилья из «Показать на карте».
+    const mapPoints = points.length > 0 ? points : [focusLodging];
+
+    // Перешли к жилью — сразу открываем его подпись на карте (маркер к этому моменту уже создан).
+    useEffect(() => {
+        if (map && focusLodging) {
+            focusMarkerRef.current?.openPopup();
+        }
+    }, [map, focusLodging]);
 
     /** Клик по остановке в списке: подсвечиваем маркер, показываем его и открываем попап. */
     function selectFromList(place) {
@@ -132,7 +146,15 @@ function DayMap({ trip, day }) {
                 </div>
 
                 <div className="map-stop-list">
-                    {morningLodging && <LodgingCard lodging={morningLodging} label={`Начало дня · ${day.startTime}`} />}
+                    {isFocusOutsideRoute && <LodgingCard lodging={focusLodging} label="Жильё, которое вы открыли" isFocused />}
+
+                    {morningLodging && (
+                        <LodgingCard
+                            lodging={morningLodging}
+                            label={`Начало дня · ${day.startTime}`}
+                            isFocused={morningLodging.id === focusLodging?.id}
+                        />
+                    )}
 
                     {places.map((place) => (
                         <button
@@ -158,7 +180,11 @@ function DayMap({ trip, day }) {
                     ))}
 
                     {eveningLodging && (
-                        <LodgingCard lodging={eveningLodging} label={day.endTime ? `Вернётесь ~${day.endTime}` : 'Конец дня'} />
+                        <LodgingCard
+                            lodging={eveningLodging}
+                            label={day.endTime ? `Вернётесь ~${day.endTime}` : 'Конец дня'}
+                            isFocused={eveningLodging.id === focusLodging?.id && morningLodging?.id !== focusLodging?.id}
+                        />
                     )}
                 </div>
 
@@ -176,14 +202,14 @@ function DayMap({ trip, day }) {
             </aside>
 
             <section className="map-interactive-area">
-                <MapContainer center={[points[0].lat, points[0].lng]} zoom={13} zoomControl={false} ref={setMap}>
+                <MapContainer center={[mapPoints[0].lat, mapPoints[0].lng]} zoom={13} zoomControl={false} ref={setMap}>
                     <TileLayer
                         attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
-                    {/* Вписываем карту во все точки дня, включая жильё. */}
-                    <FitToPlaces places={points} />
+                    {/* Вписываем карту во все точки дня, включая жильё; при переходе к жилью — центрируем на нём. */}
+                    <FitToPlaces places={mapPoints} focusPlace={focusLodging} />
                     <CustomZoomControl />
 
                     {/* Линия по дорогам — сплошная; прямая (пока ждём ответ или если сервис не ответил) — пунктир. */}
@@ -196,7 +222,14 @@ function DayMap({ trip, day }) {
                     ))}
 
                     {lodgings.map((lodging) => (
-                        <Marker key={`lodging-${lodging.id}`} position={[lodging.lat, lodging.lng]} icon={lodgingIcon()} title={lodging.name}>
+                        <Marker
+                            key={`lodging-${lodging.id}`}
+                            ref={lodging.id === focusLodging?.id ? focusMarkerRef : undefined}
+                            position={[lodging.lat, lodging.lng]}
+                            icon={lodgingIcon(lodging.id === focusLodging?.id)}
+                            title={lodging.name}
+                            zIndexOffset={lodging.id === focusLodging?.id ? 1000 : 0}
+                        >
                             <Popup>
                                 <div className="map-stop-popup-body">
                                     <h4>⌂ {lodging.name}</h4>
@@ -259,7 +292,7 @@ function EmptyDay({ trip, day }) {
 /**
  * Вкладка «Карта» страницы поездки: маршрут выбранного дня. Номера мест — как в «Плане по дням» (visit_order).
  */
-export default function TripMap({ trip, days, selectedDay }) {
+export default function TripMap({ trip, days, selectedDay, focusLodging }) {
     return (
         <TripLayout trip={trip} activeTab="map">
             <main className="container trip-map-main">
@@ -273,8 +306,9 @@ export default function TripMap({ trip, days, selectedDay }) {
 
                 <DaysNav tripId={trip.id} days={days} selectedDayId={selectedDay?.id} />
 
-                {selectedDay && selectedDay.places.length > 0
-                    ? <DayMap key={selectedDay.id} trip={trip} day={selectedDay} />
+                {/* Карту показываем, если в дне есть места или открыли жильё через «Показать на карте». */}
+                {selectedDay && (selectedDay.places.length > 0 || focusLodging)
+                    ? <DayMap key={selectedDay.id} trip={trip} day={selectedDay} focusLodging={focusLodging} />
                     : <EmptyDay trip={trip} day={selectedDay} />}
             </main>
         </TripLayout>

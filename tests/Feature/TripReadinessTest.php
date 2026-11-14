@@ -114,7 +114,7 @@ class TripReadinessTest extends TestCase
         $this->assertTrue($this->readiness($goingOnward)->step('transport')['ready']);
     }
 
-    public function test_warning_when_the_way_there_is_far_from_the_trip_start(): void
+    public function test_warning_when_trip_dates_changed_after_the_way_there_was_saved(): void
     {
         $trip = $this->makeTrip();
         $this->addRide($trip, 'to', ['departure_at' => '2026-06-12 08:00', 'arrival_at' => '2026-06-12 12:00']);
@@ -125,7 +125,7 @@ class TripReadinessTest extends TestCase
         // Предупреждение мягкое: шаг всё равно готов.
         $this->assertTrue($step['ready']);
         $this->assertSame(
-            ['Дорога туда 12 июня, а поездка начинается 15 июня — проверьте даты'],
+            ['Дорога туда 12 июня, а поездка теперь начинается 15 июня — поправьте даты транспорта'],
             $this->hintTexts($step, 'warnings'),
         );
     }
@@ -377,6 +377,18 @@ class TripReadinessTest extends TestCase
         $this->assertSame(
             ['transport', 'accommodation', 'packing', 'advance', 'plan'],
             array_column($readiness->toArray()['steps'], 'key'),
+        );
+    }
+
+    public function test_warning_when_the_trip_end_moved_away_from_the_way_back(): void
+    {
+        $trip = $this->makeTrip();
+        $this->addRide($trip, 'to');
+        $this->addRide($trip, 'back', ['departure_at' => '2026-06-20 18:00', 'arrival_at' => '2026-06-20 22:00']);
+
+        $this->assertSame(
+            ['Дорога обратно 20 июня, а поездка теперь заканчивается 17 июня — поправьте даты транспорта'],
+            $this->hintTexts($this->readiness($trip)->step('transport'), 'warnings'),
         );
     }
 }

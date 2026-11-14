@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CalculateDayScheduleRequest;
 use App\Http\Requests\ChangeTripPlaceDayRequest;
+use App\Http\Requests\StoreDayPlaceRequest;
 use App\Http\Requests\UpdateTripDayRequest;
 use App\Http\Requests\UpdateTripPlaceRequest;
 use App\Models\Place;
+use App\Models\PlaceCategory;
 use App\Models\Trip;
 use App\Models\TripDay;
 use App\Models\TripPlace;
@@ -66,6 +68,9 @@ class TripPlanController extends Controller
                     'placeId' => $visit->place_id,
                     'name' => $visit->place->name,
                     'address' => $visit->place->address,
+                    // Координаты нужны подсказкам Overpass: «Что по пути?» и «Пора пообедать?» ищут вокруг мест.
+                    'lat' => $visit->place->latitude,
+                    'lng' => $visit->place->longitude,
                     'category' => $visit->place->category?->name,
                     'image' => $visit->place->image,
                     // В базе время хранится как «10:00:00», на странице нужно «10:00».
@@ -84,6 +89,8 @@ class TripPlanController extends Controller
                     ...$summary['places'][$visit->id],
                 ])->values(),
             ] : null,
+            // Категории для мест, найденных подсказками: браузер переводит тег OSM в slug, сервер ждёт id.
+            'categories' => PlaceCategory::query()->orderBy('id')->get(['id', 'slug']),
             'favorites' => $request->user()->favoritePlaces()
                 ->with('category')
                 ->orderBy('name')
@@ -127,6 +134,32 @@ class TripPlanController extends Controller
         $tripPlace->save();
 
         Inertia::flash('toast', 'Изменения сохранены.');
+
+        return back();
+    }
+
+    /**
+     * Save a place found by an Overpass hint and put it into the day:
+     * "Что по пути?" — between the two places of the segment, "Пора пообедать?" — after the place before lunch.
+     */
+    public function storePlace(StoreDayPlaceRequest $request, Trip $trip, TripDay $day): RedirectResponse
+    {
+        Gate::authorize('update', $trip);
+
+        $place = Place::create([
+            ...$request->safe()->only(['name', 'category_id', 'address', 'latitude', 'longitude']),
+            'user_id' => $request->user()->id,
+        ]);
+
+        $after = $request->validated('after_trip_place_id')
+            ? $day->tripPlaces()->findOrFail($request->validated('after_trip_place_id'))
+            : null;
+
+        $day->insertPlaceAfter($place, $after);
+        // Между соседями появилось новое место — старые отрезки пути их больше не соединяют.
+        $day->forgetTravelTimes();
+
+        Inertia::flash('toast', "«{$place->name}» добавлено в план дня {$day->day_number}.");
 
         return back();
     }

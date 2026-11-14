@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/days/{day}', 'updateDay')->name('days.update');
         Route::post('/days/{day}/sort-by-time', 'sortByTime')->name('days.sort-by-time');
         Route::post('/days/{day}/schedule', 'calculateSchedule')->name('days.schedule');
+        // Место, найденное подсказками Overpass («Что по пути?», «Пора пообедать?»), — сразу в нужное место дня.
+        Route::post('/days/{day}/places', 'storePlace')->name('days.places.store');
         Route::patch('/trip-places/{tripPlace}', 'update')->name('trip-places.update');
         Route::patch('/trip-places/{tripPlace}/move', 'move')->name('trip-places.move');
         Route::patch('/trip-places/{tripPlace}/day', 'changeDay')->name('trip-places.change-day');

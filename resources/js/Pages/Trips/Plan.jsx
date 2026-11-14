@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
+import FoundPlacesList from '../../Components/FoundPlacesList';
 import TripLayout from '../../Components/TripLayout';
 import { formatDateRange, formatDayLabel, formatDuration, plural } from '../../utils/format';
+import { PLACE_SETS, findAlongSegment, findNearby } from '../../utils/overpass';
 
 const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
@@ -77,6 +79,98 @@ function timeWarning(place, previous) {
     }
 
     return null;
+}
+
+/**
+ * Окна еды (концепция, раздел 3.6). Завтрак не считаем.
+ */
+const MEAL_WINDOWS = [
+    { start: '12:00', end: '15:00', question: 'Пора пообедать?' },
+    { start: '18:00', end: '21:00', question: 'Пора поужинать?' },
+];
+
+const FOOD_CATEGORIES = ['cafe', 'restaurant'];
+
+/**
+ * Подсказки «Пора пообедать?» по расписанию дня. Возвращает { id места: [окна] }:
+ * подсказка встаёт у места, где человек будет в начале окна.
+ *
+ * Без рассчитанного расписания подсказок нет — неизвестно, где человек будет в 12:00.
+ * Окно пропускаем, если в нём уже есть кофейня/ресторан или если день его не захватывает
+ * (закончился до 12:00 или начался после 15:00). Время «ЧЧ:ММ» сравниваем как строки.
+ */
+function mealHints(places, isCalculated) {
+    const timed = places.filter((place) => place.startTime && place.endTime);
+
+    if (!isCalculated || timed.length === 0) {
+        return {};
+    }
+
+    const dayStart = timed.reduce((min, place) => (place.startTime < min ? place.startTime : min), timed[0].startTime);
+    const dayEnd = timed.reduce((max, place) => (place.endTime > max ? place.endTime : max), timed[0].endTime);
+    const hints = {};
+
+    for (const meal of MEAL_WINDOWS) {
+        const hasFood = timed.some((place) => FOOD_CATEGORIES.includes(place.categorySlug)
+            && place.startTime < meal.end && place.endTime > meal.start);
+
+        if (hasFood || dayEnd <= meal.start || dayStart >= meal.end) {
+            continue;
+        }
+
+        // Последнее место, начавшееся не позже начала окна; если день начался уже внутри окна — первое место.
+        const before = timed.filter((place) => place.startTime <= meal.start);
+        const anchor = before.length > 0
+            ? before.reduce((last, place) => (place.startTime >= last.startTime ? place : last))
+            : timed.find((place) => place.startTime === dayStart);
+
+        hints[anchor.id] = [...(hints[anchor.id] ?? []), meal];
+    }
+
+    return hints;
+}
+
+/**
+ * Окно с местами из OpenStreetMap для «Пора пообедать?» и «Что по пути?».
+ * Найденное место можно поставить в план после afterPlace или сохранить в избранное.
+ */
+function FoundPlacesDialog({ title, load, emptyText, tripId, day, afterPlace, categories, onClose }) {
+    const actions = [
+        {
+            label: 'Добавить в план',
+            url: `/my-trips/${tripId}/days/${day.id}/places`,
+            extra: { after_trip_place_id: afterPlace.id },
+            // Порядок мест в дне изменился — закрываем окно, чтобы человек увидел новый план.
+            onSaved: onClose,
+        },
+        { label: 'В избранное', url: '/interactive-map/places', extra: { destination: 'favorite' } },
+    ];
+
+    return (
+        <div className="plan-dialog-backdrop" onClick={onClose}>
+            <div className="plan-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+                <div className="plan-dialog__header">
+                    <h3 className="plan-dialog__title">{title}</h3>
+                    <button type="button" className="btn-close" aria-label="Закрыть" onClick={onClose}>×</button>
+                </div>
+                <FoundPlacesList load={load} categories={categories} actions={actions} emptyText={emptyText} />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * «Пора пообедать?» у места: в окно обеда/ужина в плане нет кофейни или ресторана.
+ */
+function MealHintRow({ meal, place, onShow }) {
+    return (
+        <li className="plan-hint">
+            <span>🍽 {meal.question} С {meal.start} до {meal.end} в плане нет кафе или ресторана.</span>
+            <button type="button" className="link-button plan-hint__button" onClick={onShow}>
+                Где поесть рядом с «{place.name}»
+            </button>
+        </li>
+    );
 }
 
 /**
@@ -172,11 +266,15 @@ function DayTitle({ tripId, day }) {
  * Строка между местами: как добраться от предыдущей точки и сколько это займёт.
  * Для общественного транспорта — ссылка на точный маршрут в Яндекс.Картах (обычная ссылка, без API).
  */
-function SegmentRow({ segment }) {
+function SegmentRow({ segment, onShowAlong }) {
     return (
         <li className="plan-segment">
-            <span className="plan-segment__label" title={TRAVEL_MODES[segment.mode]?.label}>{segmentLabel(segment)}</span>
-            {segment.yandexUrl && (
+            {segment && <span className="plan-segment__label" title={TRAVEL_MODES[segment.mode]?.label}>{segmentLabel(segment)}</span>}
+            {/* «Что по пути?» — только между двумя местами (у отрезка от жилья кнопки нет). */}
+            {onShowAlong && (
+                <button type="button" className="link-button plan-segment__link" onClick={onShowAlong}>Что по пути?</button>
+            )}
+            {segment?.yandexUrl && (
                 <a className="plan-segment__link" href={segment.yandexUrl} target="_blank" rel="noreferrer">
                     Точный маршрут в Яндекс.Картах
                 </a>
@@ -547,8 +645,10 @@ function FavoritesDialog({ favorites, day, onClose }) {
     );
 }
 
-export default function Plan({ trip, days, selectedDay, favorites }) {
+export default function Plan({ trip, days, selectedDay, favorites, categories }) {
     const [isFavoritesOpen, setFavoritesOpen] = useState(false);
+    // Открытое окно подсказки Overpass: { title, load, emptyText, afterPlace } или null.
+    const [foundDialog, setFoundDialog] = useState(null);
 
     if (!selectedDay) {
         return (
@@ -563,6 +663,25 @@ export default function Plan({ trip, days, selectedDay, favorites }) {
     const places = selectedDay.places;
     const otherDays = days.filter((day) => day.id !== selectedDay.id);
     const findOnMapUrl = `/interactive-map?day=${selectedDay.id}`;
+    const meals = mealHints(places, selectedDay.isCalculated);
+
+    function showMealPlaces(place) {
+        setFoundDialog({
+            title: `Где поесть рядом с «${place.name}»`,
+            load: () => findNearby(place, PLACE_SETS.food, 500),
+            emptyText: 'В 500 м кафе и ресторанов не нашлось.',
+            afterPlace: place,
+        });
+    }
+
+    function showAlong(from, to) {
+        setFoundDialog({
+            title: `Что по пути: «${from.name}» → «${to.name}»`,
+            load: () => findAlongSegment(from, to, PLACE_SETS.sights, 200, 5),
+            emptyText: 'В 200 м от пути достопримечательностей не нашлось.',
+            afterPlace: from,
+        });
+    }
 
     const addButtons = (
         <>
@@ -624,7 +743,12 @@ export default function Plan({ trip, days, selectedDay, favorites }) {
                                             {places.map((place, index) => (
                                                 <React.Fragment key={place.id}>
                                                     {/* Отрезок перед местом: от жилья (у первого) или от предыдущего места. */}
-                                                    {place.segment && <SegmentRow segment={place.segment} />}
+                                                    {(place.segment || index > 0) && (
+                                                        <SegmentRow
+                                                            segment={place.segment}
+                                                            onShowAlong={index > 0 ? () => showAlong(places[index - 1], place) : null}
+                                                        />
+                                                    )}
                                                     <PlaceRow
                                                         tripId={trip.id}
                                                         place={place}
@@ -634,6 +758,9 @@ export default function Plan({ trip, days, selectedDay, favorites }) {
                                                         warning={timeWarning(place, places[index - 1])}
                                                         otherDays={otherDays}
                                                     />
+                                                    {meals[place.id]?.map((meal) => (
+                                                        <MealHintRow key={meal.start} meal={meal} place={place} onShow={() => showMealPlaces(place)} />
+                                                    ))}
                                                 </React.Fragment>
                                             ))}
                                         </ul>
@@ -677,6 +804,15 @@ export default function Plan({ trip, days, selectedDay, favorites }) {
             </main>
 
             {isFavoritesOpen && <FavoritesDialog favorites={favorites} day={selectedDay} onClose={() => setFavoritesOpen(false)} />}
+            {foundDialog && (
+                <FoundPlacesDialog
+                    {...foundDialog}
+                    tripId={trip.id}
+                    day={selectedDay}
+                    categories={categories}
+                    onClose={() => setFoundDialog(null)}
+                />
+            )}
         </TripLayout>
     );
 }

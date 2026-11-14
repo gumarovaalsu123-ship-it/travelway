@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
+import FoundPlacesList from '../../Components/FoundPlacesList';
 import TripLayout from '../../Components/TripLayout';
 import { formatDuration, plural } from '../../utils/format';
 import { searchPlaces } from '../../utils/geocoding';
+import { PLACE_SETS, findNearby } from '../../utils/overpass';
 
 /**
  * Подписи типов жилья. Ключи совпадают с Accommodation::Types на сервере.
@@ -61,8 +63,54 @@ function BookingStatus({ accommodation }) {
         : <span className="booking-status booking-status--todo">Не забронировано</span>;
 }
 
-function AccommodationCard({ accommodation, onEdit, onDelete }) {
+/**
+ * Вкладки «Что рядом с жильём?»: какой набор мест OpenStreetMap ищем в 500 м.
+ */
+const NEARBY_TABS = {
+    groceries: { label: 'Продукты', placeSet: PLACE_SETS.groceries, empty: 'Продуктовых магазинов в 500 м не нашлось.' },
+    pharmacies: { label: 'Аптеки', placeSet: PLACE_SETS.pharmacies, empty: 'Аптек в 500 м не нашлось.' },
+    food: { label: 'Кафе', placeSet: PLACE_SETS.food, empty: 'Кафе и ресторанов в 500 м не нашлось.' },
+};
+
+/**
+ * «Что рядом с жильём?»: магазины, аптеки и кафе в 500 м по данным OpenStreetMap (Overpass API).
+ * Найденное место можно сохранить в избранное — оттуда его легко добавить в любой день плана.
+ */
+function NearbyPanel({ point, categories }) {
+    const [tab, setTab] = useState('groceries');
+    const current = NEARBY_TABS[tab];
+
+    return (
+        <div className="acc-nearby">
+            <div className="acc-nearby__tabs" role="tablist">
+                {Object.entries(NEARBY_TABS).map(([key, item]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={key === tab}
+                        className={`btn btn--sm ${key === tab ? 'btn--solid-dark' : 'btn--outline-dark'}`}
+                        onClick={() => setTab(key)}
+                    >
+                        {item.label}
+                    </button>
+                ))}
+            </div>
+            {/* key: при смене вкладки список создаётся заново и делает новый запрос. */}
+            <FoundPlacesList
+                key={tab}
+                load={() => findNearby(point, current.placeSet, 500)}
+                categories={categories}
+                actions={[{ label: 'В избранное', url: '/interactive-map/places', extra: { destination: 'favorite' } }]}
+                emptyText={current.empty}
+            />
+        </div>
+    );
+}
+
+function AccommodationCard({ accommodation, categories, onEdit, onDelete }) {
     const { checkIn, checkOut, nights, latitude, longitude } = accommodation;
+    const [isNearbyOpen, setNearbyOpen] = useState(false);
     const checkOutHint = [checkOut && `До ${timePart(checkOut)}`, nights !== null && nightsLabel(nights)].filter(Boolean).join(' · ');
 
     return (
@@ -115,8 +163,17 @@ function AccommodationCard({ accommodation, onEdit, onDelete }) {
                             Показать на карте
                         </a>
                     )}
+                    {latitude !== null && (
+                        <button type="button" className="btn btn--outline-dark" onClick={() => setNearbyOpen(!isNearbyOpen)}>
+                            {isNearbyOpen ? 'Скрыть, что рядом' : 'Что рядом?'}
+                        </button>
+                    )}
                     <button type="button" className="btn btn--outline-dark acc-actions__delete" onClick={onDelete}>Удалить</button>
                 </div>
+
+                {isNearbyOpen && latitude !== null && (
+                    <NearbyPanel point={{ lat: latitude, lng: longitude }} categories={categories} />
+                )}
             </div>
         </article>
     );
@@ -362,7 +419,7 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
 /**
  * Страница поездки, вкладка «Проживание»: где живём, даты заезда/выезда и ночи, на которые жильё ещё не найдено.
  */
-export default function TripAccommodation({ trip, accommodations, nights, types, typesWithoutBooking }) {
+export default function TripAccommodation({ trip, accommodations, nights, types, typesWithoutBooking, categories }) {
     // Какая форма открыта: null — никакая, 'new' — добавление, число — id редактируемого жилья.
     const [openForm, setOpenForm] = useState(null);
 
@@ -426,6 +483,7 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                             <AccommodationCard
                                 key={accommodation.id}
                                 accommodation={accommodation}
+                                categories={categories}
                                 onEdit={() => setOpenForm(accommodation.id)}
                                 onDelete={() => destroy(accommodation)}
                             />

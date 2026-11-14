@@ -62,7 +62,10 @@ function TripCard({ trip }) {
                     </span>
                     <span className={`trip-card__status trip-card__status--${trip.status}`}>{STATUS_LABELS[trip.status]}</span>
                 </div>
-                <h3 className="trip-card__title">{trip.title}</h3>
+                <h3 className="trip-card__title">
+                    {/* Ссылка растянута на всю карточку (см. .trip-card__link в app.css): клик по карточке открывает поездку. */}
+                    <Link href={`/my-trips/${trip.id}`} className="trip-card__link">{trip.title}</Link>
+                </h3>
                 <div className="trip-card__progress">
                     <div className="progress-info">
                         <span className="progress-label">Дни с планом</span>
@@ -73,7 +76,6 @@ function TripCard({ trip }) {
                     </div>
                 </div>
                 <div className="trip-card__actions">
-                    <Link href={`/my-trips/${trip.id}`} className="btn btn--solid btn--sm">Открыть</Link>
                     <Link href={`/my-trips/${trip.id}/edit`} className="btn btn--outline btn--sm">Настройки</Link>
                     <button type="button" className="btn btn--outline btn--sm" onClick={remove}>Удалить</button>
                 </div>

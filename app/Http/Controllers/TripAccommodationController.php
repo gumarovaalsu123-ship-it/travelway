@@ -46,13 +46,61 @@ class TripAccommodationController extends Controller
                 'latitude' => $accommodation->latitude,
                 'longitude' => $accommodation->longitude,
                 'note' => $accommodation->note,
+                // Фото показываем только у отеля, квартиры и хостела; у знакомых и «другого» карточка без картинки.
+                'hasPhoto' => in_array($accommodation->type, Accommodation::TypesWithPhoto, true),
             ])->values(),
             'nights' => $this->nightsCoverage($trip, $accommodations),
             'types' => Accommodation::Types,
             'typesWithoutBooking' => Accommodation::TypesWithoutBooking,
+            'dateLimits' => $this->dateLimits($trip),
+            'newDates' => $this->newAccommodationDates($trip, $accommodations),
             // «Что рядом с жильём?»: найденное место сохраняется в избранное, серверу нужен id категории.
             'categories' => PlaceCategory::query()->orderBy('id')->get(['id', 'slug']),
         ]);
+    }
+
+    /**
+     * min/max для полей заезда и выезда — те же границы, что проверяет AccommodationRequest.
+     * null — у черновика без дат границ нет.
+     *
+     * @return array{checkIn: array{min: string, max: string}, checkOut: array{min: string, max: string}}|null
+     */
+    protected function dateLimits(Trip $trip): ?array
+    {
+        $allowed = Accommodation::allowedDates($trip);
+
+        if ($allowed === null) {
+            return null;
+        }
+
+        return array_map(fn (array $range) => [
+            'min' => $range[0]->format('Y-m-d').'T00:00',
+            'max' => $range[1]->format('Y-m-d').'T23:59',
+        ], $allowed);
+    }
+
+    /**
+     * Даты, которые форма нового жилья подставит сама.
+     * Заезд: первое жильё — с первого дня поездки (14:00), следующее — с выезда из предыдущего.
+     * Выезд: последний день поездки (12:00), если он позже заезда.
+     *
+     * @param  Collection<int, Accommodation>  $accommodations
+     * @return array{checkIn: string, checkOut: string}
+     */
+    protected function newAccommodationDates(Trip $trip, Collection $accommodations): array
+    {
+        if (! $trip->hasDates()) {
+            return ['checkIn' => '', 'checkOut' => ''];
+        }
+
+        $lastCheckOut = $accommodations->pluck('check_out')->filter()->max();
+        $checkIn = $lastCheckOut ?? $trip->start_date->copy()->setTime(14, 0);
+        $checkOut = $trip->end_date->copy()->setTime(12, 0);
+
+        return [
+            'checkIn' => $checkIn->format('Y-m-d\TH:i'),
+            'checkOut' => $checkOut->gt($checkIn) ? $checkOut->format('Y-m-d\TH:i') : '',
+        ];
     }
 
     public function store(AccommodationRequest $request, Trip $trip): RedirectResponse

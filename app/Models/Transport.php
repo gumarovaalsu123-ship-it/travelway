@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\TransportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -11,9 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One trip leg: a flight, a train, a bus ride, etc. (the "Transport" tab of the trip page).
+ * Колонка booking_info (номер брони) в таблице осталась от старой версии формы: её больше не заполняют и не показывают.
  */
 #[Table('transport')]
-#[Fillable(['trip_id', 'type', 'direction', 'departure_place', 'arrival_place', 'departure_at', 'arrival_at', 'booking_info', 'is_booked', 'note'])]
+#[Fillable(['trip_id', 'type', 'direction', 'departure_place', 'arrival_place', 'departure_at', 'arrival_at', 'is_booked', 'note'])]
 class Transport extends Model
 {
     /** @use HasFactory<TransportFactory> */
@@ -51,6 +53,12 @@ class Transport extends Model
     public const TypesWithoutTicket = ['own_car'];
 
     /**
+     * На сколько дней дорога может отличаться от начала или конца поездки:
+     * ночной поезд накануне, поздний рейс на следующий день после последнего дня.
+     */
+    public const DateToleranceDays = 1;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -68,6 +76,25 @@ class Transport extends Model
     public function needsTicket(): bool
     {
         return ! in_array($this->type, self::TypesWithoutTicket, true);
+    }
+
+    /**
+     * Какие даты допустимы для дороги этого направления (концепция, 3.1):
+     * «Туда» — начало поездки ±1 день, «Обратно» и «Дальше» — конец поездки ±1 день.
+     * Возвращает первую и последнюю допустимую дату; null — проверять не с чем
+     * (у поездки-черновика нет дат или направление не указано).
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}|null
+     */
+    public static function allowedDates(Trip $trip, ?string $direction): ?array
+    {
+        if (! $trip->hasDates() || ! in_array($direction, self::Directions, true)) {
+            return null;
+        }
+
+        $anchor = CarbonImmutable::instance($direction === 'to' ? $trip->start_date : $trip->end_date)->startOfDay();
+
+        return [$anchor->subDays(self::DateToleranceDays), $anchor->addDays(self::DateToleranceDays)];
     }
 
     /**

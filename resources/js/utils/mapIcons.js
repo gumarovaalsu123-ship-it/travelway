@@ -60,10 +60,11 @@ export function stopIcon(number, isActive = false) {
 
 /**
  * Жильё на карте поездки: тёмный квадрат с домиком, чтобы не путать с местами.
+ * isActive — к жилью перешли по «Показать на карте»: значок оранжевый и крупнее.
  */
-export function lodgingIcon() {
+export function lodgingIcon(isActive = false) {
     return L.divIcon({
-        className: 'place-pin place-pin--lodging',
+        className: `place-pin place-pin--lodging ${isActive ? 'place-pin--active' : ''}`,
         html: '<div class="place-pin__point">⌂</div>',
         iconSize: [30, 30],
         iconAnchor: [15, 15],

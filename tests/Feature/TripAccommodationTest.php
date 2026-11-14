@@ -172,7 +172,7 @@ class TripAccommodationTest extends TestCase
             ]))
             ->assertSessionHasErrors([
                 'name' => 'Заполните поле «название».',
-                'check_out' => 'Выезд не может быть раньше заезда.',
+                'check_out' => 'Выезд должен быть позже заезда.',
                 'longitude',
             ]);
 
@@ -243,5 +243,88 @@ class TripAccommodationTest extends TestCase
         $this->delete($this->url($foreign))->assertNotFound();
 
         $this->assertSame('Чужое', $foreign->fresh()->name);
+    }
+
+    // ——— Даты жилья и даты поездки ———
+
+    public function test_stay_must_be_within_trip_dates_with_one_day_margin(): void
+    {
+        $this->actingAs($this->user)
+            ->post($this->url(), $this->payload(['check_in' => '2026-06-13T15:00', 'check_out' => '2026-06-22T12:00']))
+            ->assertSessionHasErrors([
+                'check_in' => 'Заезд должен быть с 14 июня по 20 июня: поездка с 15 июня по 20 июня.',
+                'check_out' => 'Выезд должен быть с 15 июня по 21 июня: поездка с 15 июня по 20 июня.',
+            ]);
+
+        $this->assertSame(0, Accommodation::count());
+    }
+
+    public function test_arriving_the_evening_before_and_leaving_the_day_after_is_allowed(): void
+    {
+        $this->actingAs($this->user)
+            ->post($this->url(), $this->payload(['check_in' => '2026-06-14T21:00', 'check_out' => '2026-06-21T10:00']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Accommodation::count());
+    }
+
+    public function test_check_out_must_be_later_than_check_in(): void
+    {
+        $this->actingAs($this->user)
+            ->post($this->url(), $this->payload(['check_in' => '2026-06-16T12:00', 'check_out' => '2026-06-16T12:00']))
+            ->assertSessionHasErrors(['check_out' => 'Выезд должен быть позже заезда.']);
+    }
+
+    public function test_draft_without_dates_does_not_limit_the_stay(): void
+    {
+        $draft = Trip::factory()->for($this->user)->create(['start_date' => null, 'end_date' => null, 'days_count' => 3]);
+
+        $this->actingAs($this->user)
+            ->post($this->url(trip: $draft), $this->payload(['check_in' => '2026-09-01T15:00', 'check_out' => '2026-09-03T12:00']))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_first_stay_is_suggested_from_the_trip_start_to_the_trip_end(): void
+    {
+        $this->actingAs($this->user)
+            ->get($this->url())
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('newDates', ['checkIn' => '2026-06-15T14:00', 'checkOut' => '2026-06-20T12:00'])
+                ->where('dateLimits.checkIn', ['min' => '2026-06-14T00:00', 'max' => '2026-06-20T23:59'])
+                ->where('dateLimits.checkOut', ['min' => '2026-06-15T00:00', 'max' => '2026-06-21T23:59']));
+    }
+
+    public function test_next_stay_is_suggested_from_the_previous_check_out(): void
+    {
+        Accommodation::factory()->for($this->trip)->create(['check_in' => '2026-06-15 15:00', 'check_out' => '2026-06-18 11:00']);
+
+        $this->actingAs($this->user)
+            ->get($this->url())
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('newDates', ['checkIn' => '2026-06-18T11:00', 'checkOut' => '2026-06-20T12:00']));
+
+        // Последнее жильё уже до конца поездки — выезд не подставляем, его выберет человек.
+        Accommodation::factory()->for($this->trip)->create(['check_in' => '2026-06-18 15:00', 'check_out' => '2026-06-20 12:00']);
+
+        $this->actingAs($this->user)
+            ->get($this->url())
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('newDates', ['checkIn' => '2026-06-20T12:00', 'checkOut' => '']));
+    }
+
+    public function test_only_hotels_apartments_and_hostels_have_a_photo(): void
+    {
+        foreach (['hotel', 'apartment', 'hostel', 'friends', 'other'] as $index => $type) {
+            Accommodation::factory()->for($this->trip)->create(['type' => $type, 'check_in' => "2026-06-1{$index} 15:00"]);
+        }
+
+        $this->actingAs($this->user)
+            ->get($this->url())
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('accommodations.0.hasPhoto', true)
+                ->where('accommodations.1.hasPhoto', true)
+                ->where('accommodations.2.hasPhoto', true)
+                ->where('accommodations.3.hasPhoto', false)
+                ->where('accommodations.4.hasPhoto', false));
     }
 }

@@ -40,7 +40,6 @@ class TripTransportController extends Controller
                 // Формат «2026-06-15T13:15» понимает поле <input type="datetime-local">.
                 'departureAt' => $transport->departure_at?->format('Y-m-d\TH:i'),
                 'arrivalAt' => $transport->arrival_at?->format('Y-m-d\TH:i'),
-                'bookingInfo' => $transport->booking_info,
                 'isBooked' => $transport->is_booked,
                 'needsTicket' => $transport->needsTicket(),
                 'note' => $transport->note,
@@ -48,9 +47,40 @@ class TripTransportController extends Controller
             'types' => Transport::Types,
             'directions' => Transport::Directions,
             'typesWithoutTicket' => Transport::TypesWithoutTicket,
+            'dateLimits' => $this->dateLimits($trip),
             // Предложение «Создать следующую поездку»: есть переезд «Дальше», а следующего города ещё нет.
             'onwardCity' => $trip->nextTrip()->exists() ? null : $trip->lastOnwardRide()?->arrival_place,
         ]);
+    }
+
+    /**
+     * Подсказки для полей даты на странице, по направлениям: min/max для <input type="datetime-local">
+     * (те же границы, что проверяет TransportRequest) и время отправления, которое форма подставит сама:
+     * «Туда» — утро первого дня поездки, «Обратно» и «Дальше» — вечер последнего.
+     * null — у черновика без дат подсказывать нечего.
+     *
+     * @return array<string, array{min: string, max: string, departure: string}>|null
+     */
+    protected function dateLimits(Trip $trip): ?array
+    {
+        if (! $trip->hasDates()) {
+            return null;
+        }
+
+        $limits = [];
+
+        foreach (Transport::Directions as $direction) {
+            [$first, $last] = Transport::allowedDates($trip, $direction);
+            $departure = $direction === 'to' ? $trip->start_date->format('Y-m-d').'T08:00' : $trip->end_date->format('Y-m-d').'T18:00';
+
+            $limits[$direction] = [
+                'min' => $first->format('Y-m-d').'T00:00',
+                'max' => $last->format('Y-m-d').'T23:59',
+                'departure' => $departure,
+            ];
+        }
+
+        return $limits;
     }
 
     public function store(TransportRequest $request, Trip $trip): RedirectResponse

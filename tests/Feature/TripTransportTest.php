@@ -22,7 +22,8 @@ class TripTransportTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
-        $this->trip = Trip::factory()->for($this->user)->create();
+        // 15–17 июня: дорога туда — 14–16 июня, обратно и дальше — 16–18 июня (±1 день).
+        $this->trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
     }
 
     /**
@@ -37,11 +38,20 @@ class TripTransportTest extends TestCase
             'arrival_place' => 'Казань',
             'departure_at' => '2026-06-15T13:15',
             'arrival_at' => '2026-06-15T15:00',
-            'booking_info' => 'SU 1234',
             'is_booked' => true,
             'note' => 'Багаж 23 кг',
             ...$overrides,
         ];
+    }
+
+    /**
+     * Время дороги обратно в последний день поездки.
+     *
+     * @return array{departure_at: string, arrival_at: string}
+     */
+    private function wayBackTimes(): array
+    {
+        return ['departure_at' => '2026-06-17T18:00', 'arrival_at' => '2026-06-17T20:00'];
     }
 
     public function test_guest_is_redirected_to_login(): void
@@ -80,7 +90,6 @@ class TripTransportTest extends TestCase
             'type' => 'plane',
             'direction' => 'to',
             'departure_place' => 'Москва, Шереметьево',
-            'booking_info' => 'SU 1234',
             'is_booked' => true,
         ]);
     }
@@ -101,7 +110,7 @@ class TripTransportTest extends TestCase
     public function test_own_car_needs_no_ticket(): void
     {
         $this->actingAs($this->user)
-            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['type' => 'own_car', 'direction' => 'back', 'is_booked' => true]))
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['type' => 'own_car', 'direction' => 'back', 'is_booked' => true, ...$this->wayBackTimes()]))
             ->assertSessionHasNoErrors();
 
         $transport = $this->trip->transports()->sole();
@@ -161,7 +170,7 @@ class TripTransportTest extends TestCase
         $transport = Transport::factory()->for($this->trip)->create();
 
         $this->actingAs($this->user)
-            ->put("/my-trips/{$this->trip->id}/transport/{$transport->id}", $this->payload(['type' => 'train', 'direction' => 'back', 'is_booked' => false, 'arrival_place' => 'Сочи']))
+            ->put("/my-trips/{$this->trip->id}/transport/{$transport->id}", $this->payload(['type' => 'train', 'direction' => 'back', 'is_booked' => false, 'arrival_place' => 'Сочи', ...$this->wayBackTimes()]))
             ->assertRedirect("/my-trips/{$this->trip->id}/transport");
 
         $transport->refresh();
@@ -218,5 +227,98 @@ class TripTransportTest extends TestCase
             ->assertNotFound();
 
         $this->assertModelExists($foreignTransport);
+    }
+
+    // ——— Даты дороги и даты поездки ———
+
+    public function test_way_there_must_be_around_the_trip_start(): void
+    {
+        $message = 'Дорога туда должна быть с 14 июня по 16 июня: поездка начинается 15 июня, допускается день до или после.';
+
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['departure_at' => '2026-06-12T08:00', 'arrival_at' => '2026-06-12T10:00']))
+            ->assertSessionHasErrors(['departure_at' => $message, 'arrival_at' => $message]);
+
+        // Прибыть туда позже чем через день после начала тоже нельзя.
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['departure_at' => '2026-06-16T20:00', 'arrival_at' => '2026-06-17T08:00']))
+            ->assertSessionHasErrors(['arrival_at' => $message])
+            ->assertSessionDoesntHaveErrors('departure_at');
+
+        $this->assertDatabaseCount('transport', 0);
+    }
+
+    public function test_night_train_the_day_before_the_start_is_allowed(): void
+    {
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['type' => 'train', 'departure_at' => '2026-06-14T22:00', 'arrival_at' => '2026-06-15T07:00']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('transport', 1);
+    }
+
+    public function test_way_back_and_onward_must_be_around_the_trip_end(): void
+    {
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['direction' => 'back', 'departure_at' => '2026-06-15T18:00', 'arrival_at' => '2026-06-15T20:00']))
+            ->assertSessionHasErrors([
+                'departure_at' => 'Дорога обратно должна быть с 16 июня по 18 июня: поездка заканчивается 17 июня, допускается день до или после.',
+            ]);
+
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['direction' => 'onward', 'departure_at' => '2026-06-18T22:00', 'arrival_at' => '2026-06-19T09:00']))
+            ->assertSessionHasErrors([
+                'arrival_at' => 'Переезд дальше должен быть с 16 июня по 18 июня: поездка заканчивается 17 июня, допускается день до или после.',
+            ]);
+
+        $this->assertDatabaseCount('transport', 0);
+    }
+
+    public function test_draft_without_dates_only_checks_that_arrival_is_not_before_departure(): void
+    {
+        $draft = Trip::factory()->for($this->user)->create(['start_date' => null, 'end_date' => null, 'days_count' => 3]);
+
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$draft->id}/transport", $this->payload(['departure_at' => '2026-09-01T10:00', 'arrival_at' => '2026-09-01T12:00']))
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$draft->id}/transport", $this->payload(['departure_at' => '2026-09-01T10:00', 'arrival_at' => '2026-09-01T09:00']))
+            ->assertSessionHasErrors(['arrival_at' => 'Прибытие не может быть раньше отправления.']);
+    }
+
+    public function test_page_gets_date_limits_and_suggested_departure_by_direction(): void
+    {
+        $this->actingAs($this->user)
+            ->get("/my-trips/{$this->trip->id}/transport")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('dateLimits.to', ['min' => '2026-06-14T00:00', 'max' => '2026-06-16T23:59', 'departure' => '2026-06-15T08:00'])
+                ->where('dateLimits.back', ['min' => '2026-06-16T00:00', 'max' => '2026-06-18T23:59', 'departure' => '2026-06-17T18:00'])
+                ->where('dateLimits.onward', ['min' => '2026-06-16T00:00', 'max' => '2026-06-18T23:59', 'departure' => '2026-06-17T18:00']));
+
+        $draft = Trip::factory()->for($this->user)->create(['start_date' => null, 'end_date' => null, 'days_count' => 3]);
+
+        $this->actingAs($this->user)
+            ->get("/my-trips/{$draft->id}/transport")
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('dateLimits', null));
+    }
+
+    public function test_booking_number_is_neither_saved_nor_shown(): void
+    {
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['booking_info' => 'SU 1234']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('transport', ['trip_id' => $this->trip->id, 'booking_info' => null]);
+
+        // Старая запись с номером брони: колонка в базе осталась, но на страницу номер не уходит.
+        $this->trip->transports()->update(['booking_info' => 'Старая бронь']);
+
+        $this->actingAs($this->user)
+            ->get("/my-trips/{$this->trip->id}/transport")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('transports.0', fn (AssertableInertia $transport) => $transport
+                    ->missing('bookingInfo')
+                    ->etc()));
     }
 }

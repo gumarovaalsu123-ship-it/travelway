@@ -178,6 +178,57 @@ export async function searchPlaces(text, map, signal) {
         .slice(0, 6);
 }
 
+/**
+ * Какие объекты OpenStreetMap подходят как пункт отправления/прибытия для вида транспорта:
+ * keyword — слово, которое добавляем к запросу («вокзал Казань» Nominatim понимает лучше, чем просто «Казань»),
+ * kinds — пары «класс:тип» из ответа Nominatim, остальные результаты отбрасываем.
+ */
+export const STATION_KINDS = {
+    plane: { keyword: 'аэропорт', kinds: ['aeroway:aerodrome', 'aeroway:terminal'] },
+    train: { keyword: 'вокзал', kinds: ['railway:station', 'railway:halt', 'building:train_station', 'public_transport:station'] },
+    bus: { keyword: 'автовокзал', kinds: ['amenity:bus_station', 'highway:bus_stop', 'public_transport:station'] },
+    ferry: { keyword: 'морской вокзал', kinds: ['amenity:ferry_terminal', 'landuse:port', 'industrial:port'] },
+};
+
+const STATION_TIMEOUT_MS = 8000;
+
+/**
+ * Вокзалы, автовокзалы, аэропорты или порты по тексту из поля «Откуда»/«Куда».
+ * Вызывается по кнопке или Enter, а не на каждую букву — так требуют правила Nominatim.
+ * Если сервис не ответил за 8 секунд, запрос отменяется и функция бросает ошибку TimeoutError.
+ */
+export async function searchStations(text, transportType, signal) {
+    const station = STATION_KINDS[transportType];
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new DOMException('Сервис не ответил', 'TimeoutError')), STATION_TIMEOUT_MS);
+    // Отмена снаружи (форму закрыли или начали новый поиск) тоже отменяет запрос.
+    signal?.addEventListener('abort', () => controller.abort(signal.reason));
+
+    try {
+        // Если человек уже написал «вокзал», второй раз слово не добавляем.
+        const query = text.toLowerCase().includes(station.keyword) ? text : `${station.keyword} ${text}`;
+        const results = await request('search', { q: query, limit: '15' }, controller.signal);
+
+        return results
+            .filter((result) => station.kinds.includes(`${result.category}:${result.type}`))
+            .map((result) => {
+                const city = result.address?.city ?? result.address?.town ?? result.address?.village ?? result.address?.state;
+                const name = result.name || result.display_name.split(',')[0];
+
+                return {
+                    id: result.place_id,
+                    // В поле записываем «Казанский вокзал, Москва» — название и город, если города нет в названии.
+                    label: (city && !name.includes(city) ? `${name}, ${city}` : name).slice(0, 150),
+                    fullAddress: result.display_name,
+                };
+            })
+            .filter((place, index, all) => all.findIndex((other) => other.label === place.label) === index)
+            .slice(0, 6);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 const WIKIPEDIA_TIMEOUT_MS = 4000;
 const DESCRIPTION_LENGTH = 500;
 

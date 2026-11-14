@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
 import FoundPlacesList from '../../Components/FoundPlacesList';
+import Modal from '../../Components/Modal';
 import TripLayout from '../../Components/TripLayout';
 import { formatDuration, plural } from '../../utils/format';
 import { searchPlaces } from '../../utils/geocoding';
@@ -108,14 +109,17 @@ function NearbyPanel({ point, categories }) {
     );
 }
 
-function AccommodationCard({ accommodation, categories, onEdit, onDelete }) {
+function AccommodationCard({ tripId, accommodation, categories, onEdit, onDelete }) {
     const { checkIn, checkOut, nights, latitude, longitude } = accommodation;
     const [isNearbyOpen, setNearbyOpen] = useState(false);
     const checkOutHint = [checkOut && `До ${timePart(checkOut)}`, nights !== null && nightsLabel(nights)].filter(Boolean).join(' · ');
 
     return (
         <article className="acc-card">
-            <div className="acc-card__image" style={{ backgroundImage: "url('/images/accommodation.png')" }} />
+            {/* Фото только у отеля, квартиры и хостела (hasPhoto с сервера); у знакомых и «другого» карточка без картинки. */}
+            {accommodation.hasPhoto && (
+                <div className="acc-card__image" style={{ backgroundImage: "url('/images/accommodation.png')" }} />
+            )}
 
             <div className="acc-card__body">
                 <header className="acc-header">
@@ -153,15 +157,10 @@ function AccommodationCard({ accommodation, categories, onEdit, onDelete }) {
                 <div className="acc-actions">
                     <button type="button" className="btn btn--solid-dark" onClick={onEdit}>Изменить</button>
                     {latitude !== null && (
-                        // Отдельной карты на вкладке нет — открываем точку на OpenStreetMap в новой вкладке.
-                        <a
-                            href={`https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn btn--outline-dark"
-                        >
+                        // Вкладка «Карта поездки» откроет день заезда и подсветит это жильё (TripMapController, ?lodging=).
+                        <Link href={`/my-trips/${tripId}/map?lodging=${accommodation.id}`} className="btn btn--outline-dark">
                             Показать на карте
-                        </a>
+                        </Link>
                     )}
                     {latitude !== null && (
                         <button type="button" className="btn btn--outline-dark" onClick={() => setNearbyOpen(!isNearbyOpen)}>
@@ -253,17 +252,32 @@ function AddressSearch({ query, onSelect }) {
 }
 
 /**
- * Форма добавления (accommodation = null) или редактирования жилья.
+ * «2026-06-15T15:00» → «2026-06-16T12:00»: следующий день, время выезда по умолчанию.
  */
-function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, onClose }) {
+function nextDayNoon(dateTime) {
+    const date = new Date(`${dateTime.slice(0, 10)}T00:00:00`);
+    date.setDate(date.getDate() + 1);
+    const pad = (number) => String(number).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T12:00`;
+}
+
+/**
+ * Форма добавления (accommodation = null) или редактирования жилья — внутри модального окна.
+ *
+ * Даты нового жилья подставляет сервер (newDates): первое жильё — с начала поездки, следующее — с выезда
+ * из предыдущего; выезд — последний день поездки. min/max в полях только помогают выбрать дату,
+ * настоящая проверка — на сервере (AccommodationRequest).
+ */
+function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, dateLimits, newDates, onClose }) {
     const isEditing = Boolean(accommodation);
 
     const { data, setData, post, put, processing, errors } = useForm({
         type: accommodation?.type ?? 'hotel',
         name: accommodation?.name ?? '',
         address: accommodation?.address ?? '',
-        check_in: accommodation?.checkIn ?? '',
-        check_out: accommodation?.checkOut ?? '',
+        check_in: isEditing ? (accommodation.checkIn ?? '') : newDates.checkIn,
+        check_out: isEditing ? (accommodation.checkOut ?? '') : newDates.checkOut,
         booking_info: accommodation?.bookingInfo ?? '',
         is_booked: accommodation?.isBooked ?? false,
         note: accommodation?.note ?? '',
@@ -286,6 +300,14 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
         }
     };
 
+    // Выбрали заезд, а выезд пустой или не позже заезда — подставляем выезд на следующий день в 12:00.
+    // Строки «2026-06-15T15:00» можно сравнивать как даты обычным сравнением строк.
+    const changeCheckIn = (checkIn) => setData((current) => ({
+        ...current,
+        check_in: checkIn,
+        check_out: checkIn && (current.check_out === '' || current.check_out <= checkIn) ? nextDayNoon(checkIn) : current.check_out,
+    }));
+
     // Адрес изменили руками — старые координаты ему больше не соответствуют, сбрасываем их.
     const changeAddress = (value) => setData((current) => ({ ...current, address: value, latitude: null, longitude: null }));
 
@@ -298,19 +320,17 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
     }));
 
     return (
-        <section className="form-card acc-form">
-            <header className="form-card__header">
-                <h3 className="acc-title">{isEditing ? 'Изменить проживание' : 'Новое проживание'}</h3>
-                <p className="form-card__subtitle">Обязательно только название — остальное можно дописать позже.</p>
-            </header>
+        <Modal title={isEditing ? 'Изменить проживание' : 'Новое проживание'} onClose={onClose}>
+            <p className="form-card__subtitle">Обязательно только название — остальное можно дописать позже.</p>
 
-            <form className="create-trip-form" onSubmit={submit} noValidate>
+            <form onSubmit={submit} noValidate>
                 <Field id="acc-type" label="Тип жилья" required error={errors.type}>
                     <select
                         id="acc-type"
                         className="form-input form-input--filled form-select"
                         value={data.type}
                         onChange={(event) => setData('type', event.target.value)}
+                        autoFocus
                     >
                         {types.map((type) => (
                             <option key={type} value={type}>{TYPE_LABELS[type]}</option>
@@ -354,8 +374,10 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
                             id="acc-check-in"
                             type="datetime-local"
                             className="form-input form-input--filled"
+                            min={dateLimits?.checkIn.min}
+                            max={dateLimits?.checkIn.max}
                             value={data.check_in}
-                            onChange={(event) => setData('check_in', event.target.value)}
+                            onChange={(event) => changeCheckIn(event.target.value)}
                         />
                     </Field>
                     <Field id="acc-check-out" label="Выезд" error={errors.check_out}>
@@ -363,7 +385,8 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
                             id="acc-check-out"
                             type="datetime-local"
                             className="form-input form-input--filled"
-                            min={data.check_in || undefined}
+                            min={data.check_in || dateLimits?.checkOut.min}
+                            max={dateLimits?.checkOut.max}
                             value={data.check_out}
                             onChange={(event) => setData('check_out', event.target.value)}
                         />
@@ -412,14 +435,14 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
                     </button>
                 </div>
             </form>
-        </section>
+        </Modal>
     );
 }
 
 /**
  * Страница поездки, вкладка «Проживание»: где живём, даты заезда/выезда и ночи, на которые жильё ещё не найдено.
  */
-export default function TripAccommodation({ trip, accommodations, nights, types, typesWithoutBooking, categories }) {
+export default function TripAccommodation({ trip, accommodations, nights, types, typesWithoutBooking, dateLimits, newDates, categories }) {
     // Какая форма открыта: null — никакая, 'new' — добавление, число — id редактируемого жилья.
     const [openForm, setOpenForm] = useState(null);
 
@@ -445,22 +468,12 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                         <h2 className="section-title">Проживание</h2>
                         <p className="section-subtitle section-subtitle--light">{subtitle}</p>
                     </div>
-                    {openForm !== 'new' && addButton('btn btn--solid-dark')}
+                    {addButton('btn btn--solid-dark')}
                 </header>
 
                 <div className="trip-plan-grid mt-16">
                     <div className="accommodation-list">
-                        {openForm === 'new' && (
-                            <AccommodationForm
-                                tripId={trip.id}
-                                accommodation={null}
-                                types={types}
-                                typesWithoutBooking={typesWithoutBooking}
-                                onClose={() => setOpenForm(null)}
-                            />
-                        )}
-
-                        {accommodations.length === 0 && openForm !== 'new' && (
+                        {accommodations.length === 0 && (
                             <section className="trips-empty">
                                 <h3 className="trips-empty__title">Жильё ещё не добавлено</h3>
                                 <p className="trips-empty__text">
@@ -470,24 +483,16 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                             </section>
                         )}
 
-                        {accommodations.map((accommodation) => (openForm === accommodation.id ? (
-                            <AccommodationForm
-                                key={accommodation.id}
-                                tripId={trip.id}
-                                accommodation={accommodation}
-                                types={types}
-                                typesWithoutBooking={typesWithoutBooking}
-                                onClose={() => setOpenForm(null)}
-                            />
-                        ) : (
+                        {accommodations.map((accommodation) => (
                             <AccommodationCard
                                 key={accommodation.id}
+                                tripId={trip.id}
                                 accommodation={accommodation}
                                 categories={categories}
                                 onEdit={() => setOpenForm(accommodation.id)}
                                 onDelete={() => destroy(accommodation)}
                             />
-                        )))}
+                        ))}
 
                         {/* Карточки «ночь без жилья» показываем, только когда уже что-то добавлено. */}
                         {accommodations.length > 0 && nights.missing.map((range) => (
@@ -524,6 +529,18 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                         </aside>
                     </div>
                 </div>
+
+                {openForm !== null && (
+                    <AccommodationForm
+                        tripId={trip.id}
+                        accommodation={openForm === 'new' ? null : accommodations.find((item) => item.id === openForm)}
+                        types={types}
+                        typesWithoutBooking={typesWithoutBooking}
+                        dateLimits={dateLimits}
+                        newDates={newDates}
+                        onClose={() => setOpenForm(null)}
+                    />
+                )}
             </main>
         </TripLayout>
     );

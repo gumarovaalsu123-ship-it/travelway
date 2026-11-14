@@ -39,11 +39,6 @@ class TripReadiness
     ];
 
     /**
-     * На сколько дней дорога «Туда» может отличаться от начала поездки (ночной поезд накануне).
-     */
-    public const DepartureToleranceDays = 1;
-
-    /**
      * Месяцы в родительном падеже для подсказок: «16 июня».
      *
      * @var array<int, string>
@@ -157,12 +152,7 @@ class TripReadiness
             $hints[] = $this->hint('Добавьте дорогу обратно (или дальше, в следующий город)', 'transport');
         }
 
-        $warnings = [];
-        $departureWarning = $this->departureFarFromStartWarning();
-
-        if ($departureWarning) {
-            $warnings[] = $this->hint($departureWarning, 'transport');
-        }
+        $warnings = array_map(fn (string $text) => $this->hint($text, 'transport'), $this->ridesOutsideTripDatesWarnings());
 
         $summary = 'Туда — '.($hasWayThere ? 'есть' : 'нет').', обратно — '.($hasWayBack ? 'есть' : 'нет');
 
@@ -181,33 +171,41 @@ class TripReadiness
     }
 
     /**
-     * Мягкое предупреждение: первая дорога «Туда» далеко от начала поездки (больше чем на ±1 день).
+     * Мягкие предупреждения: дорога не попадает в даты поездки (Transport::allowedDates, допуск ±1 день).
+     * Сохранить такую запись форма не даст, поэтому это возможно, только если даты поездки поменяли
+     * уже после того, как записали транспорт.
+     *
+     * @return array<int, string>
      */
-    protected function departureFarFromStartWarning(): ?string
+    protected function ridesOutsideTripDatesWarnings(): array
     {
-        if (! $this->trip->hasDates()) {
-            return null;
+        $warnings = [];
+
+        foreach ($this->trip->transports as $ride) {
+            $allowed = Transport::allowedDates($this->trip, $ride->direction);
+            $date = $ride->departure_at ?? $ride->arrival_at;
+
+            if ($allowed === null || $date === null) {
+                continue;
+            }
+
+            [$first, $last] = $allowed;
+            $isOutside = collect([$ride->departure_at, $ride->arrival_at])->filter()
+                ->contains(fn (CarbonInterface $time) => $time->toDateString() < $first->toDateString() || $time->toDateString() > $last->toDateString());
+
+            if (! $isOutside) {
+                continue;
+            }
+
+            $road = ['to' => 'Дорога туда', 'back' => 'Дорога обратно', 'onward' => 'Переезд дальше'][$ride->direction];
+            $tripDate = $ride->direction === 'to'
+                ? 'начинается '.$this->formatDate($this->trip->start_date)
+                : 'заканчивается '.$this->formatDate($this->trip->end_date);
+
+            $warnings[] = "{$road} {$this->formatDate($date)}, а поездка теперь {$tripDate} — поправьте даты транспорта";
         }
 
-        /** @var Transport|null $firstRide */
-        $firstRide = $this->trip->transports
-            ->where('direction', 'to')
-            ->filter(fn (Transport $ride) => $ride->departure_at !== null)
-            ->sortBy('departure_at')
-            ->first();
-
-        if (! $firstRide) {
-            return null;
-        }
-
-        $daysApart = abs((int) $firstRide->departure_at->copy()->startOfDay()->diffInDays($this->trip->start_date, false));
-
-        if ($daysApart <= self::DepartureToleranceDays) {
-            return null;
-        }
-
-        return 'Дорога туда '.$this->formatDate($firstRide->departure_at)
-            .', а поездка начинается '.$this->formatDate($this->trip->start_date).' — проверьте даты';
+        return $warnings;
     }
 
     /**

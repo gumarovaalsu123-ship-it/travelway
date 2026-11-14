@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\AccommodationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,6 +29,17 @@ class Accommodation extends Model
     public const TypesWithoutBooking = ['friends'];
 
     /**
+     * Types whose card shows a photo. At friends' or "other" there is nothing to show.
+     */
+    public const TypesWithPhoto = ['hotel', 'apartment', 'hostel'];
+
+    /**
+     * На сколько дней жильё может выходить за даты поездки: приехали накануне вечером
+     * или выезжаем утром на следующий день после последнего дня.
+     */
+    public const DateToleranceDays = 1;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -47,6 +59,28 @@ class Accommodation extends Model
     public function needsBooking(): bool
     {
         return ! in_array($this->type, self::TypesWithoutBooking, true);
+    }
+
+    /**
+     * Допустимые даты заезда и выезда (первая и последняя дата каждого промежутка):
+     * заезд — с дня до начала поездки по последний день, выезд — с первого дня по день после конца.
+     * null — у поездки-черновика дат нет, проверять не с чем.
+     *
+     * @return array{checkIn: array{0: CarbonImmutable, 1: CarbonImmutable}, checkOut: array{0: CarbonImmutable, 1: CarbonImmutable}}|null
+     */
+    public static function allowedDates(Trip $trip): ?array
+    {
+        if (! $trip->hasDates()) {
+            return null;
+        }
+
+        $start = CarbonImmutable::instance($trip->start_date)->startOfDay();
+        $end = CarbonImmutable::instance($trip->end_date)->startOfDay();
+
+        return [
+            'checkIn' => [$start->subDays(self::DateToleranceDays), $end],
+            'checkOut' => [$start, $end->addDays(self::DateToleranceDays)],
+        ];
     }
 
     /**

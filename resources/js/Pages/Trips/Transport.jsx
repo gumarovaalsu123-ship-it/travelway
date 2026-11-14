@@ -1,6 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
+import Modal from '../../Components/Modal';
+import StationInput from '../../Components/StationInput';
 import TripLayout from '../../Components/TripLayout';
 
 /**
@@ -54,17 +56,55 @@ const ICON_PATHS = {
     other: <path d="M5 12h14M12 5l7 7-7 7" />,
 };
 
-const EMPTY_FORM = {
-    type: 'plane',
-    direction: 'to',
-    departure_place: '',
-    arrival_place: '',
-    departure_at: '',
-    arrival_at: '',
-    booking_info: '',
-    is_booked: false,
-    note: '',
+/**
+ * Подписи формы по виду транспорта: у самолёта — аэропорты и вылет/прилёт, у поезда — вокзалы,
+ * у автобуса — автовокзалы, у своего авто — просто города и выезд/приезд.
+ * search — подпись кнопки поиска станций (нет — станций у этого вида нет, поле обычное).
+ * Номер рейса или поезда пишут в заметку — отдельного поля нет, подсказка в placeholder.
+ */
+const GENERIC_FORM = {
+    from: 'Откуда', to: 'Куда', fromPlaceholder: 'Город или адрес', toPlaceholder: 'Город или адрес',
+    departure: 'Отправление', arrival: 'Прибытие', ticket: 'Билет куплен', note: 'Что важно не забыть в дороге',
 };
+
+const TYPE_FORM = {
+    plane: {
+        ...GENERIC_FORM, from: 'Аэропорт вылета', to: 'Аэропорт прилёта', fromPlaceholder: 'Например, Шереметьево',
+        toPlaceholder: 'Например, Казань', departure: 'Вылет', arrival: 'Прилёт', search: 'Найти аэропорт',
+        note: 'Рейс SU 1234, багаж 23 кг, регистрация онлайн',
+    },
+    train: {
+        ...GENERIC_FORM, from: 'Вокзал отправления', to: 'Вокзал прибытия', fromPlaceholder: 'Например, Казанский вокзал',
+        toPlaceholder: 'Например, Казань', search: 'Найти вокзал', note: 'Поезд 002А, вагон 5, место 12',
+    },
+    bus: {
+        ...GENERIC_FORM, from: 'Автовокзал отправления', to: 'Автовокзал прибытия', fromPlaceholder: 'Например, автовокзал Щёлковский',
+        toPlaceholder: 'Например, Владимир', search: 'Найти автовокзал', note: 'Перевозчик, место, багаж',
+    },
+    ferry: {
+        ...GENERIC_FORM, from: 'Порт отправления', to: 'Порт прибытия', fromPlaceholder: 'Например, Морской вокзал',
+        toPlaceholder: 'Например, Калининград', search: 'Найти порт',
+    },
+    own_car: {
+        ...GENERIC_FORM, from: 'Откуда (город)', to: 'Куда (город)', departure: 'Выезд', arrival: 'Приезд',
+        note: 'Маршрут, остановки в пути, платные дороги',
+    },
+    car: {
+        ...GENERIC_FORM, departure: 'Подача машины', arrival: 'Приезд', ticket: 'Заказ оформлен',
+        note: 'Служба такси или прокат, телефон',
+    },
+    other: GENERIC_FORM,
+};
+
+/**
+ * Направление для новой записи: если дорога туда уже есть, а обратно — нет, скорее всего добавляют обратную.
+ */
+function suggestDirection(transports) {
+    const hasWayThere = transports.some((transport) => transport.direction === 'to');
+    const hasWayBack = transports.some((transport) => ['back', 'onward'].includes(transport.direction));
+
+    return hasWayThere && !hasWayBack ? 'back' : 'to';
+}
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -98,8 +138,6 @@ function TicketStatus({ transport }) {
 }
 
 function TransportCard({ transport, onEdit, onDelete }) {
-    const meta = [transport.bookingInfo && `Бронь: ${transport.bookingInfo}`, transport.note].filter(Boolean);
-
     return (
         <article className="transport-card">
             <header className="transport-card__header">
@@ -134,7 +172,7 @@ function TransportCard({ transport, onEdit, onDelete }) {
 
             <footer className="transport-card__footer">
                 <TicketStatus transport={transport} />
-                <p className="transport-card__meta">{meta.length > 0 ? meta.join(' · ') : 'Без брони и заметок'}</p>
+                <p className="transport-card__meta">{transport.note || 'Без заметок'}</p>
                 <div className="transport-card__actions">
                     <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => onEdit(transport)}>Изменить</button>
                     <button type="button" className="btn btn--danger-outline btn--sm" onClick={() => onDelete(transport)}>Удалить</button>
@@ -147,21 +185,18 @@ function TransportCard({ transport, onEdit, onDelete }) {
 /**
  * Поле формы: при ошибке под полем показывается её текст.
  */
-function Field({ id, label, required = false, error, children }) {
+function Field({ id, label, required = false, hint, error, children }) {
     return (
         <div className={`form-group ${error ? 'has-error' : ''}`}>
             <label htmlFor={id} className="form-label">
                 {label} {required && <span className="required">*</span>}
             </label>
             {children}
-            {error && <span className="form-hint">{error}</span>}
+            {(error || hint) && <span className="form-hint">{error ?? hint}</span>}
         </div>
     );
 }
 
-/**
- * Страница поездки, вкладка «Транспорт»: переезды по времени и форма добавления/редактирования справа.
- */
 /**
  * Цепочка городов: после записи «Дальше» предлагаем создать поездку в следующий город.
  * Город и дату начала форма создания возьмёт из этого переезда (TripController@create, ?previous=).
@@ -175,73 +210,198 @@ function NextTripOffer({ trip, city }) {
     );
 }
 
-export default function TripTransport({ trip, transports, types, directions, typesWithoutTicket, onwardCity }) {
-    // id записи, которую сейчас редактируем; null — форма добавляет новую запись.
-    const [editingId, setEditingId] = useState(null);
-    const firstFieldRef = useRef(null);
+/**
+ * Форма добавления (transport = null) или редактирования записи — внутри модального окна.
+ *
+ * Даты подставляются сами (границы и время приходят с сервера в dateLimits):
+ * — «Туда» — утро первого дня поездки, «Обратно» и «Дальше» — вечер последнего дня;
+ * — выбрали отправление, а прибытие пустое или раньше — прибытие становится равным отправлению.
+ * Подсказки min/max в полях только помогают выбрать дату; настоящая проверка — на сервере (TransportRequest).
+ */
+function TransportForm({ trip, transport, transports, types, directions, typesWithoutTicket, dateLimits, onClose }) {
+    const isEditing = Boolean(transport);
+    const initialDirection = transport ? (transport.direction ?? '') : suggestDirection(transports);
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm(EMPTY_FORM);
+    const { data, setData, post, put, processing, errors } = useForm({
+        type: transport?.type ?? 'plane',
+        // У старой записи направления может не быть — тогда в списке выбрано «Выберите…».
+        direction: initialDirection,
+        departure_place: transport?.departurePlace ?? '',
+        arrival_place: transport?.arrivalPlace ?? '',
+        departure_at: transport ? (transport.departureAt ?? '') : (dateLimits?.[initialDirection]?.departure ?? ''),
+        arrival_at: transport?.arrivalAt ?? '',
+        is_booked: transport?.isBooked ?? false,
+        note: transport?.note ?? '',
+    });
 
-    const startAdding = () => {
-        setEditingId(null);
-        reset();
-        clearErrors();
-        firstFieldRef.current?.focus();
-    };
-
-    const startEditing = (transport) => {
-        setEditingId(transport.id);
-        clearErrors();
-        setData({
-            type: transport.type,
-            // У старой записи направления может не быть — тогда в списке выбрано «Выберите…».
-            direction: transport.direction ?? '',
-            departure_place: transport.departurePlace,
-            arrival_place: transport.arrivalPlace,
-            departure_at: transport.departureAt ?? '',
-            arrival_at: transport.arrivalAt ?? '',
-            booking_info: transport.bookingInfo ?? '',
-            is_booked: transport.isBooked,
-            note: transport.note ?? '',
-        });
-        firstFieldRef.current?.focus();
-    };
+    const labels = TYPE_FORM[data.type] ?? GENERIC_FORM;
+    const limits = dateLimits?.[data.direction];
+    // В новой записи время отправления подставлено формой (совпадает с одним из предложенных) — подскажем его уточнить.
+    const isDepartureSuggested = !isEditing && Boolean(dateLimits)
+        && Object.values(dateLimits).some((limit) => limit.departure === data.departure_at);
 
     // Своё авто: билет не покупают, поэтому галочку «Билет куплен» не показываем.
     const needsTicket = !typesWithoutTicket.includes(data.type);
 
+    const changeDirection = (direction) => setData((current) => {
+        // Свою дату человека не меняем; подставленную (или пустую) — меняем на дату нового направления.
+        if (!isDepartureSuggested && current.departure_at !== '') {
+            return { ...current, direction };
+        }
+
+        return { ...current, direction, departure_at: dateLimits?.[direction]?.departure ?? '', arrival_at: '' };
+    });
+
+    const changeDeparture = (departureAt) => setData((current) => ({
+        ...current,
+        departure_at: departureAt,
+        // Строки «2026-06-15T13:15» можно сравнивать как даты обычным сравнением строк.
+        arrival_at: departureAt && (current.arrival_at === '' || current.arrival_at < departureAt) ? departureAt : current.arrival_at,
+    }));
+
     const submit = (event) => {
         event.preventDefault();
 
-        const options = {
-            preserveScroll: true,
-            onSuccess: () => {
-                setEditingId(null);
-                reset();
-            },
-        };
+        const options = { preserveScroll: true, onSuccess: onClose };
 
-        if (editingId) {
-            put(`/my-trips/${trip.id}/transport/${editingId}`, options);
+        if (isEditing) {
+            put(`/my-trips/${trip.id}/transport/${transport.id}`, options);
         } else {
             post(`/my-trips/${trip.id}/transport`, options);
         }
     };
 
-    const destroy = (transport) => {
-        if (!window.confirm(`Удалить запись «${transport.departurePlace} → ${transport.arrivalPlace}»?`)) {
-            return;
-        }
+    return (
+        <Modal title={isEditing ? 'Изменить запись' : 'Новая запись'} onClose={onClose}>
+            <form onSubmit={submit} noValidate>
+                <div className="form-row">
+                    <Field id="type" label="Вид транспорта" required error={errors.type}>
+                        <select
+                            id="type"
+                            className="form-input form-input--filled form-select"
+                            value={data.type}
+                            onChange={(event) => setData('type', event.target.value)}
+                            autoFocus
+                        >
+                            {types.map((type) => (
+                                <option key={type} value={type}>{TYPE_LABELS[type]}</option>
+                            ))}
+                        </select>
+                    </Field>
 
-        router.delete(`/my-trips/${trip.id}/transport/${transport.id}`, {
-            preserveScroll: true,
-            // Если удалили запись, открытую в форме, форма возвращается к добавлению.
-            onSuccess: () => {
-                if (transport.id === editingId) {
-                    startAdding();
-                }
-            },
-        });
+                    <Field id="direction" label="Направление" required error={errors.direction}>
+                        <select
+                            id="direction"
+                            className="form-input form-input--filled form-select"
+                            value={data.direction}
+                            onChange={(event) => changeDirection(event.target.value)}
+                        >
+                            {data.direction === '' && <option value="" disabled>Выберите…</option>}
+                            {directions.map((direction) => (
+                                <option key={direction} value={direction}>{DIRECTION_LABELS[direction]}</option>
+                            ))}
+                        </select>
+                    </Field>
+                </div>
+
+                <Field id="departure_place" label={labels.from} required error={errors.departure_place}>
+                    <StationInput
+                        id="departure_place"
+                        value={data.departure_place}
+                        onChange={(value) => setData('departure_place', value)}
+                        transportType={data.type}
+                        placeholder={labels.fromPlaceholder}
+                        searchLabel={labels.search}
+                    />
+                </Field>
+
+                <Field id="arrival_place" label={labels.to} required error={errors.arrival_place}>
+                    <StationInput
+                        id="arrival_place"
+                        value={data.arrival_place}
+                        onChange={(value) => setData('arrival_place', value)}
+                        transportType={data.type}
+                        placeholder={labels.toPlaceholder}
+                        searchLabel={labels.search}
+                    />
+                </Field>
+
+                <div className="form-row">
+                    <Field
+                        id="departure_at"
+                        label={labels.departure}
+                        error={errors.departure_at}
+                        hint={isDepartureSuggested ? 'Дата подставлена по датам поездки — уточните время.' : null}
+                    >
+                        <input
+                            id="departure_at"
+                            type="datetime-local"
+                            className="form-input form-input--filled"
+                            min={limits?.min}
+                            max={limits?.max}
+                            value={data.departure_at}
+                            onChange={(event) => changeDeparture(event.target.value)}
+                        />
+                    </Field>
+
+                    <Field id="arrival_at" label={labels.arrival} error={errors.arrival_at}>
+                        <input
+                            id="arrival_at"
+                            type="datetime-local"
+                            className="form-input form-input--filled"
+                            min={data.departure_at || limits?.min}
+                            max={limits?.max}
+                            value={data.arrival_at}
+                            onChange={(event) => setData('arrival_at', event.target.value)}
+                        />
+                    </Field>
+                </div>
+
+                {needsTicket && (
+                    <div className="form-group">
+                        <Checkbox
+                            id="is_booked"
+                            label={labels.ticket}
+                            checked={data.is_booked}
+                            onChange={(checked) => setData('is_booked', checked)}
+                        />
+                    </div>
+                )}
+
+                <Field id="note" label="Заметка" error={errors.note}>
+                    <textarea
+                        id="note"
+                        className="form-input form-input--filled"
+                        rows={3}
+                        placeholder={labels.note}
+                        value={data.note}
+                        onChange={(event) => setData('note', event.target.value)}
+                        maxLength={2000}
+                    />
+                </Field>
+
+                <div className="form-actions-row">
+                    <button type="button" className="btn btn--outline-dark" onClick={onClose}>Отмена</button>
+                    <button type="submit" className="btn btn--solid-dark" disabled={processing}>
+                        {isEditing ? 'Сохранить' : 'Добавить'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+/**
+ * Страница поездки, вкладка «Транспорт»: переезды по времени; добавление и редактирование — в модальном окне.
+ */
+export default function TripTransport({ trip, transports, types, directions, typesWithoutTicket, dateLimits, onwardCity }) {
+    // Какая форма открыта: null — никакая, 'new' — добавление, объект — редактируемая запись.
+    const [openForm, setOpenForm] = useState(null);
+
+    const destroy = (transport) => {
+        if (window.confirm(`Удалить запись «${transport.departurePlace} → ${transport.arrivalPlace}»?`)) {
+            router.delete(`/my-trips/${trip.id}/transport/${transport.id}`, { preserveScroll: true });
+        }
     };
 
     return (
@@ -252,146 +412,35 @@ export default function TripTransport({ trip, transports, types, directions, typ
                         <h2 className="section-title">Транспорт и билеты</h2>
                         <p className="section-subtitle section-subtitle--light">Перелёты, поезда и другие переезды поездки — в одном месте.</p>
                     </div>
-                    <button type="button" className="btn btn--solid-dark" onClick={startAdding}>+ Добавить запись</button>
+                    <button type="button" className="btn btn--solid-dark" onClick={() => setOpenForm('new')}>+ Добавить запись</button>
                 </header>
 
                 {onwardCity && <NextTripOffer trip={trip} city={onwardCity} />}
 
-                <div className="trip-plan-grid transport-grid">
-                    <div className="transport-list">
-                        {transports.length === 0 ? (
-                            <section className="trips-empty">
-                                <h3 className="trips-empty__title">Переездов пока нет</h3>
-                                <p className="trips-empty__text">Добавьте перелёт, поезд или трансфер — записи выстроятся по времени отправления.</p>
-                            </section>
-                        ) : transports.map((transport) => (
-                            <TransportCard key={transport.id} transport={transport} onEdit={startEditing} onDelete={destroy} />
-                        ))}
-                    </div>
-
-                    <aside className="trip-details-card">
-                        <h3 className="trip-details__title">{editingId ? 'Изменить запись' : 'Новая запись'}</h3>
-
-                        <form onSubmit={submit} noValidate>
-                            <Field id="type" label="Вид транспорта" required error={errors.type}>
-                                <select
-                                    id="type"
-                                    ref={firstFieldRef}
-                                    className="form-input form-input--filled form-select"
-                                    value={data.type}
-                                    onChange={(event) => setData('type', event.target.value)}
-                                >
-                                    {types.map((type) => (
-                                        <option key={type} value={type}>{TYPE_LABELS[type]}</option>
-                                    ))}
-                                </select>
-                            </Field>
-
-                            <Field id="direction" label="Направление" required error={errors.direction}>
-                                <select
-                                    id="direction"
-                                    className="form-input form-input--filled form-select"
-                                    value={data.direction}
-                                    onChange={(event) => setData('direction', event.target.value)}
-                                >
-                                    {data.direction === '' && <option value="" disabled>Выберите…</option>}
-                                    {directions.map((direction) => (
-                                        <option key={direction} value={direction}>{DIRECTION_LABELS[direction]}</option>
-                                    ))}
-                                </select>
-                            </Field>
-
-                            <Field id="departure_place" label="Откуда" required error={errors.departure_place}>
-                                <input
-                                    id="departure_place"
-                                    type="text"
-                                    className="form-input form-input--filled"
-                                    placeholder="Москва, Шереметьево"
-                                    value={data.departure_place}
-                                    onChange={(event) => setData('departure_place', event.target.value)}
-                                    maxLength={150}
-                                />
-                            </Field>
-
-                            <Field id="departure_at" label="Отправление" error={errors.departure_at}>
-                                <input
-                                    id="departure_at"
-                                    type="datetime-local"
-                                    className="form-input form-input--filled"
-                                    value={data.departure_at}
-                                    onChange={(event) => setData('departure_at', event.target.value)}
-                                />
-                            </Field>
-
-                            <Field id="arrival_place" label="Куда" required error={errors.arrival_place}>
-                                <input
-                                    id="arrival_place"
-                                    type="text"
-                                    className="form-input form-input--filled"
-                                    placeholder="Казань, аэропорт"
-                                    value={data.arrival_place}
-                                    onChange={(event) => setData('arrival_place', event.target.value)}
-                                    maxLength={150}
-                                />
-                            </Field>
-
-                            <Field id="arrival_at" label="Прибытие" error={errors.arrival_at}>
-                                <input
-                                    id="arrival_at"
-                                    type="datetime-local"
-                                    className="form-input form-input--filled"
-                                    min={data.departure_at || undefined}
-                                    value={data.arrival_at}
-                                    onChange={(event) => setData('arrival_at', event.target.value)}
-                                />
-                            </Field>
-
-                            <Field id="booking_info" label="Номер брони или билета" error={errors.booking_info}>
-                                <input
-                                    id="booking_info"
-                                    type="text"
-                                    className="form-input form-input--filled"
-                                    placeholder="SU 1234, место 12A"
-                                    value={data.booking_info}
-                                    onChange={(event) => setData('booking_info', event.target.value)}
-                                    maxLength={1000}
-                                />
-                            </Field>
-
-                            {needsTicket && (
-                                <div className="form-group">
-                                    <Checkbox
-                                        id="is_booked"
-                                        label="Билет куплен"
-                                        checked={data.is_booked}
-                                        onChange={(checked) => setData('is_booked', checked)}
-                                    />
-                                </div>
-                            )}
-
-                            <Field id="note" label="Заметка" error={errors.note}>
-                                <textarea
-                                    id="note"
-                                    className="form-input form-input--filled"
-                                    rows={3}
-                                    placeholder="Багаж 23 кг, регистрация онлайн"
-                                    value={data.note}
-                                    onChange={(event) => setData('note', event.target.value)}
-                                    maxLength={2000}
-                                />
-                            </Field>
-
-                            <div className="form-actions-row">
-                                {editingId && (
-                                    <button type="button" className="btn btn--outline-dark" onClick={startAdding}>Отмена</button>
-                                )}
-                                <button type="submit" className="btn btn--solid-dark" disabled={processing}>
-                                    {editingId ? 'Сохранить' : 'Добавить'}
-                                </button>
-                            </div>
-                        </form>
-                    </aside>
+                <div className="transport-list">
+                    {transports.length === 0 ? (
+                        <section className="trips-empty">
+                            <h3 className="trips-empty__title">Переездов пока нет</h3>
+                            <p className="trips-empty__text">Добавьте перелёт, поезд или трансфер — записи выстроятся по времени отправления.</p>
+                            <button type="button" className="btn btn--solid" onClick={() => setOpenForm('new')}>+ Добавить запись</button>
+                        </section>
+                    ) : transports.map((transport) => (
+                        <TransportCard key={transport.id} transport={transport} onEdit={setOpenForm} onDelete={destroy} />
+                    ))}
                 </div>
+
+                {openForm && (
+                    <TransportForm
+                        trip={trip}
+                        transport={openForm === 'new' ? null : openForm}
+                        transports={transports}
+                        types={types}
+                        directions={directions}
+                        typesWithoutTicket={typesWithoutTicket}
+                        dateLimits={dateLimits}
+                        onClose={() => setOpenForm(null)}
+                    />
+                )}
             </main>
         </TripLayout>
     );

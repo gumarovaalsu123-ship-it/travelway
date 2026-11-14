@@ -7,6 +7,7 @@ use App\Models\Place;
 use App\Models\Trip;
 use App\Models\TripDay;
 use App\Models\TripPlace;
+use App\Services\TripReadiness;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,11 +18,16 @@ use Inertia\Response;
 
 class TripController extends Controller
 {
+    /**
+     * Trip relations that TripReadiness reads, loaded in advance with one query each.
+     */
+    protected const ReadinessRelations = ['transports', 'accommodations', 'packingItems', 'days', 'tripPlaces'];
+
     public function index(Request $request): Response
     {
         $trips = $request->user()->trips()
             ->withCount('tripPlaces')
-            ->withCount(['days as planned_days_count' => fn ($query) => $query->has('tripPlaces')])
+            ->with(self::ReadinessRelations)
             ->latest()
             ->get();
 
@@ -51,33 +57,18 @@ class TripController extends Controller
     }
 
     /**
-     * Trip page, the "Overview" tab: every day of the trip with the places planned on it.
+     * Trip page, the "Preparation" tab: readiness of the trip by steps and hints on what is missing.
      */
     public function show(Trip $trip): Response
     {
         Gate::authorize('view', $trip);
 
-        $trip->load('days.tripPlaces.place.category');
+        $trip->load(self::ReadinessRelations);
 
         return Inertia::render('Trips/Show', [
             'trip' => $trip->toHeader(),
             'description' => $trip->description,
-            'days' => $trip->days->map(fn (TripDay $day) => [
-                'id' => $day->id,
-                'number' => $day->day_number,
-                'date' => $day->date?->toDateString(),
-                'title' => $day->title,
-                'places' => $day->tripPlaces->map(fn (TripPlace $visit) => [
-                    'id' => $visit->id,
-                    'name' => $visit->place->name,
-                    'address' => $visit->place->address,
-                    'category' => $visit->place->category?->name,
-                    'categorySlug' => $visit->place->category?->slug,
-                    ...$visit->place->details(),
-                    // В базе время хранится как «10:00:00», показываем «10:00».
-                    'startTime' => $visit->start_time ? substr($visit->start_time, 0, 5) : null,
-                ])->values(),
-            ])->values(),
+            'readiness' => (new TripReadiness($trip))->toArray(),
         ]);
     }
 
@@ -163,7 +154,7 @@ class TripController extends Controller
             'status' => $trip->status,
             'isPublic' => $trip->is_public,
             'placesCount' => $trip->trip_places_count,
-            'progress' => (int) round($trip->planned_days_count / max($trip->days_count, 1) * 100),
+            'readiness' => (new TripReadiness($trip))->percent(),
         ];
     }
 

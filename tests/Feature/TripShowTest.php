@@ -13,15 +13,11 @@ class TripShowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_sees_trip_days_with_places(): void
+    public function test_preparation_tab_shows_steps_and_readiness(): void
     {
         $user = User::factory()->create();
         $trip = Trip::factory()->for($user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
-        $trip->syncDays();
-
-        $firstDay = $trip->days()->first();
-        $firstDay->addPlace(Place::factory()->create(['name' => 'Кремль']), '10:00');
-        $firstDay->addPlace(Place::factory()->create(['name' => 'Кул-Шариф']));
+        $trip->days()->first()->addPlace(Place::factory()->create(['name' => 'Кремль']));
 
         $this->actingAs($user)
             ->get("/my-trips/{$trip->id}")
@@ -29,14 +25,18 @@ class TripShowTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Trips/Show')
                 ->where('trip.id', $trip->id)
-                ->where('trip.daysCount', 3)
-                ->where('trip.placesCount', 2)
-                ->has('days', 3)
-                ->where('days.0.date', '2026-06-15')
-                ->where('days.0.places.0.name', 'Кремль')
-                ->where('days.0.places.0.startTime', '10:00')
-                ->where('days.0.places.1.name', 'Кул-Шариф')
-                ->has('days.1.places', 0));
+                ->where('trip.placesCount', 1)
+                // Готов только шаг «Заранее»: дел нет.
+                ->where('readiness.percent', 20)
+                ->has('readiness.steps', 5)
+                ->where('readiness.steps.0.key', 'transport')
+                ->where('readiness.steps.0.ready', false)
+                ->where('readiness.steps.0.tab', 'transport')
+                ->where('readiness.steps.1.hints.0.text', 'Ночи 1 → 3 (15–17 июня) без жилья')
+                ->where('readiness.steps.3.key', 'advance')
+                ->where('readiness.steps.3.ready', true)
+                ->where('readiness.steps.4.summary', 'Дней с местами: 1 из 3')
+                ->where('readiness.steps.4.hints.0.tab', 'plan'));
     }
 
     public function test_unfinished_tab_shows_coming_soon_page(): void

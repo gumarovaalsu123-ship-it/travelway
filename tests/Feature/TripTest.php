@@ -66,7 +66,7 @@ class TripTest extends TestCase
                 ->where('featured.dayNumber', 2));
     }
 
-    public function test_progress_counts_days_that_have_places(): void
+    public function test_trip_card_shows_readiness(): void
     {
         $trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-18']);
         $trip->days()->first()->addPlace(Place::factory()->create());
@@ -74,7 +74,8 @@ class TripTest extends TestCase
         $this->actingAs($this->user)
             ->get('/my-trips')
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('trips.0.progress', 25)
+                // Готов только шаг «Заранее» (дел нет) — 20%.
+                ->where('trips.0.readiness', 20)
                 ->where('trips.0.placesCount', 1)
                 ->where('featured.placeNames', fn ($names) => count($names) === 1));
     }

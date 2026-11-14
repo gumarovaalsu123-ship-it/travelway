@@ -218,11 +218,10 @@ class MapPlaceDetailsTest extends TestCase
         $trip->days()->first()->addPlace($place);
 
         $this->actingAs($this->user)
-            ->get("/my-trips/{$trip->id}")
+            ->get("/my-trips/{$trip->id}/plan")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Trips/Show')
-                ->where('days.0.places.0.image', $place->image)
-                ->where('days.0.places.0.wikiUrl', $place->wiki_url));
+                ->component('Trips/Plan')
+                ->where('selectedDay.places.0.image', $place->image));
     }
 }

@@ -25,6 +25,22 @@ class Transport extends Model
     public const Types = ['plane', 'train', 'bus', 'own_car', 'car', 'ferry', 'other'];
 
     /**
+     * Russian labels of the types for texts made on the server (hints on the "Preparation" tab).
+     * Same as TYPE_LABELS in Pages/Trips/Transport.jsx.
+     *
+     * @var array<string, string>
+     */
+    public const TypeLabels = [
+        'plane' => 'Самолёт',
+        'train' => 'Поезд',
+        'bus' => 'Автобус',
+        'own_car' => 'Своё авто',
+        'car' => 'Такси или аренда авто',
+        'ferry' => 'Паром',
+        'other' => 'Другое',
+    ];
+
+    /**
      * Allowed directions: to the destination, back home, or onward to the next city.
      */
     public const Directions = ['to', 'back', 'onward'];

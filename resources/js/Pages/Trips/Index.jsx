@@ -68,11 +68,11 @@ function TripCard({ trip }) {
                 </h3>
                 <div className="trip-card__progress">
                     <div className="progress-info">
-                        <span className="progress-label">Дни с планом</span>
-                        <span className="progress-value">{trip.progress}%</span>
+                        <span className="progress-label">Готовность</span>
+                        <span className="progress-value">{trip.readiness}%</span>
                     </div>
                     <div className="progress-track">
-                        <div className="progress-fill" style={{ width: `${trip.progress}%` }} />
+                        <div className="progress-fill" style={{ width: `${trip.readiness}%` }} />
                     </div>
                 </div>
                 <div className="trip-card__actions">

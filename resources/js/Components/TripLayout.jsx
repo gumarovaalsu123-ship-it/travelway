@@ -6,12 +6,12 @@ import { STATUS_LABELS, coverFor } from '../utils/trips';
 
 /**
  * Вкладки страницы поездки. У каждой вкладки свой адрес (см. маршруты в routes/web.php):
- * «Обзор» — /my-trips/{id}, остальные — /my-trips/{id}/<key>.
+ * «Подготовка» — /my-trips/{id}, остальные — /my-trips/{id}/<key>.
  * Новая вкладка уже есть в этом списке: достаточно сделать для неё маршрут и страницу,
  * которая оборачивает содержимое в <TripLayout trip={trip} activeTab="<key>">.
  */
 export const TRIP_TABS = [
-    { key: 'overview', label: 'Обзор', path: '' },
+    { key: 'overview', label: 'Подготовка', path: '' },
     { key: 'plan', label: 'План по дням', path: '/plan' },
     { key: 'map', label: 'Карта', path: '/map' },
     { key: 'transport', label: 'Транспорт', path: '/transport' },

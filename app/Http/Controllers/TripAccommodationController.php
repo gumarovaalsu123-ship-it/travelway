@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AccommodationRequest;
 use App\Models\Accommodation;
+use App\Models\PlaceCategory;
 use App\Models\Trip;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -49,6 +50,8 @@ class TripAccommodationController extends Controller
             'nights' => $this->nightsCoverage($trip, $accommodations),
             'types' => Accommodation::Types,
             'typesWithoutBooking' => Accommodation::TypesWithoutBooking,
+            // «Что рядом с жильём?»: найденное место сохраняется в избранное, серверу нужен id категории.
+            'categories' => PlaceCategory::query()->orderBy('id')->get(['id', 'slug']),
         ]);
     }
 

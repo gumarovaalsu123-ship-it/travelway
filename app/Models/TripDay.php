@@ -52,6 +52,30 @@ class TripDay extends Model
     }
 
     /**
+     * Insert a place right after another place of this day ("Что по пути?" puts it between two places).
+     * All places after $after move one position down, so there is room for the new one:
+     * 1, 2, [3, 4] → 1, 2, new 3, [4, 5]. Without $after the place goes to the end of the day.
+     */
+    public function insertPlaceAfter(Place $place, ?TripPlace $after): TripPlace
+    {
+        if ($after === null) {
+            return $this->addPlace($place);
+        }
+
+        return DB::transaction(function () use ($place, $after) {
+            $this->tripPlaces()->reorder()
+                ->where('visit_order', '>', $after->visit_order)
+                ->increment('visit_order');
+
+            return $this->tripPlaces()->create([
+                'trip_id' => $this->trip_id,
+                'place_id' => $place->id,
+                'visit_order' => $after->visit_order + 1,
+            ]);
+        });
+    }
+
+    /**
      * Put the places of the day in order of their start time.
      * Places without time go to the end and keep their previous order.
      */

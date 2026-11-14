@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['trip_id', 'day_number', 'date', 'title'])]
+#[Fillable(['trip_id', 'day_number', 'date', 'title', 'start_time', 'return_minutes', 'return_mode'])]
 class TripDay extends Model
 {
     /**
@@ -18,6 +18,7 @@ class TripDay extends Model
     {
         return [
             'date' => 'date',
+            'return_minutes' => 'integer',
         ];
     }
 
@@ -68,5 +69,15 @@ class TripDay extends Model
                 $place->update(['visit_order' => $index + 1]);
             }
         });
+    }
+
+    /**
+     * Forget the calculated travel times of the day. Called when the order of places changes:
+     * old segments would connect other places, so it is more honest to show nothing until the next calculation.
+     */
+    public function forgetTravelTimes(): void
+    {
+        $this->tripPlaces()->reorder()->update(['travel_minutes' => null, 'calculated_mode' => null]);
+        $this->update(['return_minutes' => null, 'return_mode' => null]);
     }
 }

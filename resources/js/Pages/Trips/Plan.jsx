@@ -15,6 +15,39 @@ const keepScroll = { preserveScroll: true };
 const placesLabel = (count) => `${count} ${plural(count, ['место', 'места', 'мест'])}`;
 
 /**
+ * Способы добраться до места — ключи как в TripPlace::TravelModes на сервере.
+ */
+const TRAVEL_MODES = {
+    walk: { icon: '🚶', label: 'Пешком' },
+    transit: { icon: '🚌', label: 'Общественный транспорт' },
+    car: { icon: '🚗', label: 'Машина' },
+    taxi: { icon: '🚕', label: 'Такси / каршеринг' },
+};
+
+/**
+ * 75 → «1 ч 15 мин», 40 → «40 мин», 120 → «2 ч».
+ */
+function formatMinutes(total) {
+    const hours = Math.floor(total / 60);
+    const minutes = total % 60;
+
+    if (hours === 0) {
+        return `${minutes} мин`;
+    }
+
+    return minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
+}
+
+/**
+ * Отрезок пути: «🚶 12 мин». Время на общественном транспорте — только оценка, поэтому «≈».
+ */
+function segmentLabel(segment) {
+    const mode = TRAVEL_MODES[segment.mode] ?? TRAVEL_MODES.walk;
+
+    return `${mode.icon} ${segment.approximate ? '≈ ' : ''}${formatMinutes(segment.minutes)}`;
+}
+
+/**
  * «10:00–11:30», «10:00» или пустая строка, если время не указано.
  */
 function timeLabel(place) {
@@ -136,14 +169,99 @@ function DayTitle({ tripId, day }) {
 }
 
 /**
- * Форма «Изменить» у места: начало, окончание и заметка.
+ * Строка между местами: как добраться от предыдущей точки и сколько это займёт.
+ * Для общественного транспорта — ссылка на точный маршрут в Яндекс.Картах (обычная ссылка, без API).
+ */
+function SegmentRow({ segment }) {
+    return (
+        <li className="plan-segment">
+            <span className="plan-segment__label" title={TRAVEL_MODES[segment.mode]?.label}>{segmentLabel(segment)}</span>
+            {segment.yandexUrl && (
+                <a className="plan-segment__link" href={segment.yandexUrl} target="_blank" rel="noreferrer">
+                    Точный маршрут в Яндекс.Картах
+                </a>
+            )}
+        </li>
+    );
+}
+
+/**
+ * «Начало дня» и кнопка «Рассчитать время». Сервер спрашивает время в пути у OSRM
+ * и раскладывает места по времени, закреплённое время 🔒 не трогает.
+ */
+function ScheduleForm({ tripId, day }) {
+    const form = useForm({ start_time: day.startTime ?? '' });
+
+    function submit(e) {
+        e.preventDefault();
+        form.post(`/my-trips/${tripId}/days/${day.id}/schedule`, keepScroll);
+    }
+
+    return (
+        <form className="plan-schedule-form" onSubmit={submit} noValidate>
+            <label className="form-label" htmlFor="day-start-time">Начало дня</label>
+            <input
+                id="day-start-time"
+                type="time"
+                className="form-input form-input--filled plan-schedule-form__time"
+                value={form.data.start_time}
+                title={`Если пусто — ${day.scheduleStartTime}`}
+                onChange={(e) => form.setData('start_time', e.target.value)}
+            />
+            <button type="submit" className="btn btn--solid-dark btn--sm" disabled={form.processing}>
+                {form.processing ? 'Считаем…' : 'Рассчитать время'}
+            </button>
+            {form.errors.start_time && <span className="form-error">{form.errors.start_time}</span>}
+            {form.errors.schedule && <span className="form-error">{form.errors.schedule}</span>}
+        </form>
+    );
+}
+
+/**
+ * Итог дня под списком: дорога к жилью, во сколько вернётесь, сколько в пути и на местах.
+ */
+function DayTotal({ day }) {
+    const returnSegment = day.returnSegment;
+
+    return (
+        <div className="plan-day-total">
+            {returnSegment && (
+                <p className="plan-day-total__return">
+                    {segmentLabel(returnSegment)} до «{returnSegment.lodging}» — вернётесь ~{day.endTime}
+                </p>
+            )}
+            <p className="plan-day-total__summary">
+                {day.endTime && <>Итог дня: {day.scheduleStartTime}–{day.endTime} · </>}
+                на местах {formatMinutes(day.stayMinutes)}
+                {day.isCalculated && <> · в пути {formatMinutes(day.travelMinutes)}</>}
+            </p>
+            {!day.isCalculated && (
+                <p className="form-hint">Нажмите «Рассчитать время», чтобы узнать время в пути и разложить места по часам.</p>
+            )}
+            {day.warnings.map((warning) => (
+                <p key={warning} className="plan-stop__warning">{warning}</p>
+            ))}
+        </div>
+    );
+}
+
+/**
+ * Форма «Изменить» у места: время, сколько провести, способ добраться, закрепление и заметка.
  */
 function EditPlaceForm({ tripId, place, onClose }) {
     const form = useForm({
         start_time: place.startTime ?? '',
         end_time: place.endTime ?? '',
         note: place.note ?? '',
+        stay_minutes: place.stayMinutes ?? '',
+        travel_mode: place.travelMode ?? '',
+        time_locked: place.timeLocked,
     });
+
+    // Время, поставленное вручную, сразу закрепляем — иначе следующий расчёт его передвинет.
+    function changeStartTime(value) {
+        form.setData((data) => ({ ...data, start_time: value, time_locked: value !== '' ? true : data.time_locked }));
+    }
 
     function submit(e) {
         e.preventDefault();
@@ -160,7 +278,7 @@ function EditPlaceForm({ tripId, place, onClose }) {
                         type="time"
                         className="form-input form-input--filled"
                         value={form.data.start_time}
-                        onChange={(e) => form.setData('start_time', e.target.value)}
+                        onChange={(e) => changeStartTime(e.target.value)}
                     />
                     {form.errors.start_time && <span className="form-error">{form.errors.start_time}</span>}
                 </div>
@@ -174,6 +292,49 @@ function EditPlaceForm({ tripId, place, onClose }) {
                         onChange={(e) => form.setData('end_time', e.target.value)}
                     />
                     {form.errors.end_time && <span className="form-error">{form.errors.end_time}</span>}
+                </div>
+            </div>
+
+            <label className="plan-place-form__check">
+                <input
+                    type="checkbox"
+                    checked={form.data.time_locked}
+                    onChange={(e) => form.setData('time_locked', e.target.checked)}
+                />
+                🔒 Закрепить время — «Рассчитать время» его не сдвинет
+            </label>
+            {form.errors.time_locked && <span className="form-error">{form.errors.time_locked}</span>}
+
+            <div className="form-row">
+                <div className={`form-group ${form.errors.stay_minutes ? 'has-error' : ''}`}>
+                    <label className="form-label" htmlFor={`stay-${place.id}`}>Сколько провести, мин</label>
+                    <input
+                        id={`stay-${place.id}`}
+                        type="number"
+                        min={5}
+                        max={720}
+                        step={5}
+                        className="form-input form-input--filled"
+                        placeholder={`${place.defaultStayMinutes} (по категории)`}
+                        value={form.data.stay_minutes}
+                        onChange={(e) => form.setData('stay_minutes', e.target.value)}
+                    />
+                    {form.errors.stay_minutes && <span className="form-error">{form.errors.stay_minutes}</span>}
+                </div>
+                <div className={`form-group ${form.errors.travel_mode ? 'has-error' : ''}`}>
+                    <label className="form-label" htmlFor={`mode-${place.id}`}>Как добраться</label>
+                    <select
+                        id={`mode-${place.id}`}
+                        className="form-input form-input--filled"
+                        value={form.data.travel_mode}
+                        onChange={(e) => form.setData('travel_mode', e.target.value)}
+                    >
+                        <option value="">Автоматически</option>
+                        {Object.entries(TRAVEL_MODES).map(([key, mode]) => (
+                            <option key={key} value={key}>{mode.icon} {mode.label}</option>
+                        ))}
+                    </select>
+                    {form.errors.travel_mode && <span className="form-error">{form.errors.travel_mode}</span>}
                 </div>
             </div>
 
@@ -228,11 +389,30 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays }
             <span className="stop-number-badge">{number}</span>
 
             <div className="stop-info">
-                {place.startTime && <span className="stop-time plan-stop__time">{timeLabel(place)}</span>}
+                {place.startTime && (
+                    <span className="stop-time plan-stop__time">
+                        {timeLabel(place)}
+                        {place.timeLocked && <span title="Время закреплено: расчёт его не двигает"> 🔒</span>}
+                    </span>
+                )}
                 <span className="stop-name">{place.name}</span>
                 {(place.address || place.category) && <span className="stop-desc">{place.address || place.category}</span>}
+                <span className="plan-stop__stay">
+                    На месте {formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}
+                    {place.stayMinutes === null && ' (по категории)'}
+                </span>
                 {place.note && <p className="plan-stop__note">{place.note}</p>}
                 {warning && <span className="plan-stop__warning">{warning}</span>}
+                {/* Подсказки после расчёта: приезд позже закреплённого времени или заметно раньше него. */}
+                {place.lateMinutes > 0 && (
+                    <span className="plan-stop__warning">
+                        Не успеваете к {place.startTime} (опоздание {formatMinutes(place.lateMinutes)})
+                    </span>
+                )}
+                {place.freeMinutes > 0 && place.timeLocked && (
+                    <span className="plan-stop__free">Свободное окно {formatMinutes(place.freeMinutes)}</span>
+                )}
+                {/* Этап 3: здесь появится вопрос «Нужен билет / бронь?» и отметка «куплено» (needs_booking / is_booked). */}
 
                 {isEditing ? (
                     <EditPlaceForm tripId={tripId} place={place} onClose={() => setEditing(false)} />
@@ -390,20 +570,27 @@ export default function Plan({ trip, days, selectedDay, favorites }) {
                                     </div>
                                 ) : (
                                     <>
+                                        {/* key: у каждого дня своё начало, форма создаётся заново при переходе. */}
+                                        <ScheduleForm key={selectedDay.id} tripId={trip.id} day={selectedDay} />
+
                                         <ul className="stop-list">
                                             {places.map((place, index) => (
-                                                <PlaceRow
-                                                    key={place.id}
-                                                    tripId={trip.id}
-                                                    place={place}
-                                                    number={index + 1}
-                                                    isFirst={index === 0}
-                                                    isLast={index === places.length - 1}
-                                                    warning={timeWarning(place, places[index - 1])}
-                                                    otherDays={otherDays}
-                                                />
+                                                <React.Fragment key={place.id}>
+                                                    {/* Отрезок перед местом: от жилья (у первого) или от предыдущего места. */}
+                                                    {place.segment && <SegmentRow segment={place.segment} />}
+                                                    <PlaceRow
+                                                        tripId={trip.id}
+                                                        place={place}
+                                                        number={index + 1}
+                                                        isFirst={index === 0}
+                                                        isLast={index === places.length - 1}
+                                                        warning={timeWarning(place, places[index - 1])}
+                                                        otherDays={otherDays}
+                                                    />
+                                                </React.Fragment>
                                             ))}
                                         </ul>
+                                        <DayTotal day={selectedDay} />
                                         <div className="plan-add-buttons">{addButtons}</div>
                                     </>
                                 )}

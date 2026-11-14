@@ -7,9 +7,48 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['trip_id', 'place_id', 'trip_day_id', 'start_time', 'end_time', 'visit_order', 'note'])]
+#[Fillable([
+    'trip_id', 'place_id', 'trip_day_id', 'start_time', 'end_time', 'visit_order', 'note',
+    'stay_minutes', 'travel_mode', 'travel_minutes', 'calculated_mode', 'time_locked',
+])]
 class TripPlace extends Model
 {
+    /**
+     * Ways to get to the place. Russian labels are on the page (Pages/Trips/Plan.jsx).
+     * taxi — такси или каршеринг, время как у машины.
+     */
+    public const TravelModes = ['walk', 'transit', 'car', 'taxi'];
+
+    /**
+     * How long to stay at a place by default, in minutes, by category slug (concept, section 3.5).
+     */
+    public const DefaultStayMinutes = [
+        'museum' => 120,
+        'cafe' => 60,
+        'restaurant' => 60,
+        'attraction' => 60,
+        'park' => 90,
+        'viewpoint' => 30,
+        'shop' => 30,
+    ];
+
+    /**
+     * Stay for categories that are not in the table above ("Другое", "Отель"...).
+     */
+    public const FallbackStayMinutes = 60;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'stay_minutes' => 'integer',
+            'travel_minutes' => 'integer',
+            'time_locked' => 'boolean',
+        ];
+    }
+
     /**
      * @return BelongsTo<Trip, $this>
      */
@@ -32,6 +71,20 @@ class TripPlace extends Model
     public function day(): BelongsTo
     {
         return $this->belongsTo(TripDay::class, 'trip_day_id');
+    }
+
+    /**
+     * Minutes to stay at the place: what the traveller entered, otherwise the default for the category.
+     * Needs the place with its category loaded.
+     */
+    public function stayMinutes(): int
+    {
+        return $this->stay_minutes ?? self::defaultStayMinutes($this->place->category?->slug);
+    }
+
+    public static function defaultStayMinutes(?string $categorySlug): int
+    {
+        return self::DefaultStayMinutes[$categorySlug] ?? self::FallbackStayMinutes;
     }
 
     /**

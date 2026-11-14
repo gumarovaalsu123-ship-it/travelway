@@ -27,8 +27,11 @@ class TripPlaceController extends Controller
         abort_unless($tripPlace->trip->user_id === $request->user()->id, 403);
 
         $place = $tripPlace->place;
+        $day = $tripPlace->day;
         $tripPlace->delete();
         $place->deleteIfUnused();
+        // Соседи места теперь идут подряд — старые отрезки пути к ним не подходят.
+        $day->forgetTravelTimes();
 
         Inertia::flash('toast', 'Место удалено из плана.');
 

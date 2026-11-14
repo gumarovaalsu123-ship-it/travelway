@@ -5586,3 +5586,13 @@ section[id] {
     position: relative;
     z-index: 1;
 }
+
+/* Блок «Возможно, пригодится» на вкладке «Список вещей» */
+.packing-hint-card {
+    border-style: dashed;
+}
+
+.packing-hint-card__add {
+    align-self: flex-start;
+    margin-top: 20px;
+}

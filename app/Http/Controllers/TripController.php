@@ -21,7 +21,7 @@ class TripController extends Controller
     /**
      * Trip relations that TripReadiness reads, loaded in advance with one query each.
      */
-    protected const ReadinessRelations = ['transports', 'accommodations', 'packingItems', 'days', 'tripPlaces'];
+    protected const ReadinessRelations = ['transports', 'accommodations', 'packingItems', 'days', 'tripPlaces.place.category', 'tripPlaces.day', 'tasks'];
 
     public function index(Request $request): Response
     {

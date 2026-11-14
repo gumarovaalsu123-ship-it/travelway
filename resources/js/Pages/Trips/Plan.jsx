@@ -361,6 +361,53 @@ function EditPlaceForm({ tripId, place, onClose }) {
 }
 
 /**
+ * Вопрос о билете зависит от категории места (концепция, раздел 3.4). Ключи — slug категории.
+ * Решает человек: приложение только спрашивает.
+ */
+const BOOKING_QUESTIONS = {
+    museum: { question: 'Нужен ли сюда билет заранее?', done: 'Билет куплен' },
+    attraction: { question: 'Нужен ли сюда билет заранее?', done: 'Билет куплен' },
+    restaurant: { question: 'Нужна бронь столика?', done: 'Столик забронирован' },
+};
+
+const DEFAULT_BOOKING_QUESTION = { question: 'Нужен билет или бронь заранее?', done: 'Куплено' };
+
+/**
+ * Отметки «нужен билет/бронь» и «куплено» у места. Место с билетом, который ещё не куплен,
+ * попадает в дела вкладки «Заранее»; отметка «куплено» там и здесь — одна и та же.
+ */
+function BookingMarks({ tripId, place }) {
+    const labels = BOOKING_QUESTIONS[place.categorySlug] ?? DEFAULT_BOOKING_QUESTION;
+    const url = `/my-trips/${tripId}/trip-places/${place.id}/booking`;
+
+    return (
+        <div className="plan-stop__booking">
+            <label className="plan-place-form__check">
+                <input
+                    type="checkbox"
+                    checked={place.needsBooking}
+                    onChange={(e) => router.patch(url, { needs_booking: e.target.checked }, keepScroll)}
+                />
+                {labels.question}
+            </label>
+            {place.needsBooking && (
+                <label className="plan-place-form__check">
+                    <input
+                        type="checkbox"
+                        checked={place.isBooked}
+                        onChange={(e) => router.patch(url, { is_booked: e.target.checked }, keepScroll)}
+                    />
+                    {labels.done}
+                </label>
+            )}
+            {place.needsBooking && !place.isBooked && (
+                <Link href={`/my-trips/${tripId}/advance`} className="plan-stop__booking-link">В делах «Заранее» →</Link>
+            )}
+        </div>
+    );
+}
+
+/**
  * Одно место в плане дня: номер, время, название, адрес, заметка и действия.
  */
 function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays }) {
@@ -412,7 +459,7 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays }
                 {place.freeMinutes > 0 && place.timeLocked && (
                     <span className="plan-stop__free">Свободное окно {formatMinutes(place.freeMinutes)}</span>
                 )}
-                {/* Этап 3: здесь появится вопрос «Нужен билет / бронь?» и отметка «куплено» (needs_booking / is_booked). */}
+                <BookingMarks tripId={tripId} place={place} />
 
                 {isEditing ? (
                     <EditPlaceForm tripId={tripId} place={place} onClose={() => setEditing(false)} />

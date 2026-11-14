@@ -17,6 +17,7 @@ export const TRIP_TABS = [
     { key: 'transport', label: 'Транспорт', path: '/transport' },
     { key: 'accommodation', label: 'Проживание', path: '/accommodation' },
     { key: 'packing', label: 'Список вещей', path: '/packing' },
+    { key: 'advance', label: 'Заранее', path: '/advance' },
     // «Настройки» — это существующая форма редактирования поездки.
     { key: 'settings', label: 'Настройки', path: '/edit' },
 ];

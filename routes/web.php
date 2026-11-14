@@ -9,6 +9,7 @@ use App\Http\Controllers\PackingController;
 use App\Http\Controllers\PackingItemController;
 use App\Http\Controllers\PackingListController;
 use App\Http\Controllers\TripAccommodationController;
+use App\Http\Controllers\TripAdvanceController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
 use App\Http\Controllers\TripPlanController;
@@ -93,4 +94,17 @@ Route::middleware('auth')->group(function () {
     Route::delete('/trip-places/{tripPlace}', [TripPlaceController::class, 'destroy'])->name('trip-places.destroy');
 
     Route::get('/favorites', [FavoritePlaceController::class, 'index'])->name('favorites.index');
+
+    // «Заранее»: свои дела и отметки «куплено/забронировано» для автоматических дел.
+    // scopeBindings — дело, билет, жильё или место ищется только среди записей этой поездки, иначе 404.
+    Route::scopeBindings()->prefix('/my-trips/{trip}')->name('trips.')->controller(TripAdvanceController::class)->group(function () {
+        Route::get('/advance', 'index')->name('advance');
+        Route::post('/tasks', 'store')->name('tasks.store');
+        Route::put('/tasks/{task}', 'update')->name('tasks.update');
+        Route::patch('/tasks/{task}/toggle', 'toggle')->name('tasks.toggle');
+        Route::delete('/tasks/{task}', 'destroy')->name('tasks.destroy');
+        Route::patch('/transport/{transport}/booked', 'toggleTransport')->name('transport.booked');
+        Route::patch('/accommodation/{accommodation}/booked', 'toggleAccommodation')->name('accommodation.booked');
+        Route::patch('/trip-places/{tripPlace}/booking', 'updatePlaceBooking')->name('trip-places.booking');
+    });
 });

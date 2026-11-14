@@ -5813,3 +5813,67 @@ section[id] {
         flex-wrap: wrap;
     }
 }
+
+/* =========================================
+   ВКЛАДКА «ЗАРАНЕЕ» и отметки брони в плане дня
+   ========================================= */
+
+.advance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.advance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.advance-task .packing-item__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 2px;
+}
+
+.advance-task__due {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+/* Просроченное дело выделяем оранжевым */
+.advance-task__due--overdue {
+    color: var(--color-accent-orange);
+    font-weight: 600;
+}
+
+.advance-task--overdue .packing-item__name {
+    color: var(--color-accent-orange);
+}
+
+.advance-task-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.advance-task-form__date {
+    max-width: 170px;
+}
+
+.plan-stop__booking {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    margin-top: 4px;
+}
+
+.plan-stop__booking-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}

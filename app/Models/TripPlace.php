@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 #[Fillable([
     'trip_id', 'place_id', 'trip_day_id', 'start_time', 'end_time', 'visit_order', 'note',
     'stay_minutes', 'travel_mode', 'travel_minutes', 'calculated_mode', 'time_locked',
+    'needs_booking', 'is_booked',
 ])]
 class TripPlace extends Model
 {
@@ -38,6 +39,11 @@ class TripPlace extends Model
     public const FallbackStayMinutes = 60;
 
     /**
+     * Categories where "нужна бронь" means a table, not a ticket (concept, section 3.4).
+     */
+    public const TableBookingCategories = ['restaurant'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -46,6 +52,8 @@ class TripPlace extends Model
             'stay_minutes' => 'integer',
             'travel_minutes' => 'integer',
             'time_locked' => 'boolean',
+            'needs_booking' => 'boolean',
+            'is_booked' => 'boolean',
         ];
     }
 
@@ -80,6 +88,14 @@ class TripPlace extends Model
     public function stayMinutes(): int
     {
         return $this->stay_minutes ?? self::defaultStayMinutes($this->place->category?->slug);
+    }
+
+    /**
+     * For a restaurant one books a table, for other places one buys a ticket. Needs the place with its category loaded.
+     */
+    public function needsTableBooking(): bool
+    {
+        return in_array($this->place->category?->slug, self::TableBookingCategories, true);
     }
 
     public static function defaultStayMinutes(?string $categorySlug): int

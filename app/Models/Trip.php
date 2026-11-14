@@ -111,6 +111,16 @@ class Trip extends Model
         return $this->hasManyThrough(PackingItem::class, PackingList::class);
     }
 
+    /**
+     * The traveller's own to-dos on the "Заранее" tab (tickets and bookings are not stored, they are computed).
+     *
+     * @return HasMany<TripTask, $this>
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(TripTask::class);
+    }
+
     public function hasDates(): bool
     {
         return $this->start_date !== null && $this->end_date !== null;

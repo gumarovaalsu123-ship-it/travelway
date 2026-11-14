@@ -18,16 +18,15 @@ use Carbon\CarbonInterface;
  * (на готовность не влияют). Каждая подсказка знает вкладку, где её исправить.
  *
  * Класс только читает данные поездки, ничего не сохраняет. Связи поездки (transports, accommodations,
- * packingItems, days, tripPlaces) лучше загрузить заранее через load()/with() — см. TripController.
+ * packingItems, days, tripPlaces с местом и днём, tasks) лучше загрузить заранее через load()/with() — см. TripController.
  *
  * Как расширять: новое правило — это ещё одна строка в hints/warnings нужного шага.
- * Этап 3 («Заранее») дописывает дела в advanceTasks(), этап 5 (цепочка поездок) — hasWayThere().
+ * Дела «Заранее» собирает advanceTasks(), этап 5 (цепочка поездок) дописывает hasWayThere().
  */
 class TripReadiness
 {
     /**
      * Шаги по порядку: ключ => название и вкладка (ключ из TRIP_TABS в Components/TripLayout.jsx).
-     * У «Заранее» своей вкладки пока нет — её добавит этап 3.
      *
      * @var array<string, array{title: string, tab: ?string}>
      */
@@ -35,7 +34,7 @@ class TripReadiness
         'transport' => ['title' => 'Как добраться', 'tab' => 'transport'],
         'accommodation' => ['title' => 'Где жить', 'tab' => 'accommodation'],
         'packing' => ['title' => 'Что взять', 'tab' => 'packing'],
-        'advance' => ['title' => 'Что сделать заранее', 'tab' => null],
+        'advance' => ['title' => 'Что сделать заранее', 'tab' => 'advance'],
         'plan' => ['title' => 'План по дням', 'tab' => 'plan'],
     ];
 
@@ -338,22 +337,27 @@ class TripReadiness
     }
 
     /**
-     * Дела «заранее». Они не хранятся, а вычисляются из записей поездки;
-     * «выполнено» — это отметка у самой записи (билет куплен, жильё забронировано).
+     * Дела «заранее»: билеты, брони и свои дела человека — одним списком по сроку.
      *
-     * Сейчас: билеты (кроме своего авто) и брони жилья (кроме «у знакомых»).
-     * Этап 3 добавит сюда места плана с «нужен билет/бронь» и свои дела из trip_tasks —
-     * просто ещё циклы, которые кладут дела в тот же список.
+     * Автоматические дела не хранятся, а вычисляются из записей поездки; «выполнено» — это отметка
+     * у самой записи (билет куплен, жильё забронировано, у места «куплено»). Так правда одна:
+     * отметили билет на вкладке «Транспорт» — дело на «Заранее» тоже стало сделанным.
+     * Свои дела («Оформить страховку») хранятся в trip_tasks.
      *
-     * @return array<int, array{title: string, dueDate: ?CarbonInterface, isDone: bool, tab: ?string}>
+     * kind и id — откуда взялось дело, по ним вкладка «Заранее» ставит отметку у нужной записи.
+     *
+     * @return array<int, array{kind: string, id: int, title: string, dueDate: ?CarbonInterface, isDone: bool, tab: ?string}>
      */
     public function advanceTasks(): array
     {
         $tasks = [];
 
+        // Билеты на транспорт, кроме своего авто.
         foreach ($this->trip->transports as $ride) {
             if ($ride->needsTicket()) {
                 $tasks[] = [
+                    'kind' => 'transport',
+                    'id' => $ride->id,
                     'title' => 'Купить билет: '.Transport::TypeLabels[$ride->type].' '.$ride->departure_place.' → '.$ride->arrival_place,
                     'dueDate' => $ride->departure_at,
                     'isDone' => $ride->is_booked,
@@ -362,15 +366,46 @@ class TripReadiness
             }
         }
 
+        // Брони жилья, кроме «у знакомых».
         foreach ($this->trip->accommodations as $stay) {
             if ($stay->needsBooking()) {
                 $tasks[] = [
+                    'kind' => 'accommodation',
+                    'id' => $stay->id,
                     'title' => 'Забронировать: '.$stay->name,
                     'dueDate' => $stay->check_in,
                     'isDone' => $stay->is_booked,
                     'tab' => 'accommodation',
                 ];
             }
+        }
+
+        // Места плана, где человек отметил «нужен билет/бронь». Срок — дата дня (у черновика без дат срока нет).
+        foreach ($this->trip->tripPlaces as $visit) {
+            if ($visit->needs_booking) {
+                $action = $visit->needsTableBooking() ? 'Забронировать столик' : 'Купить билет';
+
+                $tasks[] = [
+                    'kind' => 'place',
+                    'id' => $visit->id,
+                    'title' => "{$action}: {$visit->place->name} (день {$visit->day->day_number})",
+                    'dueDate' => $visit->day->date,
+                    'isDone' => $visit->is_booked,
+                    'tab' => 'plan',
+                ];
+            }
+        }
+
+        // Свои дела человека.
+        foreach ($this->trip->tasks as $task) {
+            $tasks[] = [
+                'kind' => 'task',
+                'id' => $task->id,
+                'title' => $task->title,
+                'dueDate' => $task->due_date,
+                'isDone' => $task->is_done,
+                'tab' => 'advance',
+            ];
         }
 
         // По сроку: ближайшие сверху, дела без срока — в конце.

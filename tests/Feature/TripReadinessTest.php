@@ -6,8 +6,10 @@ use App\Models\Accommodation;
 use App\Models\PackingItem;
 use App\Models\PackingList;
 use App\Models\Place;
+use App\Models\PlaceCategory;
 use App\Models\Transport;
 use App\Models\Trip;
+use App\Models\TripTask;
 use App\Services\TripReadiness;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -274,6 +276,58 @@ class TripReadinessTest extends TestCase
 
         $this->assertSame(['Забронировать: Отель «Волга» — до 15 июня'], $this->hintTexts($step));
         $this->assertSame('accommodation', $step['hints'][0]['tab']);
+    }
+
+    public function test_place_that_needs_a_ticket_is_a_task_until_it_is_bought(): void
+    {
+        $trip = $this->makeTrip();
+        $museum = Place::factory()->create(['name' => 'Эрмитаж', 'category_id' => PlaceCategory::query()->where('slug', 'museum')->value('id')]);
+        $restaurant = Place::factory()->create(['name' => 'Тюбетей', 'category_id' => PlaceCategory::query()->where('slug', 'restaurant')->value('id')]);
+        $days = $trip->days()->get();
+        $visit = $days[1]->addPlace($museum);
+        $visit->update(['needs_booking' => true]);
+        $days[2]->addPlace($restaurant)->update(['needs_booking' => true, 'is_booked' => true]);
+        // Без отметки «нужен билет» место делом не становится.
+        $days[0]->addPlace(Place::factory()->create());
+
+        $step = $this->readiness($trip)->step('advance');
+
+        $this->assertSame('Сделано: 1 из 2', $step['summary']);
+        $this->assertSame(['Купить билет: Эрмитаж (день 2) — до 16 июня'], $this->hintTexts($step));
+        $this->assertSame('plan', $step['hints'][0]['tab']);
+        $this->assertSame('Забронировать столик: Тюбетей (день 3)', $this->readiness($trip)->advanceTasks()[1]['title']);
+
+        $visit->update(['is_booked' => true]);
+
+        $this->assertTrue($this->readiness($trip)->step('advance')['ready']);
+    }
+
+    public function test_own_tasks_count_in_the_advance_step(): void
+    {
+        $trip = $this->makeTrip();
+        TripTask::factory()->for($trip)->create(['title' => 'Оформить страховку', 'due_date' => '2026-06-10']);
+        TripTask::factory()->for($trip)->done()->create(['title' => 'Обменять деньги', 'due_date' => null]);
+
+        $step = $this->readiness($trip)->step('advance');
+
+        $this->assertFalse($step['ready']);
+        $this->assertSame('Сделано: 1 из 2', $step['summary']);
+        $this->assertSame(['Оформить страховку — до 10 июня'], $this->hintTexts($step));
+        $this->assertSame('advance', $step['hints'][0]['tab']);
+        $this->assertSame('advance', $step['tab']);
+    }
+
+    public function test_advance_tasks_are_sorted_by_due_date_without_date_last(): void
+    {
+        $trip = $this->makeTrip();
+        TripTask::factory()->for($trip)->create(['title' => 'Без срока', 'due_date' => null]);
+        TripTask::factory()->for($trip)->create(['title' => 'Страховка', 'due_date' => '2026-06-01']);
+        $this->addRide($trip, 'to', ['is_booked' => false]);
+
+        $this->assertSame(
+            ['Страховка', 'Купить билет: Поезд Москва → Казань', 'Без срока'],
+            array_column($this->readiness($trip)->advanceTasks(), 'title'),
+        );
     }
 
     // ——— План по дням ———

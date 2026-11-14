@@ -76,6 +76,10 @@ class TripPlanController extends Controller
                     'defaultStayMinutes' => TripPlace::defaultStayMinutes($visit->place->category?->slug),
                     'travelMode' => $visit->travel_mode,
                     'timeLocked' => $visit->time_locked,
+                    // Билет/бронь (этап 3): вопрос у места зависит от категории, см. bookingQuestion в Plan.jsx.
+                    'categorySlug' => $visit->place->category?->slug,
+                    'needsBooking' => $visit->needs_booking,
+                    'isBooked' => $visit->is_booked,
                     // Отрезок от предыдущей точки до этого места и подсказки «не успеваете» / «свободное окно».
                     ...$summary['places'][$visit->id],
                 ])->values(),

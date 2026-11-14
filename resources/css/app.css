@@ -4848,9 +4848,9 @@
 /* Всплывающее уведомление */
 .toast {
     position: fixed;
-    left: 50%;
+    right: 32px;
     bottom: 32px;
-    transform: translateX(-50%);
+    max-width: min(420px, calc(100vw - 32px));
     z-index: 2000;
     background: var(--color-accent-green);
     color: var(--color-white);
@@ -4859,6 +4859,134 @@
     font-size: 14px;
     font-weight: 600;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    /* Выплывает снизу справа; forwards — после анимации остаётся в конечном положении. */
+    animation: toast-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Перед удалением из страницы уведомление плавно уезжает вправо и тает. */
+.toast--leaving {
+    animation: toast-out 0.3s ease-in forwards;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translate(24px, 24px); }
+    to { opacity: 1; transform: translate(0, 0); }
+}
+
+@keyframes toast-out {
+    from { opacity: 1; transform: translate(0, 0); }
+    to { opacity: 0; transform: translate(32px, 0); }
+}
+
+@media (max-width: 600px) {
+    .toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        max-width: none;
+    }
+}
+
+/* Индикатор загрузки (Components/Loader.jsx) — единый для всех запросов к внешним сервисам. */
+.spinner {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: spinner-turn 0.7s linear infinite;
+}
+
+@keyframes spinner-turn {
+    to { transform: rotate(360deg); }
+}
+
+.loader {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.loader--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loader--inline .spinner,
+.loader__head .spinner {
+    color: var(--color-accent-green);
+}
+
+.loader--block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 0;
+}
+
+.loader__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loader__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    background: var(--color-white);
+}
+
+/* Серая полоска с бегущим бликом — «заготовка» строки, пока нет данных. */
+.loader__line {
+    display: block;
+    width: 40%;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--color-border-light) 25%, var(--color-bg-alt) 50%, var(--color-border-light) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.2s ease-in-out infinite;
+}
+
+.loader__line--wide {
+    width: 65%;
+    height: 12px;
+}
+
+@keyframes skeleton-shine {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+/* Кнопка во время запроса: кружок слева от подписи. */
+.btn .spinner,
+.link-button .spinner {
+    width: 14px;
+    height: 14px;
+}
+
+/* У .btn промежуток задаёт gap, у ссылки-кнопки — отступ. */
+.link-button .spinner {
+    margin-right: 6px;
+    vertical-align: -2px;
+}
+
+/* Тем, кто отключил анимацию в системе, — без движения. */
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .toast--leaving,
+    .spinner,
+    .loader__line {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+    }
 }
 
 /* Шапка: блок пользователя */
@@ -5343,18 +5471,9 @@ section[id] {
     cursor: pointer;
 }
 
-/* Пока ждём Википедию — мягко пульсирующая строка */
-.place-form-info__loading {
+/* Пока ждём Википедию — индикатор загрузки с заготовкой строки (Components/Loader.jsx). */
+.map-overlay__form .loader--block {
     margin-bottom: 16px;
-    font-size: 13px;
-    color: var(--color-text-muted);
-    animation: placeInfoPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes placeInfoPulse {
-    50% {
-        opacity: 0.4;
-    }
 }
 
 .map-overlay__form .place-contacts,
@@ -6041,4 +6160,29 @@ section[id] {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+/* Выбор дня, в план которого добавлять найденное рядом с жильём. */
+.acc-nearby__day {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.acc-nearby__day .form-input {
+    width: auto;
+    min-width: 180px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+/* Ошибка загрузки подсказок и кнопка «Повторить». */
+.found-places__error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
 }

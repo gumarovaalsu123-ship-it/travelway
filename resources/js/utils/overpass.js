@@ -6,13 +6,20 @@
  * оно уходит на сервер обычной формой (новое место в план или в избранное) и проходит валидацию.
  */
 
-// Основной сервер и запасной: если первый не ответил за TIMEOUT_MS, спрашиваем второй.
+// Несколько независимых серверов Overpass (зеркала с одними и теми же данными OSM).
+// Бесплатные серверы часто перегружены: один и тот же запрос то отвечает за 2 секунды, то висит полминуты.
+// Поэтому спрашиваем все сразу и берём первый успешный ответ, остальные запросы отменяем.
 const SERVERS = [
     'https://overpass-api.de/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
 ];
 
-const TIMEOUT_MS = 12_000;
+// Сколько ждём ответа всего. Больше 30 секунд человек ждать не станет.
+const TIMEOUT_MS = 30_000;
+
+// Ответы, полученные за время работы страницы: повторное открытие той же подсказки не идёт в сеть.
+const cache = new Map();
 
 /**
  * Наборы мест: какие теги OSM ищем. Ключ — тег, значение — список подходящих значений.
@@ -49,8 +56,10 @@ const TAG_INFO = {
 
 /** Понятная ошибка для человека: сервис не ответил или ответил ошибкой. */
 export class OverpassError extends Error {
-    constructor() {
-        super('Сервис подсказок OpenStreetMap сейчас не отвечает. Попробуйте позже — план и сохранённые места в порядке.');
+    constructor(isTimeout = false) {
+        super(isTimeout
+            ? 'Сервис OpenStreetMap не ответил за 30 секунд — он сейчас перегружен. Попробуйте ещё раз чуть позже.'
+            : 'Сервис подсказок OpenStreetMap сейчас недоступен. Попробуйте позже — план и сохранённые места в порядке.');
         this.name = 'OverpassError';
     }
 }
@@ -103,36 +112,63 @@ function buildQuery(placeSet, around) {
         ([key, values]) => `nwr["${key}"~"^(${values.join('|')})$"]["name"](${around});`,
     );
 
-    return `[out:json][timeout:10];(${parts.join('')});out center 60;`;
+    return `[out:json][timeout:25];(${parts.join('')});out center 60;`;
 }
 
 /**
- * Отправить запрос: сначала основному серверу, при ошибке или таймауте — запасному.
- * Таймаут — через AbortController: по истечении времени fetch отменяется.
+ * Спросить один сервер. Ошибка — если сервер ответил не 200 или сам сообщил, что не успел выполнить запрос
+ * (тогда в ответе есть поле remark с «runtime error», а список мест пустой или неполный).
  */
-async function runQuery(query) {
-    for (const server of SERVERS) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+async function askServer(server, query, signal) {
+    // POST с телом-формой: браузер отправляет такой запрос без предварительной проверки CORS,
+    // а Overpass отвечает заголовком Access-Control-Allow-Origin: *.
+    const response = await fetch(server, { method: 'POST', body: new URLSearchParams({ data: query }), signal });
 
-        try {
-            const response = await fetch(server, {
-                method: 'POST',
-                body: new URLSearchParams({ data: query }),
-                signal: controller.signal,
-            });
-
-            if (response.ok) {
-                return (await response.json()).elements ?? [];
-            }
-        } catch {
-            // Сеть, таймаут или неверный JSON — пробуем следующий сервер.
-        } finally {
-            clearTimeout(timer);
-        }
+    if (!response.ok) {
+        throw new Error(`Overpass ответил ${response.status}`);
     }
 
-    throw new OverpassError();
+    const json = await response.json();
+
+    if (json.remark?.includes('runtime error')) {
+        throw new Error(json.remark);
+    }
+
+    return json.elements ?? [];
+}
+
+/**
+ * Отправить запрос всем серверам сразу и вернуть первый успешный ответ (Promise.any).
+ * Один AbortController на всех: при первом ответе, по таймауту или когда окно закрыли (signal снаружи)
+ * отменяем все оставшиеся запросы, чтобы не нагружать серверы зря.
+ */
+async function runQuery(query, signal) {
+    if (cache.has(query)) {
+        return cache.get(query);
+    }
+
+    const controller = new AbortController();
+    let isTimeout = false;
+    const timer = setTimeout(() => {
+        isTimeout = true;
+        controller.abort();
+    }, TIMEOUT_MS);
+    const abortFromOutside = () => controller.abort();
+    signal?.addEventListener('abort', abortFromOutside);
+
+    try {
+        const elements = await Promise.any(SERVERS.map((server) => askServer(server, query, controller.signal)));
+        cache.set(query, elements);
+
+        return elements;
+    } catch {
+        // Все серверы ответили ошибкой или запросы отменены по таймауту.
+        throw new OverpassError(isTimeout);
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', abortFromOutside);
+        controller.abort();
+    }
 }
 
 /** Какой из тегов набора подошёл элементу: «amenity=cafe» и т. п. */
@@ -170,9 +206,10 @@ function placesFrom(elements, placeSet) {
 
 /**
  * Места вокруг точки в радиусе radius метров, от ближних к дальним.
+ * signal — AbortSignal: если окно закрыли раньше ответа, запрос отменяется.
  */
-export async function findNearby(point, placeSet, radius = 500) {
-    const elements = await runQuery(buildQuery(placeSet, `around:${radius},${point.lat},${point.lng}`));
+export async function findNearby(point, placeSet, radius = 500, signal = undefined) {
+    const elements = await runQuery(buildQuery(placeSet, `around:${radius},${point.lat},${point.lng}`), signal);
 
     return placesFrom(elements, placeSet)
         .map((place) => ({ ...place, distance: distanceMeters(point, place) }))
@@ -187,8 +224,8 @@ export async function findNearby(point, placeSet, radius = 500) {
  * Настоящий путь по улицам немного отличается от прямой, поэтому это приближение — для подсказки этого хватает.
  * Расстояние до линии и сортировку считаем сами (distanceToSegmentMeters).
  */
-export async function findAlongSegment(a, b, placeSet, width = 200, limit = 5) {
-    const elements = await runQuery(buildQuery(placeSet, `around:${width},${a.lat},${a.lng},${b.lat},${b.lng}`));
+export async function findAlongSegment(a, b, placeSet, width = 200, limit = 5, signal = undefined) {
+    const elements = await runQuery(buildQuery(placeSet, `around:${width},${a.lat},${a.lng},${b.lat},${b.lng}`), signal);
 
     return placesFrom(elements, placeSet)
         // Сами точки A и B (если это то же место из OSM) рядом с отрезком не интересны — отбрасываем совсем близкие к концам.

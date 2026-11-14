@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import TripLayout from '../../Components/TripLayout';
 import CustomZoomControl from '../../Components/Map/UI/CustomZoomControl';
 import FitToPlaces from '../../Components/Map/Logic/FitToPlaces';
+import Loader from '../../Components/Loader';
 import useRouteLines, { profileFor } from '../../Components/Map/Logic/useRouteLines';
 import { lodgingIcon, stopIcon } from '../../utils/mapIcons';
 import { plural } from '../../utils/format';
@@ -229,7 +230,7 @@ function DayMap({ trip, day }) {
                     ))}
                 </MapContainer>
 
-                {isLoading && points.length > 1 && <div className="map-route-note">Строим маршрут…</div>}
+                {isLoading && points.length > 1 && <div className="map-route-note"><Loader text="Строим маршрут по дорогам…" /></div>}
                 {hasStraightLines && (
                     <div className="map-route-note">Сервис маршрутов не ответил — линия показана по прямой.</div>
                 )}

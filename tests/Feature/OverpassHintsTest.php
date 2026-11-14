@@ -189,4 +189,34 @@ class OverpassHintsTest extends TestCase
                 ->has('categories', PlaceCategory::count())
                 ->has('categories.0', fn (AssertableInertia $category) => $category->hasAll(['id', 'slug'])));
     }
+
+    public function test_accommodation_page_gives_trip_days_for_adding_found_places_to_the_plan(): void
+    {
+        $this->actingAs($this->user)
+            ->get("/my-trips/{$this->trip->id}/accommodation")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('days', 2)
+                ->where('days.0.id', $this->day->id)
+                ->where('days.0.number', 1)
+                ->where('days.0.date', $this->day->date->toDateString())
+                ->where('days.1.number', 2));
+    }
+
+    public function test_place_found_near_lodging_goes_to_the_end_of_the_chosen_day(): void
+    {
+        $secondDay = $this->trip->days()->where('day_number', 2)->sole();
+        $secondDay->addPlace(Place::factory()->create(['name' => 'Кремль']));
+
+        // «Что рядом с жильём?» отправляет то же, что подсказки плана, но без after_trip_place_id.
+        $this->actingAs($this->user)
+            ->post($this->url($secondDay), $this->payload(['name' => 'Пятёрочка', 'category_id' => PlaceCategory::where('slug', 'shop')->value('id')]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            ['Кремль', 'Пятёрочка'],
+            $secondDay->tripPlaces()->with('place')->get()->pluck('place.name')->all(),
+        );
+        $this->assertDatabaseHas('places', ['name' => 'Пятёрочка', 'user_id' => $this->user->id]);
+    }
 }

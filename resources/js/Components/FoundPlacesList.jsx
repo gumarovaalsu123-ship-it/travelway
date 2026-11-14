@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { formatDistance } from '../utils/overpass';
+import Loader, { Spinner } from './Loader';
 
 /**
  * Найденное место → поля формы, которые ждёт сервер. Категорию сервер принимает по id,
@@ -20,54 +21,67 @@ function placeFormData(place, categories) {
 }
 
 /**
- * Список мест из подсказок Overpass: загрузка, ошибка, пустой результат и кнопки сохранения.
+ * Список мест из подсказок Overpass: загрузка, ошибка с кнопкой «Повторить», пустой результат и кнопки сохранения.
  *
- * load — функция, которая возвращает Promise со списком мест (findNearby / findAlongSegment из utils/overpass).
- * Загрузка запускается один раз при появлении списка; чтобы искать заново, родитель меняет key.
- * actions — кнопки у каждого места: { label, url, extra, onSaved }. Сохранение — обычная форма Inertia,
+ * load — функция, которая получает AbortSignal и возвращает Promise со списком мест
+ * (findNearby / findAlongSegment из utils/overpass). Загрузка запускается при появлении списка и по кнопке «Повторить»;
+ * если список убрали со страницы раньше ответа, запрос отменяется.
+ * actions — кнопки у каждого места: { label, savedLabel, url, extra, onSaved }. Сохранение — обычная форма Inertia,
  * сервер проверяет данные как при добавлении места с карты.
  */
 export default function FoundPlacesList({ load, categories, actions, emptyText }) {
     const [places, setPlaces] = useState(null);
     const [loadError, setLoadError] = useState(null);
-    const [savingId, setSavingId] = useState(null);
-    const [savedIds, setSavedIds] = useState([]);
+    // Номер попытки: «Повторить» увеличивает его, и useEffect ниже запускает загрузку заново.
+    const [attempt, setAttempt] = useState(0);
+    // Какая кнопка сейчас сохраняет: «id места|адрес запроса».
+    const [savingKey, setSavingKey] = useState(null);
+    const [savedKeys, setSavedKeys] = useState([]);
     const [saveError, setSaveError] = useState(null);
 
     useEffect(() => {
-        // Окно могли закрыть до ответа сервиса — тогда результат уже никому не нужен.
-        let isActive = true;
+        const controller = new AbortController();
+        setPlaces(null);
+        setLoadError(null);
 
-        load()
-            .then((result) => isActive && setPlaces(result))
-            .catch((error) => isActive && setLoadError(error.message));
+        load(controller.signal)
+            .then((result) => !controller.signal.aborted && setPlaces(result))
+            .catch((error) => !controller.signal.aborted && setLoadError(error.message));
 
-        return () => {
-            isActive = false;
-        };
-    }, []);
+        // Окно закрыли до ответа сервиса — отменяем запрос, результат уже никому не нужен.
+        return () => controller.abort();
+    }, [attempt]);
 
     function save(place, action) {
-        setSavingId(place.id);
+        // Ключ включает адрес: одно и то же место можно добавить и в избранное, и в план (в разные дни — тоже).
+        const key = `${place.id}|${action.url}`;
+        setSavingKey(key);
         setSaveError(null);
 
         router.post(action.url, { ...placeFormData(place, categories), ...action.extra }, {
             preserveScroll: true,
             onSuccess: () => {
-                setSavedIds((ids) => [...ids, place.id]);
+                setSavedKeys((keys) => [...keys, key]);
                 action.onSaved?.();
             },
             onError: (errors) => setSaveError(Object.values(errors)[0]),
-            onFinish: () => setSavingId(null),
+            onFinish: () => setSavingKey(null),
         });
     }
 
     if (loadError) {
-        return <p className="form-error">{loadError}</p>;
+        return (
+            <div className="found-places__error">
+                <p className="form-error">{loadError}</p>
+                <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => setAttempt(attempt + 1)}>
+                    Повторить
+                </button>
+            </div>
+        );
     }
 
     if (places === null) {
-        return <p className="form-hint">Ищем в OpenStreetMap…</p>;
+        return <Loader variant="block" text="Ищем места поблизости…" />;
     }
 
     if (places.length === 0) {
@@ -88,19 +102,26 @@ export default function FoundPlacesList({ load, categories, actions, emptyText }
                             </span>
                         </div>
                         <div className="found-place__actions">
-                            {savedIds.includes(place.id) ? (
-                                <span className="plan-stop__free">Сохранено</span>
-                            ) : actions.map((action) => (
-                                <button
-                                    key={action.label}
-                                    type="button"
-                                    className="btn btn--outline-dark btn--sm"
-                                    disabled={savingId !== null}
-                                    onClick={() => save(place, action)}
-                                >
-                                    {action.label}
-                                </button>
-                            ))}
+                            {actions.map((action) => {
+                                const key = `${place.id}|${action.url}`;
+
+                                if (savedKeys.includes(key)) {
+                                    return <span key={action.label} className="plan-stop__free">{action.savedLabel ?? 'Сохранено'}</span>;
+                                }
+
+                                return (
+                                    <button
+                                        key={action.label}
+                                        type="button"
+                                        className="btn btn--outline-dark btn--sm"
+                                        disabled={savingKey !== null}
+                                        onClick={() => save(place, action)}
+                                    >
+                                        {savingKey === key && <Spinner />}
+                                        {action.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </li>
                 ))}

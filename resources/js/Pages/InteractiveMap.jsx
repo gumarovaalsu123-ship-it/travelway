@@ -55,7 +55,8 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
             setDraft((current) => (current?.key === key ? { ...current, ...result, lat, lng, isLoading: false } : current));
         } catch (error) {
             if (error.name !== 'AbortError') {
-                setDraft((current) => (current?.key === key ? { ...current, isLoading: false } : current));
+                // Адрес не узнали (сеть, таймаут) — форма остаётся, человек вводит название сам.
+                setDraft((current) => (current?.key === key ? { ...current, isLoading: false, geocodeFailed: true } : current));
             }
         }
     }, [map]);

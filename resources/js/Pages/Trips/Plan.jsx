@@ -138,12 +138,13 @@ function FoundPlacesDialog({ title, load, emptyText, tripId, day, afterPlace, ca
     const actions = [
         {
             label: 'Добавить в план',
+            savedLabel: 'В плане',
             url: `/my-trips/${tripId}/days/${day.id}/places`,
             extra: { after_trip_place_id: afterPlace.id },
             // Порядок мест в дне изменился — закрываем окно, чтобы человек увидел новый план.
             onSaved: onClose,
         },
-        { label: 'В избранное', url: '/interactive-map/places', extra: { destination: 'favorite' } },
+        { label: 'В избранное', savedLabel: 'В избранном', url: '/interactive-map/places', extra: { destination: 'favorite' } },
     ];
 
     return (
@@ -668,7 +669,7 @@ export default function Plan({ trip, days, selectedDay, favorites, categories })
     function showMealPlaces(place) {
         setFoundDialog({
             title: `Где поесть рядом с «${place.name}»`,
-            load: () => findNearby(place, PLACE_SETS.food, 500),
+            load: (signal) => findNearby(place, PLACE_SETS.food, 500, signal),
             emptyText: 'В 500 м кафе и ресторанов не нашлось.',
             afterPlace: place,
         });
@@ -677,7 +678,7 @@ export default function Plan({ trip, days, selectedDay, favorites, categories })
     function showAlong(from, to) {
         setFoundDialog({
             title: `Что по пути: «${from.name}» → «${to.name}»`,
-            load: () => findAlongSegment(from, to, PLACE_SETS.sights, 200, 5),
+            load: (signal) => findAlongSegment(from, to, PLACE_SETS.sights, 200, 5, signal),
             emptyText: 'В 200 м от пути достопримечательностей не нашлось.',
             afterPlace: from,
         });

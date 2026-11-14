@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
 import FoundPlacesList from '../../Components/FoundPlacesList';
 import TripLayout from '../../Components/TripLayout';
@@ -74,11 +74,32 @@ const NEARBY_TABS = {
 
 /**
  * «Что рядом с жильём?»: магазины, аптеки и кафе в 500 м по данным OpenStreetMap (Overpass API).
- * Найденное место можно сохранить в избранное — оттуда его легко добавить в любой день плана.
+ * Найденное место можно сохранить в избранное или сразу добавить в конец плана выбранного дня.
+ *
+ * Поездку и её дни берём из props страницы (usePage), чтобы не передавать их через карточку жилья.
+ * По умолчанию выбран день заезда (checkIn), если он есть среди дней поездки, иначе первый день.
  */
-function NearbyPanel({ point, categories }) {
+function NearbyPanel({ point, categories, checkIn }) {
+    const { trip, days } = usePage().props;
+    const checkInDay = checkIn && days.find((day) => day.date === datePart(checkIn));
     const [tab, setTab] = useState('groceries');
+    const [dayId, setDayId] = useState(checkInDay?.id ?? days[0]?.id ?? null);
     const current = NEARBY_TABS[tab];
+    const selectedDay = days.find((day) => day.id === dayId);
+
+    const actions = [
+        { label: 'В избранное', savedLabel: 'В избранном', url: '/interactive-map/places', extra: { destination: 'favorite' } },
+    ];
+
+    if (selectedDay) {
+        // Без after_trip_place_id сервер ставит место в конец дня (TripPlanController::storePlace).
+        actions.push({
+            label: `В план дня ${selectedDay.number}`,
+            savedLabel: `В плане дня ${selectedDay.number}`,
+            url: `/my-trips/${trip.id}/days/${selectedDay.id}/places`,
+            extra: {},
+        });
+    }
 
     return (
         <div className="acc-nearby">
@@ -96,12 +117,24 @@ function NearbyPanel({ point, categories }) {
                     </button>
                 ))}
             </div>
+            {days.length > 0 && (
+                <label className="acc-nearby__day">
+                    Добавлять в план:
+                    <select className="form-input form-select" value={dayId} onChange={(event) => setDayId(Number(event.target.value))}>
+                        {days.map((day) => (
+                            <option key={day.id} value={day.id}>
+                                День {day.number}{day.date ? ` — ${formatDayMonth(day.date)}` : ''}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            )}
             {/* key: при смене вкладки список создаётся заново и делает новый запрос. */}
             <FoundPlacesList
                 key={tab}
-                load={() => findNearby(point, current.placeSet, 500)}
+                load={(signal) => findNearby(point, current.placeSet, 500, signal)}
                 categories={categories}
-                actions={[{ label: 'В избранное', url: '/interactive-map/places', extra: { destination: 'favorite' } }]}
+                actions={actions}
                 emptyText={current.empty}
             />
         </div>
@@ -172,7 +205,7 @@ function AccommodationCard({ accommodation, categories, onEdit, onDelete }) {
                 </div>
 
                 {isNearbyOpen && latitude !== null && (
-                    <NearbyPanel point={{ lat: latitude, lng: longitude }} categories={categories} />
+                    <NearbyPanel point={{ lat: latitude, lng: longitude }} categories={categories} checkIn={checkIn} />
                 )}
             </div>
         </article>

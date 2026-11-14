@@ -6,6 +6,7 @@ use App\Http\Requests\AccommodationRequest;
 use App\Models\Accommodation;
 use App\Models\PlaceCategory;
 use App\Models\Trip;
+use App\Models\TripDay;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -52,6 +53,12 @@ class TripAccommodationController extends Controller
             'typesWithoutBooking' => Accommodation::TypesWithoutBooking,
             // «Что рядом с жильём?»: найденное место сохраняется в избранное, серверу нужен id категории.
             'categories' => PlaceCategory::query()->orderBy('id')->get(['id', 'slug']),
+            // ...или сразу в план выбранного дня.
+            'days' => $trip->days()->get()->map(fn (TripDay $day) => [
+                'id' => $day->id,
+                'number' => $day->day_number,
+                'date' => $day->date?->toDateString(),
+            ])->values(),
         ]);
     }
 

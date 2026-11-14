@@ -195,4 +195,22 @@ class InteractiveMapTest extends TestCase
         $this->assertModelMissing($visit);
         $this->assertModelMissing($place);
     }
+
+    public function test_map_preselects_own_trip_day_only(): void
+    {
+        $ownDay = $this->trip->days()->where('day_number', 2)->sole();
+        $foreignDay = Trip::factory()->create()->days()->first();
+
+        $this->actingAs($this->user)
+            ->get("/interactive-map?day={$ownDay->id}")
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('focusDayId', $ownDay->id));
+
+        $this->actingAs($this->user)
+            ->get("/interactive-map?day={$foreignDay->id}")
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('focusDayId', null));
+
+        $this->actingAs($this->user)
+            ->get('/interactive-map')
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('focusDayId', null));
+    }
 }

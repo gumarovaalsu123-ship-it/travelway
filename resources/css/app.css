@@ -5361,3 +5361,195 @@ section[id] {
 .map-overlay__form .place-credit {
     margin-bottom: 12px;
 }
+
+/* =========================================
+   ВКЛАДКА «ПЛАН ПО ДНЯМ» (Pages/Trips/Plan.jsx)
+   ========================================= */
+
+/* Карточки дней — ссылки, а не кнопки, поэтому убираем подчёркивание */
+.days-calendar .day-card {
+    text-decoration: none;
+}
+
+.plan-edit-dates-link {
+    align-self: flex-start;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+.plan-day-header {
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.itinerary-block__actions {
+    flex-wrap: wrap;
+}
+
+/* Название дня: выглядит как заголовок, по клику превращается в поле */
+.plan-day-title {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-text-dark);
+    text-align: left;
+    cursor: pointer;
+}
+
+.plan-day-title:hover {
+    text-decoration: underline;
+}
+
+.plan-day-title__placeholder {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--color-accent-green);
+}
+
+.plan-day-title-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 260px;
+}
+
+.plan-day-title-form .form-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.plan-day-title-form .form-error {
+    width: 100%;
+}
+
+.plan-stop {
+    align-items: flex-start;
+}
+
+.plan-stop__time {
+    width: auto;
+    font-size: 14px;
+}
+
+.plan-stop__note {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-text-dark);
+    background: #F7F5F0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    white-space: pre-line;
+}
+
+/* Мягкая подсказка о времени: не ошибка, а предупреждение */
+.plan-stop__warning {
+    font-size: 12px;
+    color: var(--color-accent-orange);
+}
+
+.plan-stop__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.plan-stop__actions .btn {
+    cursor: pointer;
+}
+
+.plan-stop__move-select {
+    width: auto;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.plan-stop__remove {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.plan-place-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.plan-place-form__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.plan-empty-day {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.plan-add-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Окно «Из избранного» поверх страницы */
+.plan-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(30, 38, 32, 0.45);
+}
+
+.plan-dialog {
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--color-white);
+    border-radius: 24px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-dialog__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-dialog__title {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-text-dark);
+}
+
+.plan-dialog__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.plan-dialog__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-border-warm);
+}
+
+.plan-dialog__item:last-child {
+    border-bottom: none;
+}

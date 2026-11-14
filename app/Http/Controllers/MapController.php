@@ -20,24 +20,27 @@ class MapController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $trips = $user->trips()->with('days')->orderBy('start_date')->get();
+
+        // ?day= приходит с вкладки «План по дням» («Найти на карте»): этот день будет выбран в форме добавления.
+        // Берём его, только если это день одной из поездок пользователя, иначе игнорируем.
+        $focusDayId = $request->integer('day');
+        $isOwnDay = $trips->contains(fn (Trip $trip) => $trip->days->contains('id', $focusDayId));
 
         return Inertia::render('InteractiveMap', [
             'categories' => PlaceCategory::query()->orderBy('id')->get(['id', 'slug', 'name']),
-            'trips' => $user->trips()
-                ->with('days')
-                ->orderBy('start_date')
-                ->get()
-                ->map(fn (Trip $trip) => [
-                    'id' => $trip->id,
-                    'title' => $trip->title,
-                    'days' => $trip->days->map(fn (TripDay $day) => [
-                        'id' => $day->id,
-                        'number' => $day->day_number,
-                        'date' => $day->date?->toDateString(),
-                    ]),
+            'trips' => $trips->map(fn (Trip $trip) => [
+                'id' => $trip->id,
+                'title' => $trip->title,
+                'days' => $trip->days->map(fn (TripDay $day) => [
+                    'id' => $day->id,
+                    'number' => $day->day_number,
+                    'date' => $day->date?->toDateString(),
                 ]),
+            ]),
             'places' => $this->placesFor($user),
             'focusPlaceId' => $request->integer('place') ?: null,
+            'focusDayId' => $isOwnDay ? $focusDayId : null,
         ]);
     }
 

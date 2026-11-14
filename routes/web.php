@@ -42,6 +42,15 @@ Route::middleware('auth')->group(function () {
      * а страницу соберите в Pages/Trips/<Вкладка>.jsx внутри Components/TripLayout.jsx.
      */
     Route::get('/my-trips/{trip}/plan', [TripPlanController::class, 'index'])->name('trips.plan');
+    // План по дням. scopeBindings: {day} ищется среди дней этой поездки, {tripPlace} — среди её мест, иначе 404.
+    // Убрать место из плана — существующий trip-places.destroy (ниже).
+    Route::scopeBindings()->prefix('/my-trips/{trip}')->name('trips.')->controller(TripPlanController::class)->group(function () {
+        Route::patch('/days/{day}', 'updateDay')->name('days.update');
+        Route::post('/days/{day}/sort-by-time', 'sortByTime')->name('days.sort-by-time');
+        Route::patch('/trip-places/{tripPlace}', 'update')->name('trip-places.update');
+        Route::patch('/trip-places/{tripPlace}/move', 'move')->name('trip-places.move');
+        Route::patch('/trip-places/{tripPlace}/day', 'changeDay')->name('trip-places.change-day');
+    });
 
     Route::get('/my-trips/{trip}/map', [TripController::class, 'comingSoon'])->defaults('tab', 'map')->name('trips.map');
 

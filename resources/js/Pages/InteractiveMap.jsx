@@ -24,7 +24,7 @@ const layerFilters = {
     favorites: (place) => place.isFavorite,
 };
 
-export default function InteractiveMap({ categories, trips, places, focusPlaceId = null }) {
+export default function InteractiveMap({ categories, trips, places, focusPlaceId = null, focusDayId = null }) {
     const [map, setMap] = useState(null);
     const focusPlace = useMemo(() => places.find((place) => place.id === focusPlaceId) ?? null, [places, focusPlaceId]);
     const [draft, setDraft] = useState(null);
@@ -126,6 +126,7 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
                             draft={draft}
                             categories={categories}
                             trips={trips}
+                            focusDayId={focusDayId}
                             onClose={closeDraft}
                             onSaved={closeDraft}
                         />

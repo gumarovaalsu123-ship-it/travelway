@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { plural } from '../../utils/format';
 
@@ -81,6 +81,19 @@ export default function TripForm({ trip, previousTrip = null }) {
     };
 
     /**
+     * Удалить поездку. Кнопка здесь, в «Настройках», — карточка в «Моих путешествиях» целиком ведёт на поездку.
+     */
+    const removeTrip = () => {
+        const warning = trip.placesCount > 0
+            ? ` Вместе с ним из плана удалятся ${trip.placesCount} ${plural(trip.placesCount, ['место', 'места', 'мест'])}.`
+            : '';
+
+        if (window.confirm(`Удалить путешествие «${trip.title}»?${warning}`)) {
+            router.delete(`/my-trips/${trip.id}`);
+        }
+    };
+
+    /**
      * Дата окончания подстраивается, если её ещё нет или она оказалась раньше начала:
      * длина поездки (выбранное число дней) при этом сохраняется.
      */
@@ -114,6 +127,15 @@ export default function TripForm({ trip, previousTrip = null }) {
                                     : 'Заполните обязательные поля — после создания вы сможете добавить места и детали поездки'}
                             </p>
                         </header>
+
+                        {trip?.isCompleted && (
+                            <div className="draft-status-box">
+                                <span className="draft-status__title">Поездка завершена</span>
+                                <p className="draft-status__desc">
+                                    Её план и вещи доступны только для просмотра. Здесь можно исправить ошибочные даты или удалить поездку.
+                                </p>
+                            </div>
+                        )}
 
                         {previousTrip && (
                             <div className="draft-status-box">
@@ -268,6 +290,12 @@ export default function TripForm({ trip, previousTrip = null }) {
                                 </button>
                             </div>
                         </form>
+
+                        {isEditing && (
+                            <div className="form-danger-zone">
+                                <button type="button" className="btn btn--danger-outline" onClick={removeTrip}>Удалить путешествие</button>
+                            </div>
+                        )}
                     </section>
                 </div>
             </main>

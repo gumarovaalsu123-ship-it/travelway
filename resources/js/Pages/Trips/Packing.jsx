@@ -310,9 +310,6 @@ export default function TripPacking({ trip, lists, hints }) {
                         </p>
                     </div>
                     <div className="packing-header-actions">
-                        {lists.length > 0 && (
-                            <button type="button" className="btn btn--outline-dark" onClick={addDefaults}>Стандартный набор</button>
-                        )}
                         <button type="button" className="btn btn--solid-dark" onClick={() => setAddingGroup(true)}>+ Новая группа</button>
                     </div>
                 </header>
@@ -322,11 +319,12 @@ export default function TripPacking({ trip, lists, hints }) {
                 {lists.length === 0 ? (
                     <section className="trips-empty mt-24">
                         <h2 className="trips-empty__title">Список пока пуст</h2>
+                        {/* Стандартный набор кладётся в каждую новую поездку; кнопка — если человек удалил всё и хочет вернуть. */}
                         <p className="trips-empty__text">
-                            Начните со стандартного набора — документы, одежда, техника, аптечка — и поправьте его под себя.
+                            Верните стандартный набор — документы, одежда, техника, аптечка — и поправьте его под себя.
                             Или создайте свою группу вещей.
                         </p>
-                        <button type="button" className="btn btn--solid" onClick={addDefaults}>Добавить стандартный набор</button>
+                        <button type="button" className="btn btn--solid" onClick={addDefaults}>Вернуть стандартный набор</button>
                     </section>
                 ) : (
                     <>

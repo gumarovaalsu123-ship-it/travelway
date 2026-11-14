@@ -17,9 +17,14 @@ use Inertia\Response;
  */
 class PackingController extends Controller
 {
-    public function index(Trip $trip): Response
+    public function index(Trip $trip): Response|RedirectResponse
     {
         Gate::authorize('view', $trip);
+
+        // У текущей поездки вкладки «Вещи» нет (см. Trip::tabs()) — открываем первую вкладку.
+        if (! $trip->hasTab('packing')) {
+            return to_route('trips.show', $trip);
+        }
 
         $trip->load('packingLists.items', 'transports', 'accommodations');
 
@@ -41,24 +46,14 @@ class PackingController extends Controller
     }
 
     /**
-     * Add the standard set (PackingList::Defaults). Groups and things the trip already has are skipped,
-     * so pressing the button twice does not create duplicates.
+     * Add the standard set again (the button is shown only when the list is empty, for example
+     * when the user deleted everything). Things the trip already has are skipped.
      */
     public function storeDefaults(Trip $trip): RedirectResponse
     {
         Gate::authorize('update', $trip);
 
-        DB::transaction(function () use ($trip) {
-            foreach (PackingList::Defaults as $title => $names) {
-                $list = PackingList::firstOrCreateFor($trip, $title);
-
-                $existingNames = $list->items()->pluck('name')->all();
-
-                foreach (array_diff($names, $existingNames) as $name) {
-                    $list->addItem($name);
-                }
-            }
-        });
+        DB::transaction(fn () => PackingList::addDefaultsTo($trip));
 
         Inertia::flash('toast', 'Стандартный набор вещей добавлен.');
 

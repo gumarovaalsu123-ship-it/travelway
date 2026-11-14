@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\TripRequest;
+use App\Models\PackingList;
 use App\Models\Place;
 use App\Models\Trip;
 use App\Models\TripDay;
 use App\Models\TripPlace;
+use App\Services\DaySchedule;
 use App\Services\TripReadiness;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -71,9 +73,14 @@ class TripController extends Controller
                 'previous_trip_id' => $request->validated('previous_trip_id'),
             ]);
             $trip->syncDays();
+            // Стандартный набор вещей кладём сразу: лишнее человек уберёт сам на вкладке «Вещи».
+            PackingList::addDefaultsTo($trip);
 
             return $trip;
         });
+
+        // Обложку ищем уже после сохранения: если Википедия не ответит, поездка всё равно создана.
+        $trip->refreshCover();
 
         Inertia::flash('toast', "Путешествие «{$trip->title}» создано. Добавьте в него места на карте.");
 
@@ -81,11 +88,16 @@ class TripController extends Controller
     }
 
     /**
-     * Trip page, the "Preparation" tab: readiness of the trip by steps and hints on what is missing.
+     * The first tab of the trip page: "Preparation" (readiness by steps and hints on what is missing),
+     * and for a trip that is happening now — "Today", the overview of the current day.
      */
     public function show(Trip $trip): Response
     {
         Gate::authorize('view', $trip);
+
+        if ($trip->hasTab('today')) {
+            return $this->today($trip);
+        }
 
         $trip->load(self::ReadinessRelations);
 
@@ -98,7 +110,7 @@ class TripController extends Controller
 
     public function edit(Trip $trip): Response
     {
-        Gate::authorize('update', $trip);
+        Gate::authorize('updateSettings', $trip);
 
         return Inertia::render('Trips/Form', [
             'trip' => [
@@ -111,13 +123,17 @@ class TripController extends Controller
                 'daysCount' => $trip->days_count,
                 'isPublic' => $trip->is_public,
                 'lastPlannedDay' => (int) $trip->days()->has('tripPlaces')->max('day_number'),
+                'placesCount' => $trip->tripPlaces()->count(),
+                'isCompleted' => $trip->status === Trip::StatusCompleted,
             ],
         ]);
     }
 
     public function update(TripRequest $request, Trip $trip): RedirectResponse
     {
-        Gate::authorize('update', $trip);
+        Gate::authorize('updateSettings', $trip);
+
+        $oldDestination = $trip->destination;
 
         DB::transaction(function () use ($request, $trip) {
             $placeIds = $trip->tripPlaces()->pluck('place_id');
@@ -127,6 +143,11 @@ class TripController extends Controller
 
             $this->deleteUnusedPlaces($placeIds->all());
         });
+
+        // Город поменялся — нужна и новая обложка.
+        if ($trip->destination !== $oldDestination) {
+            $trip->refreshCover();
+        }
 
         Inertia::flash('toast', 'Изменения сохранены.');
 
@@ -159,6 +180,7 @@ class TripController extends Controller
             'id' => $trip->id,
             'title' => $trip->title,
             'destination' => $trip->destination,
+            'coverImage' => $trip->cover_image,
             'startDate' => $trip->start_date?->toDateString(),
             'endDate' => $trip->end_date?->toDateString(),
             'daysCount' => $trip->days_count,
@@ -191,15 +213,56 @@ class TripController extends Controller
             : 1;
 
         /** @var TripDay|null $day */
-        $day = $trip->days()->where('day_number', $dayNumber)->with('tripPlaces.place')->first();
+        $day = $trip->days->firstWhere('day_number', $dayNumber);
 
         return [
             'id' => $trip->id,
             'isCurrent' => $trip->status === Trip::StatusCurrent,
             'dayNumber' => $dayNumber,
             'dayTitle' => $day?->title,
-            'placeNames' => $day?->tripPlaces->map(fn (TripPlace $visit) => $visit->place->name)->values() ?? [],
         ];
+    }
+
+    /**
+     * The "Today" tab of a trip that is happening now: today's places in order, which one is next
+     * (the first one that has not ended yet by the planned time) and the lodging to return to.
+     */
+    protected function today(Trip $trip): Response
+    {
+        $days = $trip->days()->with('tripPlaces.place.category')->get();
+        // Номера 0 нет, поэтому dayByNumber() откроет сегодняшний день текущей поездки.
+        $day = $trip->dayByNumber($days, 0);
+        $now = now()->format('H:i');
+
+        $places = $day?->tripPlaces->map(fn (TripPlace $visit) => [
+            'id' => $visit->id,
+            'name' => $visit->place->name,
+            'address' => $visit->place->address,
+            'category' => $visit->place->category?->name,
+            'image' => $visit->place->image,
+            'startTime' => $visit->start_time ? substr($visit->start_time, 0, 5) : null,
+            'endTime' => $visit->end_time ? substr($visit->end_time, 0, 5) : null,
+            'note' => $visit->note,
+        ])->values() ?? collect();
+
+        // «Что дальше»: первое место, которое по плану ещё не закончилось. Время «10:00» можно сравнивать строками.
+        // У мест без времени не понять, прошли они или нет, — тогда следующим считаем первое место дня.
+        $next = $places->first(fn (array $place) => ($place['endTime'] ?? $place['startTime']) === null
+            || ($place['endTime'] ?? $place['startTime']) >= $now);
+
+        return Inertia::render('Trips/Today', [
+            'trip' => $trip->toHeader(),
+            'day' => $day ? [
+                'id' => $day->id,
+                'number' => $day->day_number,
+                'date' => $day->date?->toDateString(),
+                'title' => $day->title,
+            ] : null,
+            'places' => $places,
+            'nextPlaceId' => $next['id'] ?? null,
+            // Куда возвращаться вечером — то же жильё, что считает расписание дня.
+            'lodging' => $day ? app(DaySchedule::class)->eveningLodging($day)?->only(['name', 'address']) : null,
+        ]);
     }
 
     /**

@@ -5,12 +5,14 @@ import { formatDateRange, formatDuration, plural } from '../utils/format';
 import { STATUS_LABELS, coverFor } from '../utils/trips';
 
 /**
- * Вкладки страницы поездки. У каждой вкладки свой адрес (см. маршруты в routes/web.php):
- * «Подготовка» — /my-trips/{id}, остальные — /my-trips/{id}/<key>.
- * Новая вкладка уже есть в этом списке: достаточно сделать для неё маршрут и страницу,
- * которая оборачивает содержимое в <TripLayout trip={trip} activeTab="<key>">.
+ * Все вкладки страницы поездки: название и адрес (см. маршруты в routes/web.php).
+ * «Подготовка» и «Сегодня» — это сама страница /my-trips/{id}, остальные — /my-trips/{id}/<path>.
+ * КАКИЕ из них показать и можно ли на них что-то менять, решает сервер по этапу поездки —
+ * Trip::tabs() в app/Models/Trip.php, сюда это приходит в trip.tabs.
  */
 export const TRIP_TABS = [
+    // «Сегодня» есть только у текущей поездки — вместо «Подготовки».
+    { key: 'today', label: 'Сегодня', path: '' },
     { key: 'overview', label: 'Подготовка', path: '' },
     { key: 'plan', label: 'План по дням', path: '/plan' },
     { key: 'map', label: 'Карта', path: '/map' },
@@ -23,10 +25,18 @@ export const TRIP_TABS = [
 ];
 
 /**
+ * Можно ли менять данные на вкладке tabKey (по trip.tabs из Trip::tabs()).
+ */
+export const canEditTab = (trip, tabKey) => trip.tabs[tabKey] === true;
+
+/**
  * Общий каркас страницы поездки: компактная шапка с данными поездки и вкладки.
  * `trip` — данные шапки, их отдаёт Trip::toHeader() на сервере.
  */
 export default function TripLayout({ trip, activeTab, children }) {
+    const visibleTabs = TRIP_TABS.filter((tab) => tab.key in trip.tabs);
+    const isReadOnly = !canEditTab(trip, activeTab);
+
     return (
         <AppLayout title={trip.title}>
             <section
@@ -56,7 +66,7 @@ export default function TripLayout({ trip, activeTab, children }) {
 
             <nav className="trip-tabs trip-tabs--white">
                 <div className="container trip-tabs__inner">
-                    {TRIP_TABS.map((tab) => (
+                    {visibleTabs.map((tab) => (
                         <Link
                             key={tab.key}
                             href={`/my-trips/${trip.id}${tab.path}`}
@@ -68,7 +78,17 @@ export default function TripLayout({ trip, activeTab, children }) {
                 </div>
             </nav>
 
-            {children}
+            {trip.stage === 'completed' && (
+                <div className="container">
+                    <p className="trip-readonly-banner">
+                        Поездка завершена — только просмотр. Если даты указаны неверно, их можно исправить в «Настройках».
+                    </p>
+                </div>
+            )}
+
+            {/* На вкладке «только просмотр» кнопки и формы изменения скрыты стилями .trip-readonly (app.css):
+                так не нужно проверять это в каждой кнопке каждой вкладки. Запрет на сервере — TripPolicy::update. */}
+            {isReadOnly ? <div className="trip-readonly">{children}</div> : children}
         </AppLayout>
     );
 }

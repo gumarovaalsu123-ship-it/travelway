@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +21,10 @@ class MapController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $trips = $user->trips()->with('days')->orderBy('start_date')->get();
+        // В завершённую поездку места уже не добавить (она только для просмотра), поэтому её нет в списке.
+        $trips = $user->trips()->with('days')->orderBy('start_date')->get()
+            ->reject(fn (Trip $trip) => $trip->status === Trip::StatusCompleted)
+            ->values();
 
         // ?day= приходит с вкладки «План по дням» («Найти на карте»): этот день будет выбран в форме добавления.
         // Берём его, только если это день одной из поездок пользователя, иначе игнорируем.
@@ -47,6 +51,11 @@ class MapController extends Controller
     public function store(StoreMapPlaceRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $day = $request->validated('destination') === 'favorite' ? null : TripDay::findOrFail($request->validated('trip_day_id'));
+
+        if ($day) {
+            Gate::authorize('update', $day->trip);
+        }
 
         $place = Place::create([
             ...$request->safe()->only([
@@ -61,7 +70,6 @@ class MapController extends Controller
 
             Inertia::flash('toast', 'Место добавлено в избранное.');
         } else {
-            $day = TripDay::findOrFail($request->validated('trip_day_id'));
             $day->addPlace($place, $request->validated('start_time'));
 
             Inertia::flash('toast', "Место добавлено в план: день {$day->day_number}.");

@@ -19,7 +19,7 @@ class PackingList extends Model
     use HasFactory;
 
     /**
-     * The "standard set" button: group title => things in it.
+     * The standard set, added to every new trip: group title => things in it.
      * Only things needed on any trip: sun cream and a hat come from the summer hint,
      * a socket adapter is not needed for trips around Russia.
      *
@@ -64,6 +64,23 @@ class PackingList extends Model
         'spring_autumn' => [3, 4, 5, 9, 10, 11],
         'summer' => [6, 7, 8],
     ];
+
+    /**
+     * Add the standard set (Defaults) to the trip. Groups and things the trip already has are skipped,
+     * so calling it twice does not create duplicates. Called when a trip is created.
+     */
+    public static function addDefaultsTo(Trip $trip): void
+    {
+        foreach (self::Defaults as $title => $names) {
+            $list = self::firstOrCreateFor($trip, $title);
+
+            $existingNames = $list->items()->pluck('name')->all();
+
+            foreach (array_diff($names, $existingNames) as $name) {
+                $list->addItem($name);
+            }
+        }
+    }
 
     /**
      * @return BelongsTo<Trip, $this>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\CityCover;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -28,6 +29,15 @@ class Trip extends Model
     public const StatusCompleted = 'completed';
 
     public const MaxDays = 60;
+
+    /**
+     * Этапы поездки для страницы поездки (см. stage() и tabs()): черновик и запланированная — это одно «Планирование».
+     */
+    public const StagePlanning = 'planning';
+
+    public const StageCurrent = 'current';
+
+    public const StageCompleted = 'completed';
 
     /**
      * When the dates are known, the number of days always follows from them.
@@ -203,11 +213,69 @@ class Trip extends Model
     }
 
     /**
+     * Planning (draft or planned), current or completed — what the trip page looks like depends on it.
+     */
+    public function stage(): string
+    {
+        return match ($this->status) {
+            self::StatusCurrent => self::StageCurrent,
+            self::StatusCompleted => self::StageCompleted,
+            default => self::StagePlanning,
+        };
+    }
+
+    /**
+     * Вкладки страницы поездки на каждом этапе — единственное место, где это решается.
+     * Ключи — как в TRIP_TABS (Components/TripLayout.jsx), значение — можно ли на вкладке что-то менять.
+     *
+     *  - Планирование: все вкладки, всё можно менять.
+     *  - Текущая: первой идёт «Сегодня» (обзор текущего дня); «Подготовка», «Вещи» и «Заранее» уже не нужны
+     *    и скрыты; план и карту можно править (добавить место по пути), транспорт и жильё — только посмотреть.
+     *  - Прошедшая: все вкладки, но только для просмотра (сервер запрещает изменения в TripPolicy::update).
+     *    В «Настройках» можно исправить ошибочные даты и удалить поездку (TripPolicy::updateSettings).
+     *
+     * @return array<string, bool>
+     */
+    public function tabs(): array
+    {
+        return match ($this->stage()) {
+            self::StageCurrent => [
+                'today' => true, 'plan' => true, 'map' => true,
+                'transport' => false, 'accommodation' => false, 'settings' => true,
+            ],
+            self::StageCompleted => [
+                'overview' => false, 'plan' => false, 'map' => false, 'transport' => false,
+                'accommodation' => false, 'packing' => false, 'advance' => false, 'settings' => true,
+            ],
+            default => [
+                'overview' => true, 'plan' => true, 'map' => true, 'transport' => true,
+                'accommodation' => true, 'packing' => true, 'advance' => true, 'settings' => true,
+            ],
+        };
+    }
+
+    public function hasTab(string $tab): bool
+    {
+        return array_key_exists($tab, $this->tabs());
+    }
+
+    /**
+     * Find a photo of the destination in Wikipedia and keep its URL as the cover (null — the page shows a stock picture).
+     * Called when the trip is created or its city changes, and by the trips:covers command for old trips.
+     */
+    public function refreshCover(): void
+    {
+        $this->update(['cover_image' => app(CityCover::class)->find($this->destination)]);
+    }
+
+    /**
      * Data for the trip page header that every tab shows (see Components/TripLayout.jsx).
      *
      * previousTrip / nextTrip — соседние города цепочки для ссылок «← Предыдущий город / Следующий →».
      *
-     * @return array{id: int, title: string, destination: string, startDate: ?string, endDate: ?string, daysCount: int, status: string, placesCount: int, previousTrip: ?array{id: int, destination: string}, nextTrip: ?array{id: int, destination: string}}
+     * tabs — какие вкладки показать и можно ли на них что-то менять (см. tabs()).
+     *
+     * @return array{id: int, title: string, destination: string, coverImage: ?string, startDate: ?string, endDate: ?string, daysCount: int, status: string, stage: string, tabs: array<string, bool>, placesCount: int, previousTrip: ?array{id: int, destination: string}, nextTrip: ?array{id: int, destination: string}}
      */
     public function toHeader(): array
     {
@@ -215,10 +283,13 @@ class Trip extends Model
             'id' => $this->id,
             'title' => $this->title,
             'destination' => $this->destination,
+            'coverImage' => $this->cover_image,
             'startDate' => $this->start_date?->toDateString(),
             'endDate' => $this->end_date?->toDateString(),
             'daysCount' => $this->days_count,
             'status' => $this->status,
+            'stage' => $this->stage(),
+            'tabs' => $this->tabs(),
             'placesCount' => $this->tripPlaces()->count(),
             'previousTrip' => $this->previousTrip?->only(['id', 'destination']),
             'nextTrip' => $this->nextTrip?->only(['id', 'destination']),

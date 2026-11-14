@@ -25,9 +25,14 @@ use Inertia\Response;
  */
 class TripAdvanceController extends Controller
 {
-    public function index(Trip $trip): Response
+    public function index(Trip $trip): Response|RedirectResponse
     {
         Gate::authorize('view', $trip);
+
+        // У текущей поездки вкладки «Заранее» нет (см. Trip::tabs()) — открываем первую вкладку.
+        if (! $trip->hasTab('advance')) {
+            return to_route('trips.show', $trip);
+        }
 
         // Только то, из чего собираются дела, — по одному запросу на связь.
         $trip->load('transports', 'accommodations', 'tripPlaces.place.category', 'tripPlaces.day', 'tasks');

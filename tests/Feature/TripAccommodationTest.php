@@ -6,6 +6,7 @@ use App\Models\Accommodation;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -21,6 +22,8 @@ class TripAccommodationTest extends TestCase
     {
         parent::setUp();
 
+        // Поездка в июне ещё впереди: завершённую поездку менять нельзя (TripPolicy::update).
+        Carbon::setTestNow('2026-06-01');
         $this->user = User::factory()->create();
         // 15–20 июня: 6 дней, 5 ночей (с 15 на 16 … с 19 на 20).
         $this->trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-20']);

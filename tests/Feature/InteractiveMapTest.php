@@ -7,6 +7,7 @@ use App\Models\PlaceCategory;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -22,6 +23,8 @@ class InteractiveMapTest extends TestCase
     {
         parent::setUp();
 
+        // Поездка в июне ещё впереди: завершённую поездку менять нельзя (TripPolicy::update).
+        Carbon::setTestNow('2026-06-01');
         $this->user = User::factory()->create();
         $this->trip = Trip::factory()->for($this->user)->create([
             'start_date' => '2026-06-15',

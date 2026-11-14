@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\PackingList;
 use App\Models\Place;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -19,6 +21,10 @@ class TripTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // При создании поездки ищется обложка в Википедии (TripCoverTest) — здесь отвечаем «не найдено».
+        Http::preventStrayRequests();
+        Http::fake(['*.wikipedia.org/*' => Http::response([], 404)]);
 
         Carbon::setTestNow('2026-06-10');
         $this->user = User::factory()->create();
@@ -77,7 +83,17 @@ class TripTest extends TestCase
                 // Готов только шаг «Заранее» (дел нет) — 20%.
                 ->where('trips.0.readiness', 20)
                 ->where('trips.0.placesCount', 1)
-                ->where('featured.placeNames', fn ($names) => count($names) === 1));
+                ->where('featured.dayNumber', 1));
+    }
+
+    public function test_new_trip_gets_the_standard_packing_set(): void
+    {
+        $this->actingAs($this->user)->post('/my-trips', $this->payload())->assertRedirect();
+
+        $trip = Trip::query()->firstOrFail();
+
+        $this->assertSame(array_keys(PackingList::Defaults), $trip->packingLists()->pluck('title')->all());
+        $this->assertSame(count(array_merge(...array_values(PackingList::Defaults))), $trip->packingItems()->count());
     }
 
     public function test_trip_with_dates_is_created_with_a_day_per_date(): void

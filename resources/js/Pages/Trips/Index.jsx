@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { formatDateRange, formatDuration, plural } from '../../utils/format';
 import { STATUS_LABELS, coverFor } from '../../utils/trips';
@@ -12,46 +12,34 @@ const FILTERS = [
     { value: 'draft', label: 'Черновики' },
 ];
 
+/**
+ * Большая карточка ближайшей (или текущей) поездки. Вся карточка — ссылка на поездку,
+ * поэтому внутри нет других ссылок и кнопок (ссылка внутри ссылки в HTML запрещена).
+ */
 function FeaturedTrip({ trip, featured }) {
-    const places = featured.placeNames;
-
     return (
-        <section className="featured-trip">
+        <Link href={`/my-trips/${trip.id}`} className="featured-trip">
             <div className="featured-trip__image" style={{ backgroundImage: `url('${coverFor(trip)}')` }} />
             <div className="featured-trip__content">
                 <div className="featured-trip__badge">{featured.isCurrent ? 'Текущая поездка' : 'Ближайшая поездка'}</div>
-                <h2 className="featured-trip__title">{trip.title} · {formatDuration(trip.daysCount)}</h2>
+                <h2 className="featured-trip__title">{trip.title}</h2>
                 <p className="featured-trip__meta">
                     {formatDateRange(trip.startDate, trip.endDate)} · {trip.destination} · {trip.placesCount} {plural(trip.placesCount, ['место', 'места', 'мест'])}
                 </p>
                 <h3 className="featured-trip__day">
                     {featured.isCurrent ? 'Сегодня, ' : ''}День {featured.dayNumber}{featured.dayTitle ? ` — ${featured.dayTitle}` : ''}
                 </h3>
-                <p className="featured-trip__desc">
-                    {places.length > 0 ? places.join(', ') : 'На этот день пока ничего не запланировано.'}
-                </p>
-                <div className="featured-trip__action">
-                    <Link href={`/my-trips/${trip.id}`} className="btn btn--solid">Открыть</Link>
-                    <Link href="/interactive-map" className="btn btn--outline">Добавить места на карте</Link>
-                </div>
             </div>
-        </section>
+        </Link>
     );
 }
 
+/**
+ * Карточка поездки в списке. Вся карточка — ссылка на поездку; «Настройки» и удаление — на вкладке «Настройки».
+ */
 function TripCard({ trip }) {
-    const remove = () => {
-        const warning = trip.placesCount > 0
-            ? ` Вместе с ним из плана удалятся ${trip.placesCount} ${plural(trip.placesCount, ['место', 'места', 'мест'])}.`
-            : '';
-
-        if (window.confirm(`Удалить путешествие «${trip.title}»?${warning}`)) {
-            router.delete(`/my-trips/${trip.id}`, { preserveScroll: true });
-        }
-    };
-
     return (
-        <article className="trip-card">
+        <Link href={`/my-trips/${trip.id}`} className="trip-card">
             <div className="trip-card__image" style={{ backgroundImage: `url('${coverFor(trip)}')` }}>
                 <span className="trip-card__location">{trip.destination}</span>
             </div>
@@ -62,10 +50,7 @@ function TripCard({ trip }) {
                     </span>
                     <span className={`trip-card__status trip-card__status--${trip.status}`}>{STATUS_LABELS[trip.status]}</span>
                 </div>
-                <h3 className="trip-card__title">
-                    {/* Ссылка растянута на всю карточку (см. .trip-card__link в app.css): клик по карточке открывает поездку. */}
-                    <Link href={`/my-trips/${trip.id}`} className="trip-card__link">{trip.title}</Link>
-                </h3>
+                <h3 className="trip-card__title">{trip.title}</h3>
                 {/* Поездка — звено цепочки городов: откуда приехали и куда едут дальше. */}
                 {(trip.previousTrip || trip.nextTrip) && (
                     <p className="trip-card__chain">
@@ -74,21 +59,20 @@ function TripCard({ trip }) {
                         {trip.nextTrip && ` → ${trip.nextTrip.destination}`}
                     </p>
                 )}
-                <div className="trip-card__progress">
-                    <div className="progress-info">
-                        <span className="progress-label">Готовность</span>
-                        <span className="progress-value">{trip.readiness}%</span>
+                {/* Готовность нужна, пока поездка планируется; у текущей и прошедшей её не показываем. */}
+                {(trip.status === 'draft' || trip.status === 'planned') && (
+                    <div className="trip-card__progress">
+                        <div className="progress-info">
+                            <span className="progress-label">Готовность</span>
+                            <span className="progress-value">{trip.readiness}%</span>
+                        </div>
+                        <div className="progress-track">
+                            <div className="progress-fill" style={{ width: `${trip.readiness}%` }} />
+                        </div>
                     </div>
-                    <div className="progress-track">
-                        <div className="progress-fill" style={{ width: `${trip.readiness}%` }} />
-                    </div>
-                </div>
-                <div className="trip-card__actions">
-                    <Link href={`/my-trips/${trip.id}/edit`} className="btn btn--outline btn--sm">Настройки</Link>
-                    <button type="button" className="btn btn--outline btn--sm" onClick={remove}>Удалить</button>
-                </div>
+                )}
             </div>
-        </article>
+        </Link>
     );
 }
 

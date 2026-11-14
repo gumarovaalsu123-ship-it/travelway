@@ -8,6 +8,7 @@ export const STATUS_LABELS = {
 const COVERS = ['/images/trips-first.png', '/images/trips-second.png', '/images/card1.png', '/images/card2.png', '/images/card3.png'];
 
 /**
- * Своих обложек у поездок пока нет, поэтому берём картинку из набора по id — у поездки она всегда одна и та же.
+ * Обложка поездки: фото города из Википедии (сервер ищет его при создании, см. app/Services/CityCover.php).
+ * Если фото не нашлось — картинка-заглушка из набора по id, у поездки она всегда одна и та же.
  */
-export const coverFor = (trip) => COVERS[trip.id % COVERS.length];
+export const coverFor = (trip) => trip.coverImage ?? COVERS[trip.id % COVERS.length];

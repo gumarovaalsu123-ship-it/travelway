@@ -75,6 +75,7 @@ Route::middleware('auth')->group(function () {
     // Список вещей: группы и вещи. scopeBindings — группа/вещь ищется только среди записей этой поездки.
     Route::scopeBindings()->prefix('/my-trips/{trip}')->name('trips.')->group(function () {
         Route::post('/packing-lists/defaults', [PackingController::class, 'storeDefaults'])->name('packing-lists.defaults');
+        Route::post('/packing-lists/hints', [PackingController::class, 'storeHint'])->name('packing-lists.hints');
         Route::post('/packing-lists', [PackingListController::class, 'store'])->name('packing-lists.store');
         Route::patch('/packing-lists/{packingList}', [PackingListController::class, 'update'])->name('packing-lists.update');
         Route::delete('/packing-lists/{packingList}', [PackingListController::class, 'destroy'])->name('packing-lists.destroy');

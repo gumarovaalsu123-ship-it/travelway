@@ -239,9 +239,51 @@ function AddGroupForm({ tripId, onDone }) {
 }
 
 /**
- * Страница поездки, вкладка «Список вещей»: группы вещей с галочками «собрано».
+ * Одна подсказка блока «Возможно, пригодится»: причина и вещи с галочками (по умолчанию отмечены все).
+ * Ничего не добавляется само — только по кнопке «Добавить».
  */
-export default function TripPacking({ trip, lists }) {
+function HintCard({ tripId, hint }) {
+    const [chosen, setChosen] = useState(hint.items);
+    const [isSending, setSending] = useState(false);
+
+    function toggle(name) {
+        setChosen(chosen.includes(name) ? chosen.filter((other) => other !== name) : [...chosen, name]);
+    }
+
+    function add() {
+        router.post(
+            `/my-trips/${tripId}/packing-lists/hints`,
+            { rule: hint.rule, items: chosen },
+            { ...keepScroll, onStart: () => setSending(true), onFinish: () => setSending(false) },
+        );
+    }
+
+    return (
+        <article className="packing-category-card packing-hint-card">
+            <h3 className="packing-category__title">{hint.reason}</h3>
+            <ul className="packing-list mt-16">
+                {hint.items.map((name) => (
+                    <li key={name} className="packing-item">
+                        <label className="custom-checkbox custom-checkbox--packing">
+                            <input type="checkbox" className="custom-checkbox__input" checked={chosen.includes(name)} onChange={() => toggle(name)} />
+                            <span className="custom-checkbox__box"><CheckIcon /></span>
+                        </label>
+                        <span className="packing-item__name">{name}</span>
+                    </li>
+                ))}
+            </ul>
+            <button type="button" className="btn btn--outline btn--sm packing-hint-card__add" disabled={chosen.length === 0 || isSending} onClick={add}>
+                Добавить
+            </button>
+        </article>
+    );
+}
+
+/**
+ * Страница поездки, вкладка «Список вещей»: группы вещей с галочками «собрано»
+ * и подсказки «Возможно, пригодится» (их считает сервер по транспорту, жилью и датам поездки).
+ */
+export default function TripPacking({ trip, lists, hints }) {
     const [filter, setFilter] = useState('all');
     const [isAddingGroup, setAddingGroup] = useState(false);
 
@@ -317,6 +359,21 @@ export default function TripPacking({ trip, lists }) {
                             ))}
                         </div>
                     </>
+                )}
+
+                {hints.length > 0 && (
+                    <section className="mt-32">
+                        <h2 className="section-title">Возможно, пригодится</h2>
+                        <p className="section-subtitle section-subtitle--light">
+                            Подсказки по вашему транспорту, жилью и датам поездки. Отметьте нужное и нажмите «Добавить».
+                        </p>
+                        <div className="packing-grid mt-24">
+                            {hints.map((hint) => (
+                                // В key входят вещи: когда часть добавлена, карточка начнёт с новым списком галочек.
+                                <HintCard key={`${hint.rule}-${hint.items.join('|')}`} tripId={trip.id} hint={hint} />
+                            ))}
+                        </div>
+                    </section>
                 )}
             </main>
         </TripLayout>

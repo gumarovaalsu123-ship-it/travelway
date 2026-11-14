@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PackingHintRequest;
 use App\Models\PackingItem;
 use App\Models\PackingList;
 use App\Models\Trip;
@@ -20,7 +21,7 @@ class PackingController extends Controller
     {
         Gate::authorize('view', $trip);
 
-        $trip->load('packingLists.items');
+        $trip->load('packingLists.items', 'transports', 'accommodations');
 
         return Inertia::render('Trips/Packing', [
             'trip' => $trip->toHeader(),
@@ -34,6 +35,8 @@ class PackingController extends Controller
                     'isCompleted' => $item->is_completed,
                 ])->values(),
             ])->values(),
+            // Блок «Возможно, пригодится»: считается заново при каждом открытии, в базе не хранится.
+            'hints' => PackingList::hintsFor($trip),
         ]);
     }
 
@@ -47,10 +50,7 @@ class PackingController extends Controller
 
         DB::transaction(function () use ($trip) {
             foreach (PackingList::Defaults as $title => $names) {
-                $list = $trip->packingLists()->firstOrCreate(
-                    ['title' => $title],
-                    ['position' => (int) $trip->packingLists()->max('position') + 1],
-                );
+                $list = PackingList::firstOrCreateFor($trip, $title);
 
                 $existingNames = $list->items()->pluck('name')->all();
 
@@ -61,6 +61,33 @@ class PackingController extends Controller
         });
 
         Inertia::flash('toast', 'Стандартный набор вещей добавлен.');
+
+        return back();
+    }
+
+    /**
+     * Add the things chosen in one "Might come in handy" hint to the hint's group (PackingList::Hints).
+     * Things the trip already has are skipped again here, in case the page was outdated.
+     */
+    public function storeHint(PackingHintRequest $request, Trip $trip): RedirectResponse
+    {
+        Gate::authorize('update', $trip);
+
+        $hint = PackingList::Hints[$request->validated('rule')];
+        $existingNames = $trip->packingItems()->pluck('name')->map(fn (string $name) => mb_strtolower($name))->all();
+        $newNames = array_filter($request->validated('items'), fn (string $name) => ! in_array(mb_strtolower($name), $existingNames, true));
+
+        if ($newNames !== []) {
+            DB::transaction(function () use ($trip, $hint, $newNames) {
+                $list = PackingList::firstOrCreateFor($trip, $hint['group']);
+
+                foreach ($newNames as $name) {
+                    $list->addItem($name);
+                }
+            });
+        }
+
+        Inertia::flash('toast', "Добавлено в группу «{$hint['group']}».");
 
         return back();
     }

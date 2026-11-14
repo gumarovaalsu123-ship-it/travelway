@@ -33,15 +33,21 @@ class TripTransportController extends Controller
             'transports' => $transports->map(fn (Transport $transport) => [
                 'id' => $transport->id,
                 'type' => $transport->type,
+                // У старых записей направления может не быть (null) — страница попросит его указать.
+                'direction' => $transport->direction,
                 'departurePlace' => $transport->departure_place,
                 'arrivalPlace' => $transport->arrival_place,
                 // Формат «2026-06-15T13:15» понимает поле <input type="datetime-local">.
                 'departureAt' => $transport->departure_at?->format('Y-m-d\TH:i'),
                 'arrivalAt' => $transport->arrival_at?->format('Y-m-d\TH:i'),
                 'bookingInfo' => $transport->booking_info,
+                'isBooked' => $transport->is_booked,
+                'needsTicket' => $transport->needsTicket(),
                 'note' => $transport->note,
             ])->values(),
             'types' => Transport::Types,
+            'directions' => Transport::Directions,
+            'typesWithoutTicket' => Transport::TypesWithoutTicket,
         ]);
     }
 

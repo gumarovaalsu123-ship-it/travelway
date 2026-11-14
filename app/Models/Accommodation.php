@@ -11,11 +11,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Where the traveller stays during the trip: a hotel, an apartment, a hostel...
  */
-#[Fillable(['name', 'address', 'check_in', 'check_out', 'booking_info', 'latitude', 'longitude', 'note'])]
+#[Fillable(['type', 'name', 'address', 'check_in', 'check_out', 'booking_info', 'is_booked', 'latitude', 'longitude', 'note'])]
 class Accommodation extends Model
 {
     /** @use HasFactory<AccommodationFactory> */
     use HasFactory;
+
+    /**
+     * Allowed accommodation types. Russian labels are on the page (Pages/Trips/Accommodation.jsx).
+     */
+    public const Types = ['hotel', 'apartment', 'hostel', 'friends', 'other'];
+
+    /**
+     * Types that need no booking: staying with friends or relatives.
+     */
+    public const TypesWithoutBooking = ['friends'];
 
     /**
      * @return array<string, string>
@@ -27,7 +37,16 @@ class Accommodation extends Model
             'check_out' => 'datetime',
             'latitude' => 'float',
             'longitude' => 'float',
+            'is_booked' => 'boolean',
         ];
+    }
+
+    /**
+     * Whether this place has to be booked (not when staying with friends).
+     */
+    public function needsBooking(): bool
+    {
+        return ! in_array($this->type, self::TypesWithoutBooking, true);
     }
 
     /**

@@ -22,11 +22,13 @@ class AccommodationFactory extends Factory
 
         return [
             'trip_id' => Trip::factory(),
+            'type' => 'hotel',
             'name' => 'Отель «'.fake()->lastName().'»',
             'address' => fake()->address(),
             'check_in' => $checkIn,
             'check_out' => (clone $checkIn)->modify('+2 days')->setTime(12, 0),
             'booking_info' => 'Бронь № '.fake()->bothify('??-######'),
+            'is_booked' => true,
             'latitude' => null,
             'longitude' => null,
             'note' => null,

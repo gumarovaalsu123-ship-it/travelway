@@ -32,11 +32,13 @@ class TripTransportTest extends TestCase
     {
         return [
             'type' => 'plane',
+            'direction' => 'to',
             'departure_place' => 'Москва, Шереметьево',
             'arrival_place' => 'Казань',
             'departure_at' => '2026-06-15T13:15',
             'arrival_at' => '2026-06-15T15:00',
             'booking_info' => 'SU 1234',
+            'is_booked' => true,
             'note' => 'Багаж 23 кг',
             ...$overrides,
         ];
@@ -76,9 +78,53 @@ class TripTransportTest extends TestCase
         $this->assertDatabaseHas('transport', [
             'trip_id' => $this->trip->id,
             'type' => 'plane',
+            'direction' => 'to',
             'departure_place' => 'Москва, Шереметьево',
             'booking_info' => 'SU 1234',
+            'is_booked' => true,
         ]);
+    }
+
+    public function test_direction_is_required_and_must_be_from_the_list(): void
+    {
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['direction' => 'sideways']))
+            ->assertSessionHasErrors(['direction' => 'Направление может быть только «Туда», «Обратно» или «Дальше».']);
+
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['direction' => '']))
+            ->assertSessionHasErrors(['direction' => 'Укажите направление: туда, обратно или дальше.']);
+
+        $this->assertDatabaseCount('transport', 0);
+    }
+
+    public function test_own_car_needs_no_ticket(): void
+    {
+        $this->actingAs($this->user)
+            ->post("/my-trips/{$this->trip->id}/transport", $this->payload(['type' => 'own_car', 'direction' => 'back', 'is_booked' => true]))
+            ->assertSessionHasNoErrors();
+
+        $transport = $this->trip->transports()->sole();
+        $this->assertSame('back', $transport->direction);
+        $this->assertFalse($transport->is_booked);
+        $this->assertFalse($transport->needsTicket());
+    }
+
+    public function test_index_shows_direction_and_ticket_status(): void
+    {
+        Transport::factory()->for($this->trip)->create(['type' => 'train', 'direction' => 'onward', 'is_booked' => true, 'departure_at' => '2026-06-15 08:00']);
+        // Запись, сохранённая до появления направлений: direction = null.
+        Transport::factory()->for($this->trip)->create(['type' => 'own_car', 'direction' => null, 'is_booked' => false, 'departure_at' => '2026-06-16 08:00']);
+
+        $this->actingAs($this->user)
+            ->get("/my-trips/{$this->trip->id}/transport")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('directions', Transport::Directions)
+                ->where('transports.0.direction', 'onward')
+                ->where('transports.0.isBooked', true)
+                ->where('transports.0.needsTicket', true)
+                ->where('transports.1.direction', null)
+                ->where('transports.1.needsTicket', false));
     }
 
     public function test_times_are_optional(): void
@@ -115,12 +161,14 @@ class TripTransportTest extends TestCase
         $transport = Transport::factory()->for($this->trip)->create();
 
         $this->actingAs($this->user)
-            ->put("/my-trips/{$this->trip->id}/transport/{$transport->id}", $this->payload(['type' => 'train', 'arrival_place' => 'Сочи']))
+            ->put("/my-trips/{$this->trip->id}/transport/{$transport->id}", $this->payload(['type' => 'train', 'direction' => 'back', 'is_booked' => false, 'arrival_place' => 'Сочи']))
             ->assertRedirect("/my-trips/{$this->trip->id}/transport");
 
         $transport->refresh();
         $this->assertSame('train', $transport->type);
         $this->assertSame('Сочи', $transport->arrival_place);
+        $this->assertSame('back', $transport->direction);
+        $this->assertFalse($transport->is_booked);
     }
 
     public function test_owner_can_delete_transport(): void

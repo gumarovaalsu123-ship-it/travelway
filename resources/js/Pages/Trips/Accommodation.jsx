@@ -1,8 +1,20 @@
 import React, { useRef, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
+import Checkbox from '../../Components/Checkbox';
 import TripLayout from '../../Components/TripLayout';
 import { formatDuration, plural } from '../../utils/format';
 import { searchPlaces } from '../../utils/geocoding';
+
+/**
+ * Подписи типов жилья. Ключи совпадают с Accommodation::Types на сервере.
+ */
+const TYPE_LABELS = {
+    hotel: 'Отель',
+    apartment: 'Квартира',
+    hostel: 'Хостел',
+    friends: 'У знакомых',
+    other: 'Другое',
+};
 
 const fullDateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
@@ -36,6 +48,19 @@ function CheckBlock({ label, dateTime, hint }) {
     );
 }
 
+/**
+ * Метка «Забронировано» / «Не забронировано». У знакомых бронировать нечего.
+ */
+function BookingStatus({ accommodation }) {
+    if (!accommodation.needsBooking) {
+        return <span className="booking-status booking-status--none">Бронь не нужна</span>;
+    }
+
+    return accommodation.isBooked
+        ? <span className="booking-status booking-status--done">Забронировано</span>
+        : <span className="booking-status booking-status--todo">Не забронировано</span>;
+}
+
 function AccommodationCard({ accommodation, onEdit, onDelete }) {
     const { checkIn, checkOut, nights, latitude, longitude } = accommodation;
     const checkOutHint = [checkOut && `До ${timePart(checkOut)}`, nights !== null && nightsLabel(nights)].filter(Boolean).join(' · ');
@@ -52,6 +77,11 @@ function AccommodationCard({ accommodation, onEdit, onDelete }) {
                     </div>
                     {nights !== null && <span className="acc-badge">{nightsLabel(nights)}</span>}
                 </header>
+
+                <div className="acc-card__statuses">
+                    <span className="booking-status booking-status--none">{TYPE_LABELS[accommodation.type]}</span>
+                    <BookingStatus accommodation={accommodation} />
+                </div>
 
                 <div className="check-blocks-row">
                     <CheckBlock label="Заезд" dateTime={checkIn} hint={checkIn && `С ${timePart(checkIn)}`} />
@@ -168,19 +198,24 @@ function AddressSearch({ query, onSelect }) {
 /**
  * Форма добавления (accommodation = null) или редактирования жилья.
  */
-function AccommodationForm({ tripId, accommodation, onClose }) {
+function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, onClose }) {
     const isEditing = Boolean(accommodation);
 
     const { data, setData, post, put, processing, errors } = useForm({
+        type: accommodation?.type ?? 'hotel',
         name: accommodation?.name ?? '',
         address: accommodation?.address ?? '',
         check_in: accommodation?.checkIn ?? '',
         check_out: accommodation?.checkOut ?? '',
         booking_info: accommodation?.bookingInfo ?? '',
+        is_booked: accommodation?.isBooked ?? false,
         note: accommodation?.note ?? '',
         latitude: accommodation?.latitude ?? null,
         longitude: accommodation?.longitude ?? null,
     });
+
+    // У знакомых бронировать нечего, поэтому галочку «Забронировано» не показываем.
+    const needsBooking = !typesWithoutBooking.includes(data.type);
 
     const submit = (event) => {
         event.preventDefault();
@@ -213,12 +248,25 @@ function AccommodationForm({ tripId, accommodation, onClose }) {
             </header>
 
             <form className="create-trip-form" onSubmit={submit} noValidate>
+                <Field id="acc-type" label="Тип жилья" required error={errors.type}>
+                    <select
+                        id="acc-type"
+                        className="form-input form-input--filled form-select"
+                        value={data.type}
+                        onChange={(event) => setData('type', event.target.value)}
+                    >
+                        {types.map((type) => (
+                            <option key={type} value={type}>{TYPE_LABELS[type]}</option>
+                        ))}
+                    </select>
+                </Field>
+
                 <Field id="acc-name" label="Название" required error={errors.name}>
                     <input
                         id="acc-name"
                         type="text"
                         className="form-input form-input--filled"
-                        placeholder="Отель, апартаменты или хостел"
+                        placeholder={data.type === 'friends' ? 'У кого остановитесь, например «У тёти Веры»' : 'Название отеля, квартиры или хостела'}
                         value={data.name}
                         onChange={(event) => setData('name', event.target.value)}
                         maxLength={150}
@@ -277,6 +325,17 @@ function AccommodationForm({ tripId, accommodation, onClose }) {
                     />
                 </Field>
 
+                {needsBooking && (
+                    <div className="form-group">
+                        <Checkbox
+                            id="acc-is-booked"
+                            label="Забронировано"
+                            checked={data.is_booked}
+                            onChange={(checked) => setData('is_booked', checked)}
+                        />
+                    </div>
+                )}
+
                 <Field id="acc-note" label="Заметка" error={errors.note}>
                     <textarea
                         id="acc-note"
@@ -303,7 +362,7 @@ function AccommodationForm({ tripId, accommodation, onClose }) {
 /**
  * Страница поездки, вкладка «Проживание»: где живём, даты заезда/выезда и ночи, на которые жильё ещё не найдено.
  */
-export default function TripAccommodation({ trip, accommodations, nights }) {
+export default function TripAccommodation({ trip, accommodations, nights, types, typesWithoutBooking }) {
     // Какая форма открыта: null — никакая, 'new' — добавление, число — id редактируемого жилья.
     const [openForm, setOpenForm] = useState(null);
 
@@ -334,7 +393,15 @@ export default function TripAccommodation({ trip, accommodations, nights }) {
 
                 <div className="trip-plan-grid mt-16">
                     <div className="accommodation-list">
-                        {openForm === 'new' && <AccommodationForm tripId={trip.id} accommodation={null} onClose={() => setOpenForm(null)} />}
+                        {openForm === 'new' && (
+                            <AccommodationForm
+                                tripId={trip.id}
+                                accommodation={null}
+                                types={types}
+                                typesWithoutBooking={typesWithoutBooking}
+                                onClose={() => setOpenForm(null)}
+                            />
+                        )}
 
                         {accommodations.length === 0 && openForm !== 'new' && (
                             <section className="trips-empty">
@@ -351,6 +418,8 @@ export default function TripAccommodation({ trip, accommodations, nights }) {
                                 key={accommodation.id}
                                 tripId={trip.id}
                                 accommodation={accommodation}
+                                types={types}
+                                typesWithoutBooking={typesWithoutBooking}
                                 onClose={() => setOpenForm(null)}
                             />
                         ) : (

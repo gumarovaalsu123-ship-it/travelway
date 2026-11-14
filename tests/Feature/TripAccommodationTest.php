@@ -32,11 +32,13 @@ class TripAccommodationTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return [
+            'type' => 'hotel',
             'name' => 'Lisboa Pessoa Hotel',
             'address' => 'R. da Oliveira ao Carmo 8, Lisboa',
             'check_in' => '2026-06-15T15:00',
             'check_out' => '2026-06-19T12:00',
             'booking_info' => 'Бронь LP-240615',
+            'is_booked' => true,
             'latitude' => 38.7118,
             'longitude' => -9.1405,
             'note' => 'Бесплатная отмена до 12 июня',
@@ -103,15 +105,60 @@ class TripAccommodationTest extends TestCase
         $this->assertSame('2026-06-15 15:00', $accommodation->check_in->format('Y-m-d H:i'));
         $this->assertSame(4, $accommodation->nights());
         $this->assertEqualsWithDelta(38.7118, $accommodation->latitude, 0.0001);
+        $this->assertSame('hotel', $accommodation->type);
+        $this->assertTrue($accommodation->is_booked);
     }
 
-    public function test_only_name_is_required(): void
+    public function test_only_type_and_name_are_required(): void
     {
         $this->actingAs($this->user)
-            ->post($this->url(), ['name' => 'Квартира у друзей'])
+            ->post($this->url(), ['type' => 'apartment', 'name' => 'Квартира на Арбате'])
             ->assertSessionHasNoErrors();
 
-        $this->assertNull($this->trip->accommodations()->sole()->check_in);
+        $accommodation = $this->trip->accommodations()->sole();
+        $this->assertNull($accommodation->check_in);
+        $this->assertFalse($accommodation->is_booked);
+    }
+
+    public function test_type_must_be_from_the_list(): void
+    {
+        $this->actingAs($this->user)
+            ->post($this->url(), $this->payload(['type' => 'castle']))
+            ->assertSessionHasErrors(['type' => 'Выберите тип жилья из списка.']);
+
+        $this->actingAs($this->user)
+            ->post($this->url(), $this->payload(['type' => '']))
+            ->assertSessionHasErrors(['type' => 'Выберите тип жилья.']);
+
+        $this->assertSame(0, Accommodation::count());
+    }
+
+    public function test_staying_with_friends_is_never_marked_as_booked(): void
+    {
+        $this->actingAs($this->user)
+            ->post($this->url(), $this->payload(['type' => 'friends', 'name' => 'У тёти Веры', 'is_booked' => true]))
+            ->assertSessionHasNoErrors();
+
+        $accommodation = $this->trip->accommodations()->sole();
+        $this->assertSame('friends', $accommodation->type);
+        $this->assertFalse($accommodation->is_booked);
+        $this->assertFalse($accommodation->needsBooking());
+    }
+
+    public function test_tab_shows_type_and_booking_status(): void
+    {
+        Accommodation::factory()->for($this->trip)->create(['type' => 'hostel', 'is_booked' => false, 'check_in' => '2026-06-15 15:00']);
+        Accommodation::factory()->for($this->trip)->create(['type' => 'friends', 'is_booked' => false, 'check_in' => '2026-06-17 15:00']);
+
+        $this->actingAs($this->user)
+            ->get($this->url())
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('types', Accommodation::Types)
+                ->where('accommodations.0.type', 'hostel')
+                ->where('accommodations.0.isBooked', false)
+                ->where('accommodations.0.needsBooking', true)
+                ->where('accommodations.1.type', 'friends')
+                ->where('accommodations.1.needsBooking', false));
     }
 
     public function test_validation_errors(): void

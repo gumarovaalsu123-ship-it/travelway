@@ -32,6 +32,7 @@ class TripAccommodationController extends Controller
             'trip' => $trip->toHeader(),
             'accommodations' => $accommodations->map(fn (Accommodation $accommodation) => [
                 'id' => $accommodation->id,
+                'type' => $accommodation->type,
                 'name' => $accommodation->name,
                 'address' => $accommodation->address,
                 // Формат «2026-06-15T15:00» сразу подходит для поля <input type="datetime-local">.
@@ -39,11 +40,15 @@ class TripAccommodationController extends Controller
                 'checkOut' => $accommodation->check_out?->format('Y-m-d\TH:i'),
                 'nights' => $accommodation->nights(),
                 'bookingInfo' => $accommodation->booking_info,
+                'isBooked' => $accommodation->is_booked,
+                'needsBooking' => $accommodation->needsBooking(),
                 'latitude' => $accommodation->latitude,
                 'longitude' => $accommodation->longitude,
                 'note' => $accommodation->note,
             ])->values(),
             'nights' => $this->nightsCoverage($trip, $accommodations),
+            'types' => Accommodation::Types,
+            'typesWithoutBooking' => Accommodation::TypesWithoutBooking,
         ]);
     }
 

@@ -5586,3 +5586,42 @@ section[id] {
     position: relative;
     z-index: 1;
 }
+
+/* Отметки «Билет куплен» / «Забронировано» на вкладках «Транспорт» и «Проживание». */
+.booking-status {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    white-space: nowrap;
+}
+
+.booking-status--done {
+    background: #E8EFE5;
+    color: var(--color-accent-green);
+}
+
+.booking-status--todo {
+    background: #F7E6DF;
+    color: var(--color-accent-orange);
+}
+
+.booking-status--none {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+}
+
+.transport-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.acc-card__statuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
+import Checkbox from '../../Components/Checkbox';
 import TripLayout from '../../Components/TripLayout';
 
 /**
@@ -9,10 +10,29 @@ const TYPE_LABELS = {
     plane: 'Самолёт',
     train: 'Поезд',
     bus: 'Автобус',
-    car: 'Автомобиль',
+    own_car: 'Своё авто',
+    car: 'Такси или аренда авто',
     ferry: 'Паром',
     other: 'Другое',
 };
+
+/**
+ * Направление переезда. Ключи совпадают с Transport::Directions на сервере.
+ */
+const DIRECTION_LABELS = {
+    to: 'Туда',
+    back: 'Обратно',
+    onward: 'Дальше',
+};
+
+const CAR_ICON = (
+    <>
+        <path d="M5 17H3v-5l2-5h14l2 5v5h-2" />
+        <circle cx="7.5" cy="17" r="2" />
+        <circle cx="16.5" cy="17" r="2" />
+        <path d="M9.5 17h5M3 12h18" />
+    </>
+);
 
 const ICON_PATHS = {
     plane: <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 4.3-3.6 3.6-3.8-.9c-.4-.1-.8.1-1 .5l-1 2.2 4.8 1.4 1.4 4.8 2.2-1c.4-.2.6-.6.5-1l-.9-3.8 3.6-3.6 4.3 7.6c.5-.2.8-.6.7-1.1z" />,
@@ -28,25 +48,21 @@ const ICON_PATHS = {
             <path d="M3 11h18M7 17v3M17 17v3M7 14h.01M17 14h.01" />
         </>
     ),
-    car: (
-        <>
-            <path d="M5 17H3v-5l2-5h14l2 5v5h-2" />
-            <circle cx="7.5" cy="17" r="2" />
-            <circle cx="16.5" cy="17" r="2" />
-            <path d="M9.5 17h5M3 12h18" />
-        </>
-    ),
+    own_car: CAR_ICON,
+    car: CAR_ICON,
     ferry: <path d="M2 20c2 1 4 1 6 0s4-1 6 0 4 1 6 0M4 16l-1-5h18l-1 5M6 11V6h12v5M12 6V3" />,
     other: <path d="M5 12h14M12 5l7 7-7 7" />,
 };
 
 const EMPTY_FORM = {
     type: 'plane',
+    direction: 'to',
     departure_place: '',
     arrival_place: '',
     departure_at: '',
     arrival_at: '',
     booking_info: '',
+    is_booked: false,
     note: '',
 };
 
@@ -68,6 +84,19 @@ function TransportIcon({ type }) {
     );
 }
 
+/**
+ * Метка «Билет куплен» / «Билет не куплен». Для своего авто билет не нужен.
+ */
+function TicketStatus({ transport }) {
+    if (!transport.needsTicket) {
+        return <span className="booking-status booking-status--none">Билет не нужен</span>;
+    }
+
+    return transport.isBooked
+        ? <span className="booking-status booking-status--done">Билет куплен</span>
+        : <span className="booking-status booking-status--todo">Билет не куплен</span>;
+}
+
 function TransportCard({ transport, onEdit, onDelete }) {
     const meta = [transport.bookingInfo && `Бронь: ${transport.bookingInfo}`, transport.note].filter(Boolean);
 
@@ -81,7 +110,10 @@ function TransportCard({ transport, onEdit, onDelete }) {
                         <p className="transport-subtitle">{formatDate(transport.departureAt)}</p>
                     </div>
                 </div>
-                <span className="day-badge">{TYPE_LABELS[transport.type]}</span>
+                <div className="transport-card__badges">
+                    <span className="day-badge">{DIRECTION_LABELS[transport.direction] ?? 'Направление не указано'}</span>
+                    <span className="day-badge">{TYPE_LABELS[transport.type]}</span>
+                </div>
             </header>
 
             <div className="transport-card__body">
@@ -101,6 +133,7 @@ function TransportCard({ transport, onEdit, onDelete }) {
             </div>
 
             <footer className="transport-card__footer">
+                <TicketStatus transport={transport} />
                 <p className="transport-card__meta">{meta.length > 0 ? meta.join(' · ') : 'Без брони и заметок'}</p>
                 <div className="transport-card__actions">
                     <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => onEdit(transport)}>Изменить</button>
@@ -129,7 +162,7 @@ function Field({ id, label, required = false, error, children }) {
 /**
  * Страница поездки, вкладка «Транспорт»: переезды по времени и форма добавления/редактирования справа.
  */
-export default function TripTransport({ trip, transports, types }) {
+export default function TripTransport({ trip, transports, types, directions, typesWithoutTicket }) {
     // id записи, которую сейчас редактируем; null — форма добавляет новую запись.
     const [editingId, setEditingId] = useState(null);
     const firstFieldRef = useRef(null);
@@ -148,15 +181,21 @@ export default function TripTransport({ trip, transports, types }) {
         clearErrors();
         setData({
             type: transport.type,
+            // У старой записи направления может не быть — тогда в списке выбрано «Выберите…».
+            direction: transport.direction ?? '',
             departure_place: transport.departurePlace,
             arrival_place: transport.arrivalPlace,
             departure_at: transport.departureAt ?? '',
             arrival_at: transport.arrivalAt ?? '',
             booking_info: transport.bookingInfo ?? '',
+            is_booked: transport.isBooked,
             note: transport.note ?? '',
         });
         firstFieldRef.current?.focus();
     };
+
+    // Своё авто: билет не покупают, поэтому галочку «Билет куплен» не показываем.
+    const needsTicket = !typesWithoutTicket.includes(data.type);
 
     const submit = (event) => {
         event.preventDefault();
@@ -233,6 +272,20 @@ export default function TripTransport({ trip, transports, types }) {
                                 </select>
                             </Field>
 
+                            <Field id="direction" label="Направление" required error={errors.direction}>
+                                <select
+                                    id="direction"
+                                    className="form-input form-input--filled form-select"
+                                    value={data.direction}
+                                    onChange={(event) => setData('direction', event.target.value)}
+                                >
+                                    {data.direction === '' && <option value="" disabled>Выберите…</option>}
+                                    {directions.map((direction) => (
+                                        <option key={direction} value={direction}>{DIRECTION_LABELS[direction]}</option>
+                                    ))}
+                                </select>
+                            </Field>
+
                             <Field id="departure_place" label="Откуда" required error={errors.departure_place}>
                                 <input
                                     id="departure_place"
@@ -289,6 +342,17 @@ export default function TripTransport({ trip, transports, types }) {
                                     maxLength={1000}
                                 />
                             </Field>
+
+                            {needsTicket && (
+                                <div className="form-group">
+                                    <Checkbox
+                                        id="is_booked"
+                                        label="Билет куплен"
+                                        checked={data.is_booked}
+                                        onChange={(checked) => setData('is_booked', checked)}
+                                    />
+                                </div>
+                            )}
 
                             <Field id="note" label="Заметка" error={errors.note}>
                                 <textarea

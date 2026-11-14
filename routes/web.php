@@ -11,6 +11,7 @@ use App\Http\Controllers\PackingListController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
+use App\Http\Controllers\TripPlanController;
 use App\Http\Controllers\TripTransportController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,7 +41,7 @@ Route::middleware('auth')->group(function () {
      * Чтобы сделать вкладку: замените её строку здесь на свой контроллер (имя маршрута оставьте),
      * а страницу соберите в Pages/Trips/<Вкладка>.jsx внутри Components/TripLayout.jsx.
      */
-    Route::get('/my-trips/{trip}/plan', [TripController::class, 'comingSoon'])->defaults('tab', 'plan')->name('trips.plan');
+    Route::get('/my-trips/{trip}/plan', [TripPlanController::class, 'index'])->name('trips.plan');
 
     Route::get('/my-trips/{trip}/map', [TripController::class, 'comingSoon'])->defaults('tab', 'map')->name('trips.map');
 

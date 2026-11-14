@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -158,6 +159,25 @@ class Trip extends Model
     public function hasDates(): bool
     {
         return $this->start_date !== null && $this->end_date !== null;
+    }
+
+    /**
+     * The day from ?day=N on the "Day plan" and "Map" tabs. If there is no such day (no parameter, garbage,
+     * or the trip got shorter), open today's day of a trip that is happening now, otherwise day 1.
+     *
+     * @param  Collection<int, TripDay>  $days  days of this trip
+     */
+    public function dayByNumber(Collection $days, int $requestedNumber): ?TripDay
+    {
+        $day = $days->firstWhere('day_number', $requestedNumber);
+
+        if ($day === null && $this->status === self::StatusCurrent) {
+            // Так же, как «Текущая поездка» на главной: номер сегодняшнего дня от даты начала.
+            $todayNumber = (int) $this->start_date->diffInDays(today()) + 1;
+            $day = $days->firstWhere('day_number', $todayNumber);
+        }
+
+        return $day ?? $days->first();
     }
 
     /**

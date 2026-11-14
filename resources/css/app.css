@@ -5917,3 +5917,81 @@ section[id] {
     font-weight: 600;
     color: var(--color-text-dark);
 }
+
+/* =========================================
+   ВКЛАДКА «КАРТА» (Pages/Trips/Map.jsx)
+   ========================================= */
+
+.place-pin--active .place-pin__point {
+    background: var(--color-accent-orange);
+    transform: scale(1.15);
+}
+
+.place-pin--lodging .place-pin__point {
+    border-radius: 8px;
+    background: var(--color-text-dark);
+    font-size: 16px;
+}
+
+/* Карточки дней и остановки — ссылки и кнопки, без подчёркивания и с выравниванием как у div */
+.trip-map-main .day-card {
+    text-decoration: none;
+}
+
+.map-stop-card {
+    width: 100%;
+    font: inherit;
+    text-align: left;
+}
+
+.map-stop-card--lodging {
+    cursor: default;
+    background: transparent;
+    border-style: dashed;
+}
+
+.map-stop-card--lodging:hover {
+    border-color: var(--color-border-light);
+}
+
+.stop-number-badge--lodging {
+    background: var(--color-text-dark);
+    border-radius: 8px;
+}
+
+/* Сама карта Leaflet занимает всю правую колонку */
+.map-interactive-area .leaflet-container {
+    width: 100%;
+    height: 100%;
+}
+
+.map-route-note {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 500;
+    background: var(--color-white);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.map-stop-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+}
+
+.map-stop-popup-body h4 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.map-stop-popup-body p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}

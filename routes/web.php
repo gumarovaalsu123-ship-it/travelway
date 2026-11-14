@@ -11,6 +11,7 @@ use App\Http\Controllers\PackingListController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripAdvanceController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripMapController;
 use App\Http\Controllers\TripPlaceController;
 use App\Http\Controllers\TripPlanController;
 use App\Http\Controllers\TripTransportController;
@@ -38,9 +39,7 @@ Route::middleware('auth')->group(function () {
     /*
      * Вкладки страницы поездки. Каждая вкладка — свой адрес: /my-trips/{trip}/<вкладка>,
      * «Подготовка» — это сама страница поездки /my-trips/{trip} (trips.show).
-     * Пока вкладка не готова, она открывает заглушку «Скоро появится» (TripController@comingSoon).
-     * Чтобы сделать вкладку: замените её строку здесь на свой контроллер (имя маршрута оставьте),
-     * а страницу соберите в Pages/Trips/<Вкладка>.jsx внутри Components/TripLayout.jsx.
+     * Каждая вкладка — свой контроллер и страница Pages/Trips/<Вкладка>.jsx внутри Components/TripLayout.jsx.
      */
     Route::get('/my-trips/{trip}/plan', [TripPlanController::class, 'index'])->name('trips.plan');
     // План по дням. scopeBindings: {day} ищется среди дней этой поездки, {tripPlace} — среди её мест, иначе 404.
@@ -54,7 +53,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/trip-places/{tripPlace}/day', 'changeDay')->name('trip-places.change-day');
     });
 
-    Route::get('/my-trips/{trip}/map', [TripController::class, 'comingSoon'])->defaults('tab', 'map')->name('trips.map');
+    // Карта поездки: места выбранного дня (?day=N) с номерами, жильё и линия маршрута.
+    Route::get('/my-trips/{trip}/map', [TripMapController::class, 'index'])->name('trips.map');
 
     Route::get('/my-trips/{trip}/transport', [TripTransportController::class, 'index'])->name('trips.transport');
     // scopeBindings: {transport} ищется только среди записей этой поездки ($trip->transports()), иначе 404.

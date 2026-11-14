@@ -44,3 +44,29 @@ export function draftIcon(lat, lng) {
         iconAnchor: [20, 20],
     });
 }
+
+/**
+ * Остановка дня на карте поездки: зелёный кружок с номером как в плане, выбранная — оранжевая.
+ */
+export function stopIcon(number, isActive = false) {
+    return L.divIcon({
+        className: `place-pin place-pin--trip ${isActive ? 'place-pin--active' : ''}`,
+        html: `<div class="place-pin__point">${escapeHtml(number)}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -16],
+    });
+}
+
+/**
+ * Жильё на карте поездки: тёмный квадрат с домиком, чтобы не путать с местами.
+ */
+export function lodgingIcon() {
+    return L.divIcon({
+        className: 'place-pin place-pin--lodging',
+        html: '<div class="place-pin__point">⌂</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -16],
+    });
+}

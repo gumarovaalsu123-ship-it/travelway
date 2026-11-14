@@ -322,7 +322,7 @@ class DaySchedule
      * Where the traveller wakes up: lodging with coordinates whose stay includes this day.
      * On the day of moving from one lodging to another the earlier one is taken.
      */
-    private function morningLodging(TripDay $day): ?Accommodation
+    public function morningLodging(TripDay $day): ?Accommodation
     {
         return $this->lodgingsOfDay($day)->first();
     }
@@ -331,7 +331,7 @@ class DaySchedule
      * Where the traveller sleeps after this day: like the morning lodging, but not the one they check out of today.
      * On the last day there is none — the day ends at the last place.
      */
-    private function eveningLodging(TripDay $day): ?Accommodation
+    public function eveningLodging(TripDay $day): ?Accommodation
     {
         return $this->lodgingsOfDay($day)
             ->reject(fn (Accommodation $lodging) => $day->date && $lodging->check_out?->isSameDay($day->date))

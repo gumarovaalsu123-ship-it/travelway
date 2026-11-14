@@ -39,20 +39,6 @@ class TripShowTest extends TestCase
                 ->where('readiness.steps.4.hints.0.tab', 'plan'));
     }
 
-    public function test_unfinished_tab_shows_coming_soon_page(): void
-    {
-        $user = User::factory()->create();
-        $trip = Trip::factory()->for($user)->create();
-
-        $this->actingAs($user)
-            ->get("/my-trips/{$trip->id}/map")
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Trips/ComingSoon')
-                ->where('tab', 'map')
-                ->where('trip.id', $trip->id));
-    }
-
     public function test_other_user_cannot_open_trip(): void
     {
         $trip = Trip::factory()->create();

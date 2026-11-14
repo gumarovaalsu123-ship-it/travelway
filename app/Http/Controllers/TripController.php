@@ -96,19 +96,6 @@ class TripController extends Controller
         ]);
     }
 
-    /**
-     * Placeholder for a trip tab that is not built yet (see the tab routes in routes/web.php).
-     */
-    public function comingSoon(Trip $trip, string $tab): Response
-    {
-        Gate::authorize('view', $trip);
-
-        return Inertia::render('Trips/ComingSoon', [
-            'trip' => $trip->toHeader(),
-            'tab' => $tab,
-        ]);
-    }
-
     public function edit(Trip $trip): Response
     {
         Gate::authorize('update', $trip);

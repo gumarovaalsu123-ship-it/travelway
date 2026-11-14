@@ -11,7 +11,6 @@ use App\Models\Trip;
 use App\Models\TripDay;
 use App\Models\TripPlace;
 use App\Services\DaySchedule;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -31,7 +30,7 @@ class TripPlanController extends Controller
         Gate::authorize('view', $trip);
 
         $days = $trip->days()->withCount('tripPlaces')->get();
-        $selectedDay = $this->selectedDay($trip, $days, $request->integer('day'));
+        $selectedDay = $trip->dayByNumber($days, $request->integer('day'));
 
         // Места выбранного дня вместе с местом и его категорией — одним запросом на связь, без N+1.
         // Жильё и транспорт нужны расписанию: откуда начинается день и когда уезжать.
@@ -208,24 +207,5 @@ class TripPlanController extends Controller
         Inertia::flash('toast', 'Расписание дня рассчитано.');
 
         return back();
-    }
-
-    /**
-     * The day from ?day=N. If there is no such day (no parameter, garbage, or the trip got shorter),
-     * open today's day of a trip that is happening now, otherwise day 1.
-     *
-     * @param  Collection<int, TripDay>  $days
-     */
-    protected function selectedDay(Trip $trip, Collection $days, int $requestedNumber): ?TripDay
-    {
-        $day = $days->firstWhere('day_number', $requestedNumber);
-
-        if ($day === null && $trip->status === Trip::StatusCurrent) {
-            // Так же, как «Текущая поездка» на главной: номер сегодняшнего дня от даты начала.
-            $todayNumber = (int) $trip->start_date->diffInDays(today()) + 1;
-            $day = $days->firstWhere('day_number', $todayNumber);
-        }
-
-        return $day ?? $days->first();
     }
 }

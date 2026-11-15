@@ -38,7 +38,7 @@ export default function Header() {
 
                 {auth.user ? (
                     <div className="navbar__user">
-                        <span className="navbar__user-name">{auth.user.name}</span>
+                        <Link href="/profile" className="navbar__user-name" title="Профиль">{auth.user.name}</Link>
                         <Link href="/logout" method="post" as="button" className="nav-link nav-logout">
                             Выйти
                         </Link>

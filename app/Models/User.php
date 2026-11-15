@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'email', 'password', 'avatar'])]
 #[Hidden(['password', 'remember_token'])]
@@ -60,5 +61,25 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role_id === Role::Admin;
+    }
+
+    /**
+     * Адрес аватара для браузера (/storage/avatars/...) или null, если аватар не загружен.
+     */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
+    }
+
+    /**
+     * Инициалы для заглушки вместо аватара: «Александр Волков» → «АВ».
+     */
+    public function initials(): string
+    {
+        return collect(explode(' ', $this->name))
+            ->filter()
+            ->take(2)
+            ->map(fn (string $word) => mb_strtoupper(mb_substr($word, 0, 1)))
+            ->implode('');
     }
 }

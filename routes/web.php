@@ -8,6 +8,7 @@ use App\Http\Controllers\MapController;
 use App\Http\Controllers\PackingController;
 use App\Http\Controllers\PackingItemController;
 use App\Http\Controllers\PackingListController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripAdvanceController;
 use App\Http\Controllers\TripController;
@@ -101,6 +102,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/trip-places/{tripPlace}', [TripPlaceController::class, 'destroy'])->name('trip-places.destroy');
 
     Route::get('/favorites', [FavoritePlaceController::class, 'index'])->name('favorites.index');
+
+    // Профиль: просмотр, редактирование, аватар и пароль — всегда свой (пользователь из сессии).
+    Route::prefix('/profile')->name('profile.')->controller(ProfileController::class)->group(function () {
+        Route::get('/', 'show')->name('show');
+        Route::get('/edit', 'edit')->name('edit');
+        Route::put('/', 'update')->name('update');
+        Route::post('/avatar', 'updateAvatar')->name('avatar.update');
+        Route::delete('/avatar', 'destroyAvatar')->name('avatar.destroy');
+        Route::put('/password', 'updatePassword')->name('password.update');
+    });
 
     // «Заранее»: свои дела и отметки «куплено/забронировано» для автоматических дел.
     // scopeBindings — дело, билет, жильё или место ищется только среди записей этой поездки, иначе 404.

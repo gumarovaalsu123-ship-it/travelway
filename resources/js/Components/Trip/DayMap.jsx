@@ -95,7 +95,8 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
                             <div className="map-stop-popup-body">
                                 <h4>⌂ {lodging.name}</h4>
                                 {lodging.address && <p>{lodging.address}</p>}
-                                <Link href={`/my-trips/${tripId}/accommodation`}>Открыть жильё</Link>
+                                {/* На публичной странице (Trips/Public.jsx) tripId нет — ссылки во вкладки владельца не нужны. */}
+                                {tripId && <Link href={`/my-trips/${tripId}/accommodation`}>Открыть жильё</Link>}
                             </div>
                         </Popup>
                     </Marker>
@@ -109,7 +110,7 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
                         icon={stopIcon(index + 1, place.id === selectedPlaceId)}
                         title={place.name}
                         zIndexOffset={place.id === selectedPlaceId ? 1000 : 0}
-                        eventHandlers={{ click: () => onMarkerClick(place.id) }}
+                        eventHandlers={{ click: () => onMarkerClick?.(place.id) }}
                     >
                         <Popup>
                             <div className="map-stop-popup-body">

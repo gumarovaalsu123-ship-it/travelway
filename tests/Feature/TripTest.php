@@ -112,12 +112,11 @@ class TripTest extends TestCase
     public function test_draft_trip_is_created_from_number_of_days(): void
     {
         $this->actingAs($this->user)
-            ->post('/my-trips', $this->payload(['start_date' => '', 'end_date' => '', 'days_count' => 5, 'is_private' => false]))
+            ->post('/my-trips', $this->payload(['start_date' => '', 'end_date' => '', 'days_count' => 5]))
             ->assertSessionHasNoErrors();
 
         $trip = $this->user->trips()->first();
         $this->assertSame('draft', $trip->status);
-        $this->assertTrue($trip->is_public);
         $this->assertSame(5, $trip->days()->count());
         $this->assertNull($trip->days()->first()->date);
     }

@@ -8,17 +8,22 @@ use App\Http\Controllers\MapController;
 use App\Http\Controllers\PackingController;
 use App\Http\Controllers\PackingItemController;
 use App\Http\Controllers\PackingListController;
+use App\Http\Controllers\PublicTripController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripAdvanceController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripPlaceController;
 use App\Http\Controllers\TripPlanController;
+use App\Http\Controllers\TripShareController;
 use App\Http\Controllers\TripTransportController;
 use App\Models\Trip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+
+// Публичная ссылка на поездку: открывается без входа, ищется по секретному токену, а не по id.
+Route::get('/t/{token}', [PublicTripController::class, 'show'])->name('trips.public');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -62,6 +67,10 @@ Route::middleware('auth')->group(function () {
         'trip' => $trip,
         ...$request->only(['day', 'lodging']),
     ]))->name('trips.map');
+
+    // «Настройки»: открыть и закрыть доступ по ссылке.
+    Route::post('/my-trips/{trip}/share', [TripShareController::class, 'store'])->name('trips.share.store');
+    Route::delete('/my-trips/{trip}/share', [TripShareController::class, 'destroy'])->name('trips.share.destroy');
 
     Route::get('/my-trips/{trip}/transport', [TripTransportController::class, 'index'])->name('trips.transport');
     // scopeBindings: {transport} ищется только среди записей этой поездки ($trip->transports()), иначе 404.

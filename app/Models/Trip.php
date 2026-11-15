@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 #[Fillable(['user_id', 'previous_trip_id', 'title', 'description', 'destination', 'start_date', 'end_date', 'days_count', 'cover_image', 'is_public'])]
 class Trip extends Model
@@ -164,6 +165,29 @@ class Trip extends Model
             ->where('direction', 'onward')
             ->sortBy(fn (Transport $ride) => [$ride->departure_at?->timestamp ?? 0, $ride->id])
             ->last();
+    }
+
+    /**
+     * Открыть доступ по ссылке /t/{token}. Токен — 40 случайных букв и цифр: подобрать его перебором нельзя,
+     * в отличие от id поездки. is_public всегда равен «есть токен», меняется только здесь и в closePublicAccess().
+     * Если доступ уже открыт, токен не меняется — ссылка, которую уже разослали, продолжает работать.
+     */
+    public function openPublicAccess(): void
+    {
+        $this->public_token ??= Str::random(40);
+        $this->is_public = true;
+        $this->save();
+    }
+
+    /**
+     * Закрыть доступ: токен стирается, поэтому старая ссылка перестаёт работать навсегда
+     * (если открыть доступ снова, получится новая ссылка).
+     */
+    public function closePublicAccess(): void
+    {
+        $this->public_token = null;
+        $this->is_public = false;
+        $this->save();
     }
 
     public function hasDates(): bool

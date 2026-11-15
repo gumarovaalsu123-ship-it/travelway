@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { plural } from '../../utils/format';
@@ -40,6 +40,74 @@ function Field({ id, label, required = false, hint, error, children }) {
 }
 
 /**
+ * «Доступ по ссылке» в «Настройках» (только у созданной поездки). Ссылка вида /t/<секретный токен>
+ * открывается без входа (PublicTripController). Закрыть доступ — токен стирается и старая ссылка перестаёт работать.
+ * Это отдельные кнопки, а не поле формы: доступ меняется сразу, без «Сохранить изменения».
+ */
+function ShareLink({ trip }) {
+    const [isCopied, setIsCopied] = useState(false);
+    const options = { preserveScroll: true };
+
+    // navigator.clipboard есть только на https и localhost. На локальном домене OSPanel (http) его нет —
+    // тогда выделяем текст в поле и копируем старым способом execCommand('copy').
+    const copyLink = async (event) => {
+        if (navigator.clipboard) {
+            await navigator.clipboard.writeText(trip.publicUrl);
+        } else {
+            event.currentTarget.parentElement.querySelector('input').select();
+            document.execCommand('copy');
+        }
+
+        setIsCopied(true);
+    };
+
+    const closeAccess = () => {
+        if (window.confirm('Закрыть доступ? Старая ссылка перестанет открываться у всех, кому вы её отправили.')) {
+            router.delete(`/my-trips/${trip.id}/share`, options);
+        }
+    };
+
+    return (
+        <div className="form-group share-link-box">
+            <span className="form-label">Доступ по ссылке</span>
+
+            {trip.publicUrl ? (
+                <>
+                    <span className="form-hint form-hint--top">
+                        Маршрут могут посмотреть все, у кого есть ссылка, — без входа и без возможности что-то изменить.
+                        Заметки, брони и адрес жилья им не видны.
+                    </span>
+                    <div className="share-link-box__row">
+                        <input
+                            className="form-input form-input--filled"
+                            value={trip.publicUrl}
+                            readOnly
+                            onFocus={(event) => event.target.select()}
+                            aria-label="Публичная ссылка"
+                        />
+                        <button type="button" className="btn btn--solid-dark" onClick={copyLink}>
+                            {isCopied ? 'Скопировано' : 'Скопировать ссылку'}
+                        </button>
+                        <button type="button" className="btn btn--outline-dark" onClick={closeAccess}>Закрыть доступ</button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <span className="form-hint form-hint--top">
+                        Сейчас путешествие видите только вы. Откройте доступ, чтобы отправить маршрут друзьям.
+                    </span>
+                    <div className="share-link-box__row">
+                        <button type="button" className="btn btn--outline-dark" onClick={() => router.post(`/my-trips/${trip.id}/share`, {}, options)}>
+                            Открыть доступ по ссылке
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
+/**
  * Форма поездки. previousTrip — когда создаём следующий город цепочки (после переезда «Дальше»):
  * город и дата начала уже подставлены из этого переезда.
  */
@@ -54,7 +122,6 @@ export default function TripForm({ trip, previousTrip = null }) {
         start_date: trip?.startDate ?? chainStartDate,
         end_date: trip?.endDate ?? (chainStartDate ? endDateFor(chainStartDate, 3) : ''),
         days_count: trip?.daysCount ?? 3,
-        is_private: trip ? !trip.isPublic : true,
         previous_trip_id: previousTrip?.id ?? null,
     });
 
@@ -261,28 +328,6 @@ export default function TripForm({ trip, previousTrip = null }) {
                                 </div>
                             )}
 
-                            <div className="form-group">
-                                <label className="custom-checkbox custom-checkbox--rich">
-                                    <input
-                                        type="checkbox"
-                                        className="custom-checkbox__input"
-                                        checked={data.is_private}
-                                        onChange={(event) => setData('is_private', event.target.checked)}
-                                    />
-                                    <span className="custom-checkbox__box">
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="20 6 9 17 4 12" />
-                                        </svg>
-                                    </span>
-                                    <span className="custom-checkbox__content">
-                                        <span className="custom-checkbox__title">Сделать доступ к путешествию приватным</span>
-                                        <span className="custom-checkbox__desc">
-                                            Путешествие будет недоступно по ссылке, его сможете посмотреть и открыть только вы
-                                        </span>
-                                    </span>
-                                </label>
-                            </div>
-
                             <div className="form-actions">
                                 <Link href="/my-trips" className="btn btn--outline-dark">Отмена без сохранения</Link>
                                 <button type="submit" className="btn btn--solid-dark" disabled={processing}>
@@ -290,6 +335,8 @@ export default function TripForm({ trip, previousTrip = null }) {
                                 </button>
                             </div>
                         </form>
+
+                        {isEditing && <ShareLink trip={trip} />}
 
                         {isEditing && (
                             <div className="form-danger-zone">

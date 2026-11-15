@@ -26,7 +26,6 @@ class TripRequest extends FormRequest
             'start_date' => ['nullable', 'required_with:end_date', 'date'],
             'end_date' => ['nullable', 'required_with:start_date', 'date', 'after_or_equal:start_date'],
             'days_count' => [Rule::excludeIf($hasDates), 'required', 'integer', 'min:1', 'max:'.Trip::MaxDays],
-            'is_private' => ['boolean'],
             // Предыдущий город цепочки (только при создании, форма редактирования его не шлёт):
             // своя поездка, у которой ещё нет следующей.
             'previous_trip_id' => [
@@ -61,7 +60,8 @@ class TripRequest extends FormRequest
     }
 
     /**
-     * Attributes for Trip::fill(): dates or a number of days, and public access.
+     * Attributes for Trip::fill(): dates or a number of days.
+     * Доступ по ссылке форма не меняет — для него свои кнопки (TripShareController).
      *
      * @return array<string, mixed>
      */
@@ -74,7 +74,6 @@ class TripRequest extends FormRequest
             'start_date' => $hasDates ? $this->validated('start_date') : null,
             'end_date' => $hasDates ? $this->validated('end_date') : null,
             'days_count' => $hasDates ? 1 : (int) $this->validated('days_count'),
-            'is_public' => ! $this->boolean('is_private'),
         ];
     }
 

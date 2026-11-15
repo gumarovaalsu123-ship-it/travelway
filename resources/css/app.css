@@ -6474,3 +6474,70 @@ section[id] {
         min-height: 0;
     }
 }
+
+/* =========================================
+   ПУБЛИЧНАЯ ССЫЛКА НА ПОЕЗДКУ (/t/{token}, Pages/Trips/Public.jsx)
+   ========================================= */
+
+/* Дни в ленте идут друг за другом; при прокрутке к дню он не прячется под закреплённой шапкой. */
+.public-day + .public-day {
+    margin-top: 32px;
+}
+
+.public-day {
+    scroll-margin-top: 100px;
+}
+
+/* Карта прилипает под шапкой (83px), высота — как в макете. */
+.public-map-col {
+    top: 100px;
+}
+
+.public-map-col .day-map {
+    height: 380px;
+}
+
+.public-map-title {
+    font-size: 20px;
+}
+
+.public-map-subtitle {
+    font-size: 13px;
+}
+
+/* Транспорт и жильё — две колонки под планом. */
+.public-logistics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Блок «Доступ по ссылке» в «Настройках». */
+.share-link-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.share-link-box__row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.share-link-box__row .form-input {
+    flex: 1;
+    min-width: 220px;
+}
+
+@media (max-width: 1024px) {
+    .public-map-col {
+        position: static;
+        order: -1;
+    }
+
+    .public-logistics {
+        grid-template-columns: 1fr;
+    }
+}

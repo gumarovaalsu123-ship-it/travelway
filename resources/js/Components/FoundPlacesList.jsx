@@ -81,7 +81,7 @@ export default function FoundPlacesList({ load, categories, actions, emptyText }
     }
 
     if (places === null) {
-        return <Loader variant="block" text="Ищем места поблизости…" />;
+        return <Loader variant="block" text="Ищем места поблизости… Бесплатный сервис OpenStreetMap бывает перегружен — это может занять до минуты." />;
     }
 
     if (places.length === 0) {

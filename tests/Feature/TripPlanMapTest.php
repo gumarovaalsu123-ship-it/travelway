@@ -11,7 +11,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
-class TripMapTest extends TestCase
+/**
+ * Карта дня на вкладке «План»: данные для неё отдаёт TripPlanController@index,
+ * старый адрес отдельной вкладки «Карта» ведёт на план.
+ */
+class TripPlanMapTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -35,50 +39,47 @@ class TripMapTest extends TestCase
         return $this->trip->days()->where('day_number', $number)->sole();
     }
 
-    private function mapUrl(string $query = ''): string
+    private function planUrl(string $query = ''): string
     {
-        return "/my-trips/{$this->trip->id}/map{$query}";
+        return "/my-trips/{$this->trip->id}/plan{$query}";
     }
 
-    public function test_map_shows_places_of_the_day_numbered_in_plan_order(): void
+    public function test_plan_gives_the_map_places_of_the_day_in_plan_order(): void
     {
         $second = $this->day(2);
         $museum = $second->addPlace(Place::factory()->create(['name' => 'Музей', 'latitude' => 55.79, 'longitude' => 49.12]));
         $cafe = $second->addPlace(Place::factory()->create(['name' => 'Кафе']));
         $park = $second->addPlace(Place::factory()->create(['name' => 'Парк']));
         $museum->update(['start_time' => '10:00', 'end_time' => '12:00', 'calculated_mode' => 'walk', 'travel_minutes' => 12]);
+        $cafe->update(['travel_mode' => 'taxi']);
 
-        // Парк передвинули вверх: в плане он теперь второй — и на карте тоже.
+        // Парк передвинули вверх: в списке он теперь второй — и номер маркера на карте тоже 2.
         $park->moveUp();
 
         $this->actingAs($this->user)
-            ->get($this->mapUrl('?day=2'))
+            ->get($this->planUrl('?day=2'))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Trips/Map')
-                ->where('trip.id', $this->trip->id)
-                ->has('days', 3)
-                ->where('days.1.placesCount', 3)
+                ->component('Trips/Plan')
                 ->where('selectedDay.number', 2)
                 ->has('selectedDay.places', 3)
                 ->where('selectedDay.places.0.name', 'Музей')
-                ->where('selectedDay.places.0.number', 1)
                 ->where('selectedDay.places.0.lat', 55.79)
                 ->where('selectedDay.places.0.lng', 49.12)
-                ->where('selectedDay.places.0.startTime', '10:00')
                 ->where('selectedDay.places.0.mode', 'walk')
-                ->where('selectedDay.places.0.travelMinutes', 12)
                 ->where('selectedDay.places.1.name', 'Парк')
-                ->where('selectedDay.places.1.number', 2)
+                ->where('selectedDay.places.1.mode', null)
                 ->where('selectedDay.places.2.id', $cafe->id)
-                ->where('selectedDay.places.2.number', 3)
-                ->where('selectedDay.morningLodging', null));
+                // Время ещё не рассчитано — линия к кафе рисуется по выбранному способу.
+                ->where('selectedDay.places.2.mode', 'taxi')
+                ->where('selectedDay.morningLodging', null)
+                ->where('selectedDay.eveningLodging', null)
+                ->where('focusLodging', null));
     }
 
-    public function test_day_starts_and_ends_at_the_lodging(): void
+    public function test_day_on_the_map_starts_and_ends_at_the_lodging(): void
     {
-        $first = $this->day(1);
-        $first->addPlace(Place::factory()->create());
+        $this->day(1)->addPlace(Place::factory()->create());
         $hotel = Accommodation::factory()->for($this->trip)->create([
             'name' => 'Отель у реки',
             'latitude' => 55.78,
@@ -88,7 +89,7 @@ class TripMapTest extends TestCase
         ]);
 
         $this->actingAs($this->user)
-            ->get($this->mapUrl('?day=1'))
+            ->get($this->planUrl('?day=1'))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('selectedDay.morningLodging.id', $hotel->id)
                 ->where('selectedDay.morningLodging.name', 'Отель у реки')
@@ -97,7 +98,7 @@ class TripMapTest extends TestCase
 
         // В день выезда вечером к жилью не возвращаемся — день заканчивается у последнего места.
         $this->actingAs($this->user)
-            ->get($this->mapUrl('?day=3'))
+            ->get($this->planUrl('?day=3'))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('selectedDay.morningLodging.id', $hotel->id)
                 ->where('selectedDay.eveningLodging', null));
@@ -108,28 +109,10 @@ class TripMapTest extends TestCase
         Accommodation::factory()->for($this->trip)->create(['latitude' => null, 'longitude' => null]);
 
         $this->actingAs($this->user)
-            ->get($this->mapUrl())
+            ->get($this->planUrl())
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('selectedDay.morningLodging', null)
                 ->where('selectedDay.eveningLodging', null));
-    }
-
-    public function test_unknown_day_opens_day_one(): void
-    {
-        foreach (['?day=99', '?day=0', '?day=abc', ''] as $query) {
-            $this->actingAs($this->user)
-                ->get($this->mapUrl($query))
-                ->assertInertia(fn (AssertableInertia $page) => $page
-                    ->where('selectedDay.number', 1)
-                    ->has('selectedDay.places', 0));
-        }
-    }
-
-    public function test_stranger_cannot_open_the_map(): void
-    {
-        $this->actingAs(User::factory()->create())
-            ->get($this->mapUrl())
-            ->assertForbidden();
     }
 
     public function test_show_on_map_opens_the_check_in_day_with_the_lodging_focused(): void
@@ -142,7 +125,7 @@ class TripMapTest extends TestCase
         ]);
 
         $this->actingAs($this->user)
-            ->get($this->mapUrl("?lodging={$lodging->id}"))
+            ->get($this->planUrl("?lodging={$lodging->id}"))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('selectedDay.number', 2)
@@ -153,7 +136,7 @@ class TripMapTest extends TestCase
 
         // Выбранный вручную день важнее дня заезда.
         $this->actingAs($this->user)
-            ->get($this->mapUrl("?lodging={$lodging->id}&day=3"))
+            ->get($this->planUrl("?lodging={$lodging->id}&day=3"))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('selectedDay.number', 3)
                 ->where('focusLodging.id', $lodging->id));
@@ -166,9 +149,27 @@ class TripMapTest extends TestCase
 
         foreach ([$foreign, $withoutCoordinates] as $lodging) {
             $this->actingAs($this->user)
-                ->get($this->mapUrl("?lodging={$lodging->id}"))
+                ->get($this->planUrl("?lodging={$lodging->id}"))
                 ->assertOk()
                 ->assertInertia(fn (AssertableInertia $page) => $page->where('focusLodging', null));
         }
+    }
+
+    public function test_old_map_address_redirects_to_the_plan_keeping_the_day_and_the_lodging(): void
+    {
+        $mapUrl = "/my-trips/{$this->trip->id}/map";
+
+        $this->actingAs($this->user)->get($mapUrl)->assertRedirect($this->planUrl());
+        $this->get("{$mapUrl}?day=2")->assertRedirect($this->planUrl('?day=2'));
+        $this->get("{$mapUrl}?lodging=5")->assertRedirect($this->planUrl('?lodging=5'));
+    }
+
+    public function test_there_is_no_separate_map_tab(): void
+    {
+        $this->actingAs($this->user)
+            ->get($this->planUrl())
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('trip.tabs.plan', true)
+                ->missing('trip.tabs.map'));
     }
 }

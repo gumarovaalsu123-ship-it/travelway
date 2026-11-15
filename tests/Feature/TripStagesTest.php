@@ -58,7 +58,7 @@ class TripStagesTest extends TestCase
                 ->component('Trips/Show')
                 ->where('trip.stage', Trip::StagePlanning)
                 ->where('trip.tabs', [
-                    'overview' => true, 'plan' => true, 'map' => true, 'transport' => true,
+                    'overview' => true, 'plan' => true, 'transport' => true,
                     'accommodation' => true, 'packing' => true, 'advance' => true, 'settings' => true,
                 ]));
     }
@@ -87,7 +87,7 @@ class TripStagesTest extends TestCase
                 ->component('Trips/Today')
                 ->where('trip.stage', Trip::StageCurrent)
                 ->where('trip.tabs', [
-                    'today' => true, 'plan' => true, 'map' => true,
+                    'today' => true, 'plan' => true,
                     'transport' => false, 'accommodation' => false, 'settings' => true,
                 ])
                 ->where('day.number', 2)
@@ -126,14 +126,18 @@ class TripStagesTest extends TestCase
                 ->component('Trips/Show')
                 ->where('trip.stage', Trip::StageCompleted)
                 ->where('trip.tabs', [
-                    'overview' => false, 'plan' => false, 'map' => false, 'transport' => false,
+                    'overview' => false, 'plan' => false, 'transport' => false,
                     'accommodation' => false, 'packing' => false, 'advance' => false, 'settings' => true,
                 ]));
 
         // Смотреть можно все вкладки.
-        foreach (['plan', 'map', 'transport', 'accommodation', 'packing', 'advance'] as $tab) {
+        foreach (['plan', 'transport', 'accommodation', 'packing', 'advance'] as $tab) {
             $this->get("/my-trips/{$trip->id}/{$tab}")->assertOk();
         }
+
+        // План (вместе с картой дня) — только для просмотра.
+        $this->get("/my-trips/{$trip->id}/plan")
+            ->assertInertia(fn (AssertableInertia $page) => $page->component('Trips/Plan')->where('trip.tabs.plan', false));
     }
 
     public function test_completed_trip_cannot_be_changed(): void

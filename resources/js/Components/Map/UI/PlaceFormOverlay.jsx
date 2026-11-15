@@ -23,7 +23,7 @@ function categoryIdFor(categories, slug) {
  * Карточка «Добавить место». Работает в двух режимах:
  * - draft.place отсутствует — новая точка с карты (можно сохранить в план или в избранное);
  * - draft.place задан — уже сохранённое место добавляется в план поездки.
- * focusDayId — день, выбранный по умолчанию (пришли с вкладки «План по дням»), иначе первый день первой поездки.
+ * focusDayId — день, выбранный по умолчанию (пришли с вкладки «План»), иначе первый день первой поездки.
  */
 export default function PlaceFormOverlay({ draft, categories, trips, focusDayId = null, onClose, onSaved }) {
     const existingPlace = draft.place ?? null;

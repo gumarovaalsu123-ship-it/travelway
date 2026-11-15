@@ -11,10 +11,11 @@ use App\Http\Controllers\PackingListController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripAdvanceController;
 use App\Http\Controllers\TripController;
-use App\Http\Controllers\TripMapController;
 use App\Http\Controllers\TripPlaceController;
 use App\Http\Controllers\TripPlanController;
 use App\Http\Controllers\TripTransportController;
+use App\Models\Trip;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -55,8 +56,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/trip-places/{tripPlace}/day', 'changeDay')->name('trip-places.change-day');
     });
 
-    // Карта поездки: места выбранного дня (?day=N) с номерами, жильё и линия маршрута.
-    Route::get('/my-trips/{trip}/map', [TripMapController::class, 'index'])->name('trips.map');
+    // Отдельной вкладки «Карта» больше нет: карта дня теперь на вкладке «План». Старый адрес оставили,
+    // чтобы не сломались сохранённые ссылки, — он ведёт на план с тем же днём (?day=N) и жильём (?lodging=id).
+    Route::get('/my-trips/{trip}/map', fn (Request $request, Trip $trip) => to_route('trips.plan', [
+        'trip' => $trip,
+        ...$request->only(['day', 'lodging']),
+    ]))->name('trips.map');
 
     Route::get('/my-trips/{trip}/transport', [TripTransportController::class, 'index'])->name('trips.transport');
     // scopeBindings: {transport} ищется только среди записей этой поездки ($trip->transports()), иначе 404.

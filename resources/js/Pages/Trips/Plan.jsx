@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import FoundPlacesList from '../../Components/FoundPlacesList';
 import TripLayout from '../../Components/TripLayout';
-import { formatDateRange, formatDayLabel, formatDuration, plural } from '../../utils/format';
+import DayMap from '../../Components/Trip/DayMap';
+import { formatDateRange, formatDayLabel, plural } from '../../utils/format';
 import { PLACE_SETS, findAlongSegment, findNearby } from '../../utils/overpass';
+import { TRAVEL_MODES, formatMinutes, timeLabel } from '../../utils/travel';
 
 const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
@@ -17,47 +19,12 @@ const keepScroll = { preserveScroll: true };
 const placesLabel = (count) => `${count} ${plural(count, ['место', 'места', 'мест'])}`;
 
 /**
- * Способы добраться до места — ключи как в TripPlace::TravelModes на сервере.
- */
-const TRAVEL_MODES = {
-    walk: { icon: '🚶', label: 'Пешком' },
-    transit: { icon: '🚌', label: 'Общественный транспорт' },
-    car: { icon: '🚗', label: 'Машина' },
-    taxi: { icon: '🚕', label: 'Такси / каршеринг' },
-};
-
-/**
- * 75 → «1 ч 15 мин», 40 → «40 мин», 120 → «2 ч».
- */
-function formatMinutes(total) {
-    const hours = Math.floor(total / 60);
-    const minutes = total % 60;
-
-    if (hours === 0) {
-        return `${minutes} мин`;
-    }
-
-    return minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
-}
-
-/**
  * Отрезок пути: «🚶 12 мин». Время на общественном транспорте — только оценка, поэтому «≈».
  */
 function segmentLabel(segment) {
     const mode = TRAVEL_MODES[segment.mode] ?? TRAVEL_MODES.walk;
 
     return `${mode.icon} ${segment.approximate ? '≈ ' : ''}${formatMinutes(segment.minutes)}`;
-}
-
-/**
- * «10:00–11:30», «10:00» или пустая строка, если время не указано.
- */
-function timeLabel(place) {
-    if (!place.startTime) {
-        return '';
-    }
-
-    return place.endTime ? `${place.startTime}–${place.endTime}` : place.startTime;
 }
 
 /**
@@ -508,8 +475,9 @@ function BookingMarks({ tripId, place }) {
 
 /**
  * Одно место в плане дня: номер, время, название, адрес, заметка и действия.
+ * Клик по карточке (не по кнопке) выбирает место — его маркер подсвечивается на карте.
  */
-function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays }) {
+function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, isSelected, onSelect }) {
     const [isEditing, setEditing] = useState(false);
     const url = `/my-trips/${tripId}/trip-places/${place.id}`;
 
@@ -530,9 +498,17 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays }
         }
     }
 
+    function select(e) {
+        // Нажали на кнопку, поле или ссылку внутри карточки — это своё действие, место не выбираем.
+        if (!e.target.closest('button, a, input, select, textarea, label')) {
+            onSelect(place.id);
+        }
+    }
+
     return (
-        <li className="stop-item plan-stop">
-            <span className="stop-number-badge">{number}</span>
+        // id нужен, чтобы по клику на маркер прокрутить список к этому месту.
+        <li id={`plan-place-${place.id}`} className={`stop-item plan-stop ${isSelected ? 'plan-stop--selected' : ''}`} onClick={select}>
+            <span className={`stop-number-badge ${isSelected ? 'stop-number-badge--active' : ''}`}>{number}</span>
 
             <div className="stop-info">
                 {place.startTime && (
@@ -646,10 +622,16 @@ function FavoritesDialog({ favorites, day, onClose }) {
     );
 }
 
-export default function Plan({ trip, days, selectedDay, favorites, categories }) {
+/**
+ * Вкладка «План»: слева (на узком экране — под картой) список мест выбранного дня со всеми действиями,
+ * справа — карта этого дня (Components/Trip/DayMap.jsx). Список и карта связаны через selectedPlaceId.
+ */
+export default function Plan({ trip, days, selectedDay, favorites, categories, focusLodging }) {
     const [isFavoritesOpen, setFavoritesOpen] = useState(false);
     // Открытое окно подсказки Overpass: { title, load, emptyText, afterPlace } или null.
     const [foundDialog, setFoundDialog] = useState(null);
+    // Место, выбранное в списке или на карте (id), — подсвечено и там, и там.
+    const [selectedPlaceId, setSelectedPlaceId] = useState(null);
 
     if (!selectedDay) {
         return (
@@ -665,6 +647,12 @@ export default function Plan({ trip, days, selectedDay, favorites, categories })
     const otherDays = days.filter((day) => day.id !== selectedDay.id);
     const findOnMapUrl = `/interactive-map?day=${selectedDay.id}`;
     const meals = mealHints(places, selectedDay.isCalculated);
+
+    /** Клик по маркеру: подсвечиваем место в списке и прокручиваем к нему. */
+    function selectFromMap(placeId) {
+        setSelectedPlaceId(placeId);
+        document.getElementById(`plan-place-${placeId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
 
     function showMealPlaces(place) {
         setFoundDialog({
@@ -721,9 +709,6 @@ export default function Plan({ trip, days, selectedDay, favorites, categories })
                                                 Упорядочить по времени
                                             </button>
                                         )}
-                                        <Link href={`/my-trips/${trip.id}/map?day=${selectedDay.number}`} className="btn btn--outline-dark btn--sm">
-                                            Построить маршрут
-                                        </Link>
                                     </div>
                                 </div>
 
@@ -758,6 +743,8 @@ export default function Plan({ trip, days, selectedDay, favorites, categories })
                                                         isLast={index === places.length - 1}
                                                         warning={timeWarning(place, places[index - 1])}
                                                         otherDays={otherDays}
+                                                        isSelected={place.id === selectedPlaceId}
+                                                        onSelect={setSelectedPlaceId}
                                                     />
                                                     {meals[place.id]?.map((meal) => (
                                                         <MealHintRow key={meal.start} meal={meal} place={place} onShow={() => showMealPlaces(place)} />
@@ -773,33 +760,18 @@ export default function Plan({ trip, days, selectedDay, favorites, categories })
                         </div>
                     </div>
 
-                    <div className="trip-plan__side-col">
-                        <aside className="trip-details-card">
-                            <h3 className="trip-details__title">Детали поездки</h3>
-
-                            <div className="trip-details__list">
-                                <div className="detail-item">
-                                    <span className="detail-label">Направление</span>
-                                    <span className="detail-value">{trip.destination}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Даты поездки</span>
-                                    <span className="detail-value">{formatDateRange(trip.startDate, trip.endDate)}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Продолжительность</span>
-                                    <span className="detail-value">{formatDuration(trip.daysCount)}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Места в плане</span>
-                                    <span className="detail-value">{trip.placesCount > 0 ? placesLabel(trip.placesCount) : 'Пока не добавлены'}</span>
-                                </div>
-                            </div>
-
-                            <hr className="detail-divider" />
-
-                            <Link href={`/my-trips/${trip.id}/edit`} className="btn btn--outline-dark btn--full">Настройки поездки</Link>
-                        </aside>
+                    {/* Карта «липкая»: при прокрутке длинного списка остаётся на экране (см. .trip-plan__map-col в app.css).
+                        key: при смене дня карта создаётся заново и вписывается в места нового дня. */}
+                    <div className="trip-plan__map-col">
+                        {focusLodging && <p className="form-hint">⌂ На карте отмечено жильё «{focusLodging.name}».</p>}
+                        <DayMap
+                            key={selectedDay.id}
+                            tripId={trip.id}
+                            day={selectedDay}
+                            focusLodging={focusLodging}
+                            selectedPlaceId={selectedPlaceId}
+                            onMarkerClick={selectFromMap}
+                        />
                     </div>
                 </div>
             </main>

@@ -26,7 +26,7 @@ class MapController extends Controller
             ->reject(fn (Trip $trip) => $trip->status === Trip::StatusCompleted)
             ->values();
 
-        // ?day= приходит с вкладки «План по дням» («Найти на карте»): этот день будет выбран в форме добавления.
+        // ?day= приходит с вкладки «План» («Найти на карте»): этот день будет выбран в форме добавления.
         // Берём его, только если это день одной из поездок пользователя, иначе игнорируем.
         $focusDayId = $request->integer('day');
         $isOwnDay = $trips->contains(fn (Trip $trip) => $trip->days->contains('id', $focusDayId));

@@ -230,7 +230,7 @@ class Trip extends Model
      *
      *  - Планирование: все вкладки, всё можно менять.
      *  - Текущая: первой идёт «Сегодня» (обзор текущего дня); «Подготовка», «Вещи» и «Заранее» уже не нужны
-     *    и скрыты; план и карту можно править (добавить место по пути), транспорт и жильё — только посмотреть.
+     *    и скрыты; план (вместе с картой дня) можно править (добавить место по пути), транспорт и жильё — только посмотреть.
      *  - Прошедшая: все вкладки, но только для просмотра (сервер запрещает изменения в TripPolicy::update).
      *    В «Настройках» можно исправить ошибочные даты и удалить поездку (TripPolicy::updateSettings).
      *
@@ -240,15 +240,15 @@ class Trip extends Model
     {
         return match ($this->stage()) {
             self::StageCurrent => [
-                'today' => true, 'plan' => true, 'map' => true,
+                'today' => true, 'plan' => true,
                 'transport' => false, 'accommodation' => false, 'settings' => true,
             ],
             self::StageCompleted => [
-                'overview' => false, 'plan' => false, 'map' => false, 'transport' => false,
+                'overview' => false, 'plan' => false, 'transport' => false,
                 'accommodation' => false, 'packing' => false, 'advance' => false, 'settings' => true,
             ],
             default => [
-                'overview' => true, 'plan' => true, 'map' => true, 'transport' => true,
+                'overview' => true, 'plan' => true, 'transport' => true,
                 'accommodation' => true, 'packing' => true, 'advance' => true, 'settings' => true,
             ],
         };

@@ -14,8 +14,8 @@ export const TRIP_TABS = [
     // «Сегодня» есть только у текущей поездки — вместо «Подготовки».
     { key: 'today', label: 'Сегодня', path: '' },
     { key: 'overview', label: 'Подготовка', path: '' },
-    { key: 'plan', label: 'План по дням', path: '/plan' },
-    { key: 'map', label: 'Карта', path: '/map' },
+    // «План» — список мест дня и карта этого дня на одной странице (отдельной вкладки «Карта» нет).
+    { key: 'plan', label: 'План', path: '/plan' },
     { key: 'transport', label: 'Транспорт', path: '/transport' },
     { key: 'accommodation', label: 'Проживание', path: '/accommodation' },
     { key: 'packing', label: 'Список вещей', path: '/packing' },

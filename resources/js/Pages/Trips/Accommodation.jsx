@@ -190,8 +190,8 @@ function AccommodationCard({ tripId, accommodation, categories, onEdit, onDelete
                 <div className="acc-actions">
                     <button type="button" className="btn btn--solid-dark" onClick={onEdit}>Изменить</button>
                     {latitude !== null && (
-                        // Вкладка «Карта поездки» откроет день заезда и подсветит это жильё (TripMapController, ?lodging=).
-                        <Link href={`/my-trips/${tripId}/map?lodging=${accommodation.id}`} className="btn btn--outline-dark">
+                        // Вкладка «План» откроет день заезда и подсветит это жильё на карте (TripPlanController, ?lodging=).
+                        <Link href={`/my-trips/${tripId}/plan?lodging=${accommodation.id}`} className="btn btn--outline-dark">
                             Показать на карте
                         </Link>
                     )}

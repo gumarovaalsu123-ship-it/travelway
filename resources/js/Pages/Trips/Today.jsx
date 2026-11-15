@@ -13,7 +13,7 @@ function timeLabel(place) {
 
 /**
  * Вкладка «Сегодня» текущей поездки (TripController::today): что запланировано на сегодня,
- * какое место следующее и куда возвращаться вечером. Менять план — на вкладках «План по дням» и «Карта».
+ * какое место следующее и куда возвращаться вечером. Менять план — на вкладке «План» (там же карта дня).
  */
 export default function TripToday({ trip, day, places, nextPlaceId, lodging }) {
     const nextIndex = places.findIndex((place) => place.id === nextPlaceId);
@@ -83,8 +83,8 @@ export default function TripToday({ trip, day, places, nextPlaceId, lodging }) {
                     </div>
 
                     <div className="today-actions">
-                        <Link href={`/my-trips/${trip.id}/map?day=${day.number}`} className="btn btn--solid btn--full">Маршрут дня на карте</Link>
-                        <Link href={`/my-trips/${trip.id}/plan?day=${day.number}`} className="btn btn--outline-dark btn--full">Изменить план дня</Link>
+                        {/* План и карта дня — одна вкладка «План». */}
+                        <Link href={`/my-trips/${trip.id}/plan?day=${day.number}`} className="btn btn--solid btn--full">План и маршрут дня на карте</Link>
                         {/* Интерактивная карта сразу выберет сегодняшний день в форме «Добавить в поездку». */}
                         <Link href={`/interactive-map?day=${day.id}`} className="btn btn--outline-dark btn--full">Добавить место по пути</Link>
                         {lodging && (

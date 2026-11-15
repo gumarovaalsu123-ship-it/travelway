@@ -7,6 +7,7 @@ use App\Http\Requests\ChangeTripPlaceDayRequest;
 use App\Http\Requests\StoreDayPlaceRequest;
 use App\Http\Requests\UpdateTripDayRequest;
 use App\Http\Requests\UpdateTripPlaceRequest;
+use App\Models\Accommodation;
 use App\Models\Place;
 use App\Models\PlaceCategory;
 use App\Models\Trip;
@@ -21,7 +22,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The "Day plan" tab of the trip page: the places of one chosen day, their order, time and notes.
+ * The "Plan" tab of the trip page: the places of one chosen day, their order, time and notes,
+ * and next to them the map of this day (numbered stops, lodging, route line — see Components/Trip/DayMap.jsx).
  * Change routes use scoped bindings (see routes/web.php), so a day or place of another trip gives 404.
  * After every change we return back(), so the same ?day=N stays open.
  */
@@ -32,7 +34,16 @@ class TripPlanController extends Controller
         Gate::authorize('view', $trip);
 
         $days = $trip->days()->withCount('tripPlaces')->get();
-        $selectedDay = $trip->dayByNumber($days, $request->integer('day'));
+
+        // «Показать на карте» на вкладке «Проживание» ведёт сюда с ?lodging=id: это жильё подсвечиваем на карте.
+        // Ищем только среди жилья этой поездки и только с координатами — иначе показать нечего.
+        $focusLodging = $request->filled('lodging')
+            ? $trip->accommodations()->whereKey($request->integer('lodging'))->whereNotNull('latitude')->first()
+            : null;
+
+        // Без ?day= при переходе к жилью открываем день заезда в него.
+        $dayNumber = $request->integer('day') ?: $this->checkInDayNumber($trip, $focusLodging);
+        $selectedDay = $trip->dayByNumber($days, $dayNumber);
 
         // Места выбранного дня вместе с местом и его категорией — одним запросом на связь, без N+1.
         // Жильё и транспорт нужны расписанию: откуда начинается день и когда уезжать.
@@ -62,6 +73,12 @@ class TripPlanController extends Controller
                 'travelMinutes' => $summary['travelMinutes'],
                 'stayMinutes' => $summary['stayMinutes'],
                 'warnings' => $summary['warnings'],
+                // Для карты: жильё, откуда день начинается и куда возвращаемся вечером (может не быть),
+                // и способ на обратном пути — по нему рисуется последний отрезок линии.
+                'morningLodging' => $this->lodging($schedule->morningLodging($selectedDay)),
+                'eveningLodging' => $this->lodging($schedule->eveningLodging($selectedDay)),
+                'returnMode' => $selectedDay->return_mode,
+                // Места идут по visit_order (так задана связь tripPlaces): номер в списке = номер маркера на карте.
                 'places' => $selectedDay->tripPlaces->map(fn (TripPlace $visit) => [
                     'id' => $visit->id,
                     'placeId' => $visit->place_id,
@@ -79,6 +96,8 @@ class TripPlanController extends Controller
                     'stayMinutes' => $visit->stay_minutes,
                     'defaultStayMinutes' => TripPlace::defaultStayMinutes($visit->place->category?->slug),
                     'travelMode' => $visit->travel_mode,
+                    // Способ на отрезке к месту для линии на карте: рассчитанный, иначе выбранный, иначе неизвестен.
+                    'mode' => $visit->calculated_mode ?? $visit->travel_mode,
                     'timeLocked' => $visit->time_locked,
                     // Билет/бронь (этап 3): вопрос у места зависит от категории, см. bookingQuestion в Plan.jsx.
                     'categorySlug' => $visit->place->category?->slug,
@@ -100,7 +119,42 @@ class TripPlanController extends Controller
                     'address' => $place->address,
                     'category' => $place->category?->name,
                 ]),
+            'focusLodging' => $this->lodging($focusLodging),
         ]);
+    }
+
+    /**
+     * Номер дня поездки, в который заезжаем в жильё (заезд накануне начала — день 1). 0 — день неизвестен.
+     */
+    private function checkInDayNumber(Trip $trip, ?Accommodation $lodging): int
+    {
+        if ($lodging?->check_in === null || ! $trip->hasDates()) {
+            return 0;
+        }
+
+        $daysFromStart = (int) $trip->start_date->diffInDays($lodging->check_in->copy()->startOfDay(), false);
+
+        return max($daysFromStart, 0) + 1;
+    }
+
+    /**
+     * Жильё как точка на карте.
+     *
+     * @return array{id: int, name: string, address: ?string, lat: float, lng: float}|null
+     */
+    private function lodging(?Accommodation $lodging): ?array
+    {
+        if ($lodging === null) {
+            return null;
+        }
+
+        return [
+            'id' => $lodging->id,
+            'name' => $lodging->name,
+            'address' => $lodging->address,
+            'lat' => $lodging->latitude,
+            'lng' => $lodging->longitude,
+        ];
     }
 
     /**

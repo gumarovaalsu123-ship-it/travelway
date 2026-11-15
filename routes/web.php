@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\FavoritePlaceController;
@@ -113,5 +115,18 @@ Route::middleware('auth')->group(function () {
         Route::patch('/transport/{transport}/booked', 'toggleTransport')->name('transport.booked');
         Route::patch('/accommodation/{accommodation}/booked', 'toggleAccommodation')->name('accommodation.booked');
         Route::patch('/trip-places/{tripPlace}/booking', 'updatePlaceBooking')->name('trip-places.booking');
+    });
+});
+
+// Админ-панель: гостя 'auth' отправит на вход, обычному пользователю 'admin' ответит 403.
+Route::middleware(['auth', 'admin'])->prefix('/admin')->name('admin.')->group(function () {
+    Route::get('/', AdminDashboardController::class)->name('dashboard');
+
+    Route::controller(AdminUserController::class)->prefix('/users')->name('users.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::patch('/{user}/block', 'block')->name('block');
+        Route::patch('/{user}/unblock', 'unblock')->name('unblock');
+        Route::patch('/{user}/role', 'updateRole')->name('role');
+        Route::delete('/{user}', 'destroy')->name('destroy');
     });
 });

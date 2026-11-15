@@ -6474,3 +6474,158 @@ section[id] {
         min-height: 0;
     }
 }
+
+/* =========================================
+   АДМИН-ПАНЕЛЬ: ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ
+   ========================================= */
+
+/* «Выйти» в сайдбаре — кнопка (Link method="post"), убираем у неё вид кнопки. */
+.admin-logout {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-main);
+}
+
+.admin-alert {
+  background: #fff5f2;
+  border: 1px solid var(--color-accent-orange);
+  color: var(--color-accent-orange);
+  border-radius: 16px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-table-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 8px 24px;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--color-border-warm);
+}
+
+.admin-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-border-light);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table__row--blocked td {
+  background: #FBF7F2;
+}
+
+.admin-table__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.admin-table__email {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.admin-table__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-select {
+  border: 1px solid var(--color-border-warm);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: var(--color-white);
+  font-family: var(--font-main);
+  font-size: 13px;
+}
+
+.admin-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  white-space: nowrap;
+}
+
+.admin-status--blocked {
+  background: #FBEDE7;
+  color: var(--color-accent-orange);
+}
+
+.admin-action {
+  border: 1px solid var(--color-border-warm);
+  background: var(--color-white);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-action:hover {
+  background: var(--color-bg-alt);
+}
+
+.admin-action--danger {
+  border-color: var(--color-accent-orange);
+  color: var(--color-accent-orange);
+}
+
+.admin-action--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.admin-pagination__info {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.admin-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Быстрые действия на главной админки — ссылки, а не кнопки: выравниваем текст как у кнопок макета. */
+a.quick-action-card {
+  text-align: center;
+}

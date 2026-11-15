@@ -26,8 +26,10 @@ class CityCover
 
     /**
      * Width of the cover. The original photo can be 6000 px and 10 MB, so a bigger one is taken as a thumbnail of this width.
+     * Wikimedia serves thumbnails only in standard widths (330, 500, 960, 1280, 1920…):
+     * any other width, for example 1600, returns an error page instead of a picture.
      */
-    public const Width = 1600;
+    public const Width = 1280;
 
     /**
      * Only pictures from Wikimedia servers are accepted (the same rule as WIKIMEDIA_IMAGE in utils/geocoding.js).
@@ -91,6 +93,9 @@ class CityCover
             // Миниатюра выглядит как «.../thumb/a/ab/Kazan.jpg/320px-Kazan.jpg» — меняем ширину на нужную.
             ? preg_replace('#/\d+px-#', '/'.self::Width.'px-', $thumbnail)
             : $original['source'];
+
+        // Метки ?utm_source=… Википедия добавляет для статистики — для показа картинки они не нужны.
+        $image = Str::before($image, '?');
 
         return preg_match(self::AllowedImage, $image) === 1 && strlen($image) <= 255 ? $image : null;
     }

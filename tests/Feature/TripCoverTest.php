@@ -81,7 +81,7 @@ class TripCoverTest extends TestCase
 
         $trip = $this->createTrip('Казань');
 
-        $this->assertSame('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Kazan_Kremlin.jpg/1600px-Kazan_Kremlin.jpg', $trip->cover_image);
+        $this->assertSame('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Kazan_Kremlin.jpg/1280px-Kazan_Kremlin.jpg', $trip->cover_image);
     }
 
     public function test_english_wikipedia_is_used_when_there_is_no_russian_article(): void

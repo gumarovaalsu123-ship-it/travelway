@@ -6391,3 +6391,21 @@ section[id] {
     align-items: center;
     gap: 8px 12px;
 }
+
+/* Шапка: пункты меню и имя пользователя не переносятся на две строки */
+.navbar__inner {
+    gap: 24px;
+}
+
+.nav-link,
+.navbar__user-name,
+.brand-name {
+    white-space: nowrap;
+}
+
+/* На средних экранах имя пользователя не показываем — остаётся кнопка «Выйти» */
+@media (max-width: 1200px) {
+    .navbar__user-name {
+        display: none;
+    }
+}

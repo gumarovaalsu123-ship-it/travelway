@@ -122,6 +122,8 @@ class TripController extends Controller
                 'endDate' => $trip->end_date?->toDateString(),
                 'daysCount' => $trip->days_count,
                 'isPublic' => $trip->is_public,
+                // Публичная ссылка для кнопки «Скопировать ссылку»; null — доступ по ссылке закрыт.
+                'publicUrl' => $trip->public_token ? route('trips.public', $trip->public_token) : null,
                 'lastPlannedDay' => (int) $trip->days()->has('tripPlaces')->max('day_number'),
                 'placesCount' => $trip->tripPlaces()->count(),
                 'isCompleted' => $trip->status === Trip::StatusCompleted,

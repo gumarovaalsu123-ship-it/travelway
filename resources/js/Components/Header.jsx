@@ -33,6 +33,10 @@ export default function Header() {
                                 {item.label}
                             </Link>
                         ))}
+                        {/* Ссылка только для администратора; сам вход в /admin всё равно проверяет сервер. */}
+                        {auth.isAdmin && (
+                            <Link href="/admin" className="nav-link">Админ-панель</Link>
+                        )}
                     </nav>
                 )}
 

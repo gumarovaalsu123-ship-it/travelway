@@ -31,6 +31,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'blocked_at' => 'datetime',
         ];
     }
 
@@ -81,5 +82,23 @@ class User extends Authenticatable
             ->take(2)
             ->map(fn (string $word) => mb_strtoupper(mb_substr($word, 0, 1)))
             ->implode('');
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null;
+    }
+
+    /**
+     * Is this the only active (not blocked) administrator?
+     * Такого нельзя заблокировать, понизить или удалить — иначе в админ-панель станет некому войти.
+     */
+    public function isLastAdmin(): bool
+    {
+        return $this->isAdmin() && ! static::query()
+            ->where('role_id', Role::Admin)
+            ->whereNull('blocked_at')
+            ->whereKeyNot($this->id)
+            ->exists();
     }
 }

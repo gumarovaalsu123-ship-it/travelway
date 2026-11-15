@@ -22,11 +22,22 @@ class LoginController extends Controller
     {
         $credentials = $request->safe()->only(['email', 'password']);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Сначала только проверяем почту и пароль, не входя: заблокированного пускать нельзя.
+        if (! Auth::validate($credentials)) {
             throw ValidationException::withMessages([
                 'email' => 'Неверная почта или пароль.',
             ]);
         }
+
+        $user = Auth::getLastAttempted();
+
+        if ($user->isBlocked()) {
+            throw ValidationException::withMessages([
+                'email' => 'Ваш аккаунт заблокирован администратором.',
+            ]);
+        }
+
+        Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();
 

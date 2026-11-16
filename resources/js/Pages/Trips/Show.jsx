@@ -97,8 +97,8 @@ export default function TripShow({ trip, description, readiness }) {
                             )}
                         </div>
 
-                        <Link href="/interactive-map" className="btn btn--solid btn--full">Добавить места на карте</Link>
-                        <Link href={`/my-trips/${trip.id}/edit`} className="btn btn--outline-dark btn--full">Настройки путешествия</Link>
+                        {/* Места добавляются на карте дня во вкладке «План». */}
+                        <Link href={`/my-trips/${trip.id}/plan`} className="btn btn--solid btn--full">Добавить места на карте</Link>
                         {description && (
                             <div className="short-plan-card">
                                 <h3 className="short-plan__title">О поездке</h3>

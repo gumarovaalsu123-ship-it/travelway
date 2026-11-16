@@ -83,10 +83,8 @@ export default function TripToday({ trip, day, places, nextPlaceId, lodging }) {
                     </div>
 
                     <div className="today-actions">
-                        {/* План и карта дня — одна вкладка «План». */}
-                        <Link href={`/my-trips/${trip.id}/plan?day=${day.number}`} className="btn btn--solid btn--full">План и маршрут дня на карте</Link>
-                        {/* Интерактивная карта сразу выберет сегодняшний день в форме «Добавить в поездку». */}
-                        <Link href={`/interactive-map?day=${day.id}`} className="btn btn--outline-dark btn--full">Добавить место по пути</Link>
+                        {/* План и карта сегодняшнего дня — вкладка «План»: там же места добавляются по пути. */}
+                        <Link href={`/my-trips/${trip.id}/plan?day=${day.number}`} className="btn btn--solid btn--full">Добавить место по пути</Link>
                         {lodging && (
                             <div className="short-plan-card">
                                 <h3 className="short-plan__title">Вечером возвращаемся</h3>

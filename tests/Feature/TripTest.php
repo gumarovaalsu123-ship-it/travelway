@@ -106,7 +106,8 @@ class TripTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $trip = $this->user->trips()->first();
-        $response->assertRedirect(route('trips.show', $trip));
+        // «Создать и добавить места» ведёт во вкладку «План».
+        $response->assertRedirect(route('trips.plan', $trip));
         $this->assertSame(3, $trip->days_count);
         $this->assertFalse($trip->is_public);
         $this->assertSame(['2026-06-15', '2026-06-16', '2026-06-17'], $trip->days->map(fn ($day) => $day->date->toDateString())->all());
@@ -158,6 +159,39 @@ class TripTest extends TestCase
         $this->assertSame(1, Trip::count());
     }
 
+    public function test_settings_tab_gets_trip_header_and_form_fields(): void
+    {
+        $trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
+
+        $this->actingAs($this->user)
+            ->get("/my-trips/{$trip->id}/edit")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Trips/Form')
+                // Шапка поездки, как на других вкладках (Trip::toHeader()).
+                ->where('trip.stage', $trip->stage())
+                ->where('trip.tabs.settings', true)
+                ->where('trip.daysCount', 3)
+                ->has('trip.coverImage')
+                // Поля формы «Настроек».
+                ->where('trip.startDate', '2026-06-15')
+                ->where('trip.lastPlannedDay', 0)
+                ->has('trip.publicUrl')
+                ->where('trip.isCompleted', false));
+    }
+
+    public function test_saving_settings_keeps_the_user_on_the_settings_tab(): void
+    {
+        $trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
+
+        $this->actingAs($this->user)
+            ->put("/my-trips/{$trip->id}", $this->payload(['title' => 'Казань летом']))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('trips.edit', $trip));
+
+        $this->assertSame('Казань летом', $trip->fresh()->title);
+    }
+
     public function test_dates_of_existing_trip_can_be_moved_to_the_past(): void
     {
         $trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
@@ -181,7 +215,7 @@ class TripTest extends TestCase
 
         $this->actingAs($this->user)
             ->put("/my-trips/{$trip->id}", $this->payload(['start_date' => '2026-07-01', 'end_date' => '2026-07-02']))
-            ->assertRedirect('/my-trips');
+            ->assertRedirect(route('trips.edit', $trip));
 
         $trip->refresh();
         $this->assertSame(2, $trip->days_count);

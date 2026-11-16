@@ -174,7 +174,7 @@ class TripStagesTest extends TestCase
             'start_date' => '2026-07-01',
             'end_date' => '2026-07-03',
             'is_private' => true,
-        ])->assertRedirect('/my-trips');
+        ])->assertRedirect(route('trips.edit', $trip));
         $this->assertSame(Trip::StagePlanning, $trip->fresh()->stage());
 
         $this->travelTo('2026-08-01');

@@ -84,7 +84,8 @@ class TripController extends Controller
 
         Inertia::flash('toast', "Путешествие «{$trip->title}» создано.");
 
-        return to_route('trips.show', $trip);
+        // Кнопка «Создать и добавить места» — сразу во вкладку «План», где места добавляются на карте дня.
+        return to_route('trips.plan', $trip);
     }
 
     /**
@@ -108,24 +109,22 @@ class TripController extends Controller
         ]);
     }
 
+    /**
+     * The "Settings" tab: the trip form inside the trip page. The header data (Trip::toHeader(),
+     * as on the other tabs) and the form fields come together in one `trip` prop.
+     */
     public function edit(Trip $trip): Response
     {
         Gate::authorize('updateSettings', $trip);
 
         return Inertia::render('Trips/Form', [
             'trip' => [
-                'id' => $trip->id,
-                'title' => $trip->title,
-                'destination' => $trip->destination,
+                ...$trip->toHeader(),
                 'description' => $trip->description,
-                'startDate' => $trip->start_date?->toDateString(),
-                'endDate' => $trip->end_date?->toDateString(),
-                'daysCount' => $trip->days_count,
                 'isPublic' => $trip->is_public,
                 // Публичная ссылка для кнопки «Скопировать ссылку»; null — доступ по ссылке закрыт.
                 'publicUrl' => $trip->public_token ? route('trips.public', $trip->public_token) : null,
                 'lastPlannedDay' => (int) $trip->days()->has('tripPlaces')->max('day_number'),
-                'placesCount' => $trip->tripPlaces()->count(),
                 'isCompleted' => $trip->status === Trip::StatusCompleted,
             ],
         ]);
@@ -153,7 +152,8 @@ class TripController extends Controller
 
         Inertia::flash('toast', 'Изменения сохранены.');
 
-        return to_route('trips.index');
+        // Остаёмся во вкладке «Настройки» этой же поездки — тост покажется там.
+        return to_route('trips.edit', $trip);
     }
 
     public function destroy(Trip $trip): RedirectResponse

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
+import TripLayout from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
 
 const MAX_DAYS = 60;
@@ -190,177 +191,185 @@ export default function TripForm({ trip, previousTrip = null }) {
         });
     };
 
-    return (
-        <AppLayout title={isEditing ? 'Настройки путешествия' : 'Создать путешествие'}>
-            <main className="create-trip-main">
-                <div className="create-trip-wrapper">
+    const content = (
+        <main className="create-trip-main">
+            <div className="create-trip-wrapper">
+                {/* При редактировании назад ведут вкладки и «← Мои путешествия» в шапке поездки. */}
+                {!isEditing && (
                     <Link href="/my-trips" className="back-link">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7" />
                         </svg>
                         Вернуться к моим путешествиям
                     </Link>
+                )}
 
-                    <section className="form-card">
-                        <header className="form-card__header">
-                            <h1 className="form-card__title">{isEditing ? 'Настройки путешествия' : 'Создать путешествие'}</h1>
-                            <p className="form-card__subtitle">
-                                {isEditing
-                                    ? 'Измените данные поездки. Дни поездки пересчитаются автоматически.'
-                                    : 'Заполните обязательные поля — после создания вы сможете добавить места и детали поездки'}
+                <section className="form-card">
+                    <header className="form-card__header">
+                        <h1 className="form-card__title">{isEditing ? 'Настройки путешествия' : 'Создать путешествие'}</h1>
+                        <p className="form-card__subtitle">
+                            {isEditing
+                                ? 'Измените данные поездки. Дни поездки пересчитаются автоматически.'
+                                : 'Заполните обязательные поля — после создания вы сможете добавить места и детали поездки'}
+                        </p>
+                    </header>
+
+                    {trip?.isCompleted && (
+                        <div className="draft-status-box">
+                            <span className="draft-status__title">Поездка завершена</span>
+                            <p className="draft-status__desc">
+                                Её план и вещи доступны только для просмотра. Здесь можно исправить ошибочные даты или удалить поездку.
                             </p>
-                        </header>
+                        </div>
+                    )}
 
-                        {trip?.isCompleted && (
-                            <div className="draft-status-box">
-                                <span className="draft-status__title">Поездка завершена</span>
-                                <p className="draft-status__desc">
-                                    Её план и вещи доступны только для просмотра. Здесь можно исправить ошибочные даты или удалить поездку.
-                                </p>
-                            </div>
-                        )}
+                    {previousTrip && (
+                        <div className="draft-status-box">
+                            <span className="draft-status__title">Следующий город после «{previousTrip.title}»</span>
+                            <p className="draft-status__desc">
+                                Поездки свяжутся в цепочку: переезд «Дальше» из предыдущей поездки станет дорогой туда.
+                            </p>
+                        </div>
+                    )}
+                    {errors.previous_trip_id && (
+                        <div className="form-group has-error">
+                            <span className="form-hint">{errors.previous_trip_id}</span>
+                        </div>
+                    )}
 
-                        {previousTrip && (
-                            <div className="draft-status-box">
-                                <span className="draft-status__title">Следующий город после «{previousTrip.title}»</span>
-                                <p className="draft-status__desc">
-                                    Поездки свяжутся в цепочку: переезд «Дальше» из предыдущей поездки станет дорогой туда.
-                                </p>
-                            </div>
-                        )}
-                        {errors.previous_trip_id && (
-                            <div className="form-group has-error">
-                                <span className="form-hint">{errors.previous_trip_id}</span>
-                            </div>
-                        )}
+                    <form className="create-trip-form" onSubmit={submit} noValidate>
+                        <Field id="title" label="Название путешествия" required hint="Название должно быть не менее 3 символов" error={errors.title}>
+                            <input
+                                id="title"
+                                type="text"
+                                className="form-input form-input--filled"
+                                placeholder="Майские каникулы в горах Грузии"
+                                value={data.title}
+                                onChange={(event) => setData('title', event.target.value)}
+                                maxLength={120}
+                            />
+                        </Field>
 
-                        <form className="create-trip-form" onSubmit={submit} noValidate>
-                            <Field id="title" label="Название путешествия" required hint="Название должно быть не менее 3 символов" error={errors.title}>
+                        <Field id="destination" label="Город или направление" required error={errors.destination}>
+                            <input
+                                id="destination"
+                                type="text"
+                                className="form-input form-input--filled"
+                                placeholder="Грузия, Тбилиси"
+                                value={data.destination}
+                                onChange={(event) => setData('destination', event.target.value)}
+                                maxLength={120}
+                            />
+                        </Field>
+
+                        <Field id="description" label="Описание" error={errors.description}>
+                            <textarea
+                                id="description"
+                                className="form-input form-input--filled"
+                                rows={3}
+                                placeholder="Пара слов о поездке (необязательно)"
+                                value={data.description}
+                                onChange={(event) => setData('description', event.target.value)}
+                                maxLength={2000}
+                            />
+                        </Field>
+
+                        <div className="form-row">
+                            <Field id="start_date" label="Дата начала" error={errors.start_date}>
                                 <input
-                                    id="title"
-                                    type="text"
+                                    id="start_date"
+                                    type="date"
                                     className="form-input form-input--filled"
-                                    placeholder="Майские каникулы в горах Грузии"
-                                    value={data.title}
-                                    onChange={(event) => setData('title', event.target.value)}
-                                    maxLength={120}
+                                    value={data.start_date}
+                                    onChange={(event) => changeStartDate(event.target.value)}
                                 />
                             </Field>
-
-                            <Field id="destination" label="Город или направление" required error={errors.destination}>
+                            <Field id="end_date" label="Дата окончания" error={errors.end_date}>
                                 <input
-                                    id="destination"
-                                    type="text"
+                                    id="end_date"
+                                    type="date"
                                     className="form-input form-input--filled"
-                                    placeholder="Грузия, Тбилиси"
-                                    value={data.destination}
-                                    onChange={(event) => setData('destination', event.target.value)}
-                                    maxLength={120}
+                                    min={isEditing ? (data.start_date || undefined) : latestDate(data.start_date, todayIso())}
+                                    value={data.end_date}
+                                    onChange={(event) => setData('end_date', event.target.value)}
                                 />
                             </Field>
+                        </div>
 
-                            <Field id="description" label="Описание" error={errors.description}>
-                                <textarea
-                                    id="description"
-                                    className="form-input form-input--filled"
-                                    rows={3}
-                                    placeholder="Пара слов о поездке (необязательно)"
-                                    value={data.description}
-                                    onChange={(event) => setData('description', event.target.value)}
-                                    maxLength={2000}
-                                />
-                            </Field>
-
-                            <div className="form-row">
-                                <Field id="start_date" label="Дата начала" error={errors.start_date}>
-                                    <input
-                                        id="start_date"
-                                        type="date"
-                                        className="form-input form-input--filled"
-                                        value={data.start_date}
-                                        onChange={(event) => changeStartDate(event.target.value)}
-                                    />
-                                </Field>
-                                <Field id="end_date" label="Дата окончания" error={errors.end_date}>
-                                    <input
-                                        id="end_date"
-                                        type="date"
-                                        className="form-input form-input--filled"
-                                        min={isEditing ? (data.start_date || undefined) : latestDate(data.start_date, todayIso())}
-                                        value={data.end_date}
-                                        onChange={(event) => setData('end_date', event.target.value)}
-                                    />
-                                </Field>
-                            </div>
-
-                            {hasDates && (
-                                <p className="form-hint form-hint--top">
-                                    {daysFromDates
-                                        ? `В поездке ${daysFromDates} ${plural(daysFromDates, ['день', 'дня', 'дней'])}. `
-                                        : ''}
-                                    <button type="button" className="link-button" onClick={() => setData((current) => ({ ...current, start_date: '', end_date: '' }))}>
-                                        Даты ещё не известны
-                                    </button>
-                                </p>
-                            )}
-
-                            {!hasDates && (
-                                <>
-                                    <div className="form-divider">или</div>
-
-                                    <div className={`form-group ${errors.days_count ? 'has-error' : ''}`}>
-                                        <label htmlFor="days_count" className="form-label">Если даты ещё не известны</label>
-                                        <span className="form-hint form-hint--top">
-                                            Вы можете выбрать количество дней в поездке, а позже настроить даты путешествия
-                                        </span>
-                                        <div className="form-input-inner">
-                                            <select
-                                                id="days_count"
-                                                className="form-input form-input--filled form-select"
-                                                value={data.days_count}
-                                                onChange={(event) => setData('days_count', Number(event.target.value))}
-                                            >
-                                                {DAY_OPTIONS.map((count) => (
-                                                    <option key={count} value={count}>{count} {plural(count, ['день', 'дня', 'дней'])}</option>
-                                                ))}
-                                            </select>
-                                            <span className="form-icon-suffix">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="6 9 12 15 18 9" />
-                                                </svg>
-                                            </span>
-                                        </div>
-                                        {errors.days_count && <span className="form-hint">{errors.days_count}</span>}
-                                    </div>
-                                </>
-                            )}
-
-                            {removesPlannedDays && (
-                                <div className="draft-status-box">
-                                    <span className="draft-status__title">Часть плана будет удалена</span>
-                                    <p className="draft-status__desc">
-                                        Места запланированы до {trip.lastPlannedDay}-го дня, а в поездке останется {resultingDays} {plural(resultingDays, ['день', 'дня', 'дней'])}.
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="form-actions">
-                                <button type="submit" className="btn btn--solid-dark" disabled={processing}>
-                                    {isEditing ? 'Сохранить изменения' : 'Создать и добавить места'}
+                        {hasDates && (
+                            <p className="form-hint form-hint--top">
+                                {daysFromDates
+                                    ? `В поездке ${daysFromDates} ${plural(daysFromDates, ['день', 'дня', 'дней'])}. `
+                                    : ''}
+                                <button type="button" className="link-button" onClick={() => setData((current) => ({ ...current, start_date: '', end_date: '' }))}>
+                                    Даты ещё не известны
                                 </button>
-                            </div>
-                        </form>
+                            </p>
+                        )}
 
-                        {isEditing && <ShareLink trip={trip} />}
+                        {!hasDates && (
+                            <>
+                                <div className="form-divider">или</div>
 
-                        {isEditing && (
-                            <div className="form-danger-zone">
-                                <button type="button" className="btn btn--danger-outline" onClick={removeTrip}>Удалить путешествие</button>
+                                <div className={`form-group ${errors.days_count ? 'has-error' : ''}`}>
+                                    <label htmlFor="days_count" className="form-label">Если даты ещё не известны</label>
+                                    <span className="form-hint form-hint--top">
+                                        Вы можете выбрать количество дней в поездке, а позже настроить даты путешествия
+                                    </span>
+                                    <div className="form-input-inner">
+                                        <select
+                                            id="days_count"
+                                            className="form-input form-input--filled form-select"
+                                            value={data.days_count}
+                                            onChange={(event) => setData('days_count', Number(event.target.value))}
+                                        >
+                                            {DAY_OPTIONS.map((count) => (
+                                                <option key={count} value={count}>{count} {plural(count, ['день', 'дня', 'дней'])}</option>
+                                            ))}
+                                        </select>
+                                        <span className="form-icon-suffix">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="6 9 12 15 18 9" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    {errors.days_count && <span className="form-hint">{errors.days_count}</span>}
+                                </div>
+                            </>
+                        )}
+
+                        {removesPlannedDays && (
+                            <div className="draft-status-box">
+                                <span className="draft-status__title">Часть плана будет удалена</span>
+                                <p className="draft-status__desc">
+                                    Места запланированы до {trip.lastPlannedDay}-го дня, а в поездке останется {resultingDays} {plural(resultingDays, ['день', 'дня', 'дней'])}.
+                                </p>
                             </div>
                         )}
-                    </section>
-                </div>
-            </main>
-        </AppLayout>
+
+                        <div className="form-actions">
+                            <button type="submit" className="btn btn--solid-dark" disabled={processing}>
+                                {isEditing ? 'Сохранить изменения' : 'Создать и добавить места'}
+                            </button>
+                        </div>
+                    </form>
+
+                    {isEditing && <ShareLink trip={trip} />}
+
+                    {isEditing && (
+                        <div className="form-danger-zone">
+                            <button type="button" className="btn btn--danger-outline" onClick={removeTrip}>Удалить путешествие</button>
+                        </div>
+                    )}
+                </section>
+            </div>
+        </main>
+    );
+
+    // «Настройки» — вкладка страницы поездки: шапка и вкладки остаются на месте. Создание — отдельная страница.
+    return isEditing ? (
+        <TripLayout trip={trip} activeTab="settings">{content}</TripLayout>
+    ) : (
+        <AppLayout title="Создать путешествие">{content}</AppLayout>
     );
 }

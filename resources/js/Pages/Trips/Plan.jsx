@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import FoundPlacesList from '../../Components/FoundPlacesList';
 import Modal from '../../Components/Modal';
-import TripLayout from '../../Components/TripLayout';
+import TripLayout, { canEditTab } from '../../Components/TripLayout';
 import DayMap from '../../Components/Trip/DayMap';
 import TravelModeIcon from '../../Components/Trip/TravelModeIcon';
 import { formatDateRange, formatDayLabel, plural } from '../../utils/format';
@@ -106,10 +106,10 @@ function mealHints(places, isCalculated) {
 
 /**
  * Окно с местами из OpenStreetMap для «Пора пообедать?» и «Что по пути?».
- * Найденное место можно поставить в план после afterPlace или сохранить в избранное.
+ * Найденное место можно поставить в план после afterPlace (если план можно менять — canEdit) или сохранить в избранное.
  */
-function FoundPlacesDialog({ title, load, emptyText, tripId, day, afterPlace, categories, onClose }) {
-    const actions = [
+function FoundPlacesDialog({ title, load, emptyText, tripId, day, afterPlace, categories, canEdit, onClose }) {
+    const addToPlan = [
         {
             label: 'Добавить в план',
             savedLabel: 'В плане',
@@ -118,6 +118,9 @@ function FoundPlacesDialog({ title, load, emptyText, tripId, day, afterPlace, ca
             // Порядок мест в дне изменился — закрываем окно, чтобы человек увидел новый план.
             onSaved: onClose,
         },
+    ];
+    const actions = [
+        ...(canEdit ? addToPlan : []),
         { label: 'В избранное', savedLabel: 'В избранном', url: '/interactive-map/places', extra: { destination: 'favorite' } },
     ];
 
@@ -514,10 +517,15 @@ const DEFAULT_BOOKING_QUESTION = { question: 'Нужен билет или бр�
 /**
  * Отметки «нужен билет/бронь» и «куплено» у места. Место с билетом, который ещё не куплен,
  * попадает в дела вкладки «Заранее»; отметка «куплено» там и здесь — одна и та же.
+ * Без canEdit (завершённая поездка) галочки только показывают, что было, а вопрос без отметки не нужен вовсе.
  */
-function BookingMarks({ tripId, place }) {
+function BookingMarks({ tripId, place, canEdit }) {
     const labels = BOOKING_QUESTIONS[place.categorySlug] ?? DEFAULT_BOOKING_QUESTION;
     const url = `/my-trips/${tripId}/trip-places/${place.id}/booking`;
+
+    if (!canEdit && !place.needsBooking) {
+        return null;
+    }
 
     return (
         <div className="plan-stop__booking">
@@ -525,6 +533,7 @@ function BookingMarks({ tripId, place }) {
                 <input
                     type="checkbox"
                     checked={place.needsBooking}
+                    disabled={!canEdit}
                     onChange={(e) => router.patch(url, { needs_booking: e.target.checked }, keepScroll)}
                 />
                 {labels.question}
@@ -534,12 +543,13 @@ function BookingMarks({ tripId, place }) {
                     <input
                         type="checkbox"
                         checked={place.isBooked}
+                        disabled={!canEdit}
                         onChange={(e) => router.patch(url, { is_booked: e.target.checked }, keepScroll)}
                     />
                     {labels.done}
                 </label>
             )}
-            {place.needsBooking && !place.isBooked && (
+            {canEdit && place.needsBooking && !place.isBooked && (
                 <Link href={`/my-trips/${tripId}/advance`} className="plan-stop__booking-link">В делах «Заранее» →</Link>
             )}
         </div>
@@ -675,7 +685,7 @@ function PlacePhotoBox({ image, alt, number, badgeClass }) {
  * справа — стрелки порядка и между ними меню «⋮» (изменить / убрать).
  * Клик по карточке (не по кнопке) выбирает место — его маркер подсвечивается на карте.
  */
-function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, isSelected, onSelect }) {
+function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, isSelected, canEdit, onSelect }) {
     // Открытое окно: 'edit', 'remove' или null.
     const [openModal, setOpenModal] = useState(null);
     const closeModal = () => setOpenModal(null);
@@ -718,7 +728,7 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, 
                 {place.freeMinutes > 0 && place.timeLocked && (
                     <span className="plan-stop__free">Свободное окно {formatMinutes(place.freeMinutes)}</span>
                 )}
-                <BookingMarks tripId={tripId} place={place} />
+                <BookingMarks tripId={tripId} place={place} canEdit={canEdit} />
             </div>
 
             {/* Колонка справа: «выше» сверху, меню посередине, «ниже» снизу.
@@ -731,7 +741,8 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, 
                 {formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}
             </span>
 
-            <div className="plan-stop__side">
+            {/* Порядок и меню «⋮» меняют план — только если его можно менять. */}
+            {canEdit && <div className="plan-stop__side">
                 {isFirst ? <span className="plan-stop__side-gap" /> : (
                     <button type="button" className="btn btn--outline-dark btn--icon-sm" aria-label="Выше" title="Выше" onClick={() => move('up')}>↑</button>
                 )}
@@ -739,7 +750,7 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, 
                 {isLast ? <span className="plan-stop__side-gap" /> : (
                     <button type="button" className="btn btn--outline-dark btn--icon-sm" aria-label="Ниже" title="Ниже" onClick={() => move('down')}>↓</button>
                 )}
-            </div>
+            </div>}
 
             {openModal === 'edit' && <EditPlaceModal tripId={tripId} place={place} otherDays={otherDays} onClose={closeModal} />}
             {openModal === 'remove' && <RemovePlaceModal place={place} onClose={closeModal} />}
@@ -853,6 +864,9 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
     // Место, выбранное в списке или на карте (id), — подсвечено и там, и там.
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
     const tripFavorites = useTripFavorites(favorites, trip.destination);
+    // Только просмотр (завершённая поездка): не добавить, не переставить, не рассчитать время.
+    // Переключатель дней, «Что по пути?», «Где поесть» и ссылки на Яндекс — просмотр, они работают всегда.
+    const canEdit = canEditTab(trip, 'plan');
 
     if (!selectedDay) {
         return (
@@ -903,11 +917,11 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                         <div className="day-itinerary-card">
                             <div className="itinerary-block">
                                 {places.length === 0 ? (
-                                    <AddPlaceCard favorites={tripFavorites} day={selectedDay} />
+                                    canEdit ? <AddPlaceCard favorites={tripFavorites} day={selectedDay} /> : <p className="form-hint">В этот день мест в плане не было.</p>
                                 ) : (
                                     <>
                                         {/* key: у каждого дня своё начало, форма создаётся заново при переходе. */}
-                                        <ScheduleForm key={selectedDay.id} tripId={trip.id} day={selectedDay} />
+                                        {canEdit && <ScheduleForm key={selectedDay.id} tripId={trip.id} day={selectedDay} />}
 
                                         <ul className="stop-list">
                                             {places.map((place, index) => (
@@ -928,6 +942,7 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                                                         warning={timeWarning(place, places[index - 1])}
                                                         otherDays={otherDays}
                                                         isSelected={place.id === selectedPlaceId}
+                                                        canEdit={canEdit}
                                                         onSelect={setSelectedPlaceId}
                                                     />
                                                     {meals[place.id]?.map((meal) => (
@@ -936,7 +951,7 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                                                 </React.Fragment>
                                             ))}
                                         </ul>
-                                        <AddPlaceCard favorites={tripFavorites} day={selectedDay} />
+                                        {canEdit && <AddPlaceCard favorites={tripFavorites} day={selectedDay} />}
                                         <DayTotal day={selectedDay} />
                                     </>
                                 )}
@@ -956,6 +971,7 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                             selectedPlaceId={selectedPlaceId}
                             onMarkerClick={selectFromMap}
                             categories={categories}
+                            canEdit={canEdit}
                             emptyCenter={mapCenter}
                             destination={trip.destination}
                         />
@@ -969,6 +985,7 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                     tripId={trip.id}
                     day={selectedDay}
                     categories={categories}
+                    canEdit={canEdit}
                     onClose={() => setFoundDialog(null)}
                 />
             )}

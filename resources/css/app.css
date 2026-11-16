@@ -6452,24 +6452,11 @@ section[id] {
     font-weight: 600;
 }
 
-/* Вкладка «только просмотр» (Trip::tabs()): прячем всё, чем можно что-то изменить, —
-   формы, кнопки действий, «Убрать из плана», крестики удаления, «Найти на карте».
-   Кнопки-названия (переименовать по клику) остаются текстом, но не нажимаются.
-   Карта дня на вкладке «План» — не изменение: её кнопки (масштаб, «где я») работают. */
-.trip-readonly form,
-.trip-readonly button.btn,
-.trip-readonly button.link-button,
-.trip-readonly .packing-delete-btn,
-.trip-readonly a[href^="/interactive-map"] {
-    display: none;
-}
-
-.trip-readonly button:not(.map-stop-card) {
-    pointer-events: none;
-}
-
-.trip-readonly .leaflet-container button {
-    pointer-events: auto;
+/* Вкладка «только просмотр»: страницы сами не показывают кнопки изменения (canEditTab в TripLayout.jsx),
+   а галочки делают disabled — у таких галочек обычный курсор, они не нажимаются. */
+.custom-checkbox:has(.custom-checkbox__input:disabled),
+.plan-place-form__check:has(input:disabled) {
+    cursor: default;
 }
 
 .today-grid {

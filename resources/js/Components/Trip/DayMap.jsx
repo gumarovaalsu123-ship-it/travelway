@@ -20,6 +20,7 @@ import { timeLabel } from '../../utils/travel';
  * selectedPlaceId — место, выбранное в списке: его маркер подсвечен, карта сдвигается к нему.
  * onMarkerClick(id) — нажали на маркер: страница подсвечивает место в списке и прокручивает к нему.
  * categories — передаёт только вкладка «План» владельца: тогда кликом по карте можно добавить место (AddPlaceOnMap).
+ * canEdit — можно ли менять план (Trip::tabs()); у завершённой поездки false — карта только для просмотра.
  * emptyCenter / destination — куда смотреть карте, если в дне пока ничего нет: точка поездки с сервера,
  * а если её нет — город поездки, найденный по названию в Nominatim.
  *
@@ -27,7 +28,7 @@ import { timeLabel } from '../../utils/travel';
  * После изменений плана (↑↓, перенос, добавление, расчёт) сервер присылает новые места — номера и линия
  * пересчитываются из них же.
  */
-export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onMarkerClick, categories, emptyCenter, destination }) {
+export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onMarkerClick, categories, canEdit = true, emptyCenter, destination }) {
     const [map, setMap] = useState(null);
     const markerRefs = useRef({});
     const focusMarkerRef = useRef(null);
@@ -39,11 +40,13 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
 
     // В дне может не быть ни мест, ни жилья — тогда карту строим вокруг одного жилья из «Показать на карте».
     const mapPoints = points.length > 0 ? points : lodgings;
-    const canAddPlaces = Boolean(tripId && categories);
+    // Карта владельца (вкладка «План»), а не публичная страница: пустой день центрируем по городу.
+    const isOwnerMap = Boolean(tripId && categories);
+    const canAddPlaces = isOwnerMap && canEdit;
 
     // Пустой день у владельца: карту всё равно показываем — на ней добавляют первое место.
     const [foundCenter, setFoundCenter] = useState(null);
-    const needsCityCenter = canAddPlaces && mapPoints.length === 0 && !emptyCenter && Boolean(destination);
+    const needsCityCenter = isOwnerMap && mapPoints.length === 0 && !emptyCenter && Boolean(destination);
 
     useEffect(() => {
         if (!needsCityCenter) {
@@ -61,7 +64,7 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
         };
     }, [needsCityCenter, destination]);
 
-    const center = mapPoints[0] ?? (canAddPlaces ? emptyCenter ?? foundCenter : null);
+    const center = mapPoints[0] ?? (isOwnerMap ? emptyCenter ?? foundCenter : null);
 
     // Выбрали место в списке (или нажали на маркер) — показываем его на карте и открываем подпись.
     useEffect(() => {

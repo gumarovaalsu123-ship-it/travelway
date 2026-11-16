@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Accommodation;
 use App\Models\PackingList;
 use App\Models\Place;
+use App\Models\Transport;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,6 +34,39 @@ class TripStagesTest extends TestCase
     private function tripFrom(string $startDate, string $endDate): Trip
     {
         return Trip::factory()->for($this->user)->create(['start_date' => $startDate, 'end_date' => $endDate]);
+    }
+
+    /**
+     * Обратный рейс в день $date (по умолчанию — последний день текущей поездки).
+     *
+     * @return array<string, mixed>
+     */
+    private function transportPayload(string $date = '2026-06-17'): array
+    {
+        return [
+            'type' => 'plane',
+            'direction' => 'back',
+            'departure_place' => 'Казань',
+            'arrival_place' => 'Москва',
+            'departure_at' => "{$date}T19:00",
+            'arrival_at' => "{$date}T20:30",
+            'is_booked' => true,
+            'note' => 'Новый рейс',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function accommodationPayload(string $checkIn = '2026-06-16', string $checkOut = '2026-06-17'): array
+    {
+        return [
+            'type' => 'hotel',
+            'name' => 'Другой отель',
+            'check_in' => "{$checkIn}T15:00",
+            'check_out' => "{$checkOut}T12:00",
+            'is_booked' => true,
+        ];
     }
 
     public function test_whole_trip_card_leads_to_its_trip(): void
@@ -88,7 +123,7 @@ class TripStagesTest extends TestCase
                 ->where('trip.stage', Trip::StageCurrent)
                 ->where('trip.tabs', [
                     'today' => true, 'plan' => true,
-                    'transport' => false, 'accommodation' => false, 'settings' => true,
+                    'transport' => true, 'accommodation' => true, 'settings' => true,
                 ])
                 ->where('day.number', 2)
                 ->has('places', 3)
@@ -116,19 +151,50 @@ class TripStagesTest extends TestCase
         $this->assertSame(1, $day->tripPlaces()->count());
     }
 
-    public function test_completed_trip_tabs_are_read_only(): void
+    public function test_current_trip_transport_and_lodging_can_still_be_changed(): void
+    {
+        $trip = $this->tripFrom('2026-06-15', '2026-06-17');
+        $transport = Transport::factory()->for($trip)->create();
+        $accommodation = Accommodation::factory()->for($trip)->create();
+
+        $this->actingAs($this->user);
+
+        // Обратный рейс перенесли.
+        $this->put("/my-trips/{$trip->id}/transport/{$transport->id}", $this->transportPayload())
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Новый рейс', $transport->fresh()->note);
+
+        // Добавили ночь в другом отеле.
+        $this->put("/my-trips/{$trip->id}/accommodation/{$accommodation->id}", $this->accommodationPayload())
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Другой отель', $accommodation->fresh()->name);
+    }
+
+    public function test_completed_trip_has_no_preparation_tab_and_opens_on_plan(): void
     {
         $trip = $this->tripFrom('2026-05-01', '2026-05-03');
 
         $this->actingAs($this->user)
             ->get("/my-trips/{$trip->id}")
+            ->assertRedirect("/my-trips/{$trip->id}/plan");
+
+        $this->get("/my-trips/{$trip->id}/plan")
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Trips/Show')
+                ->component('Trips/Plan')
                 ->where('trip.stage', Trip::StageCompleted)
                 ->where('trip.tabs', [
-                    'overview' => false, 'plan' => false, 'transport' => false,
+                    'plan' => false, 'transport' => false,
                     'accommodation' => false, 'packing' => false, 'advance' => false, 'settings' => true,
                 ]));
+    }
+
+    public function test_completed_trip_tabs_are_read_only(): void
+    {
+        $trip = $this->tripFrom('2026-05-01', '2026-05-03');
+
+        $this->actingAs($this->user);
 
         // Смотреть можно все вкладки.
         foreach (['plan', 'transport', 'accommodation', 'packing', 'advance'] as $tab) {
@@ -157,6 +223,21 @@ class TripStagesTest extends TestCase
 
         $this->assertModelExists($visit);
         $this->assertSame(1, $trip->tripPlaces()->count());
+    }
+
+    public function test_completed_trip_transport_and_lodging_cannot_be_changed(): void
+    {
+        $trip = $this->tripFrom('2026-05-01', '2026-05-03');
+        $transport = Transport::factory()->for($trip)->create();
+        $accommodation = Accommodation::factory()->for($trip)->create();
+
+        $this->actingAs($this->user);
+
+        $this->put("/my-trips/{$trip->id}/transport/{$transport->id}", $this->transportPayload('2026-05-03'))->assertForbidden();
+        $this->put("/my-trips/{$trip->id}/accommodation/{$accommodation->id}", $this->accommodationPayload('2026-05-01', '2026-05-03'))->assertForbidden();
+
+        $this->assertNotSame('Новый рейс', $transport->fresh()->note);
+        $this->assertNotSame('Другой отель', $accommodation->fresh()->name);
     }
 
     public function test_completed_trip_settings_can_fix_dates_and_trip_can_be_deleted(): void

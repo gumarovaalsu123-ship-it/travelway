@@ -3,7 +3,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
 import Modal from '../../Components/Modal';
 import StationInput from '../../Components/StationInput';
-import TripLayout from '../../Components/TripLayout';
+import TripLayout, { canEditTab } from '../../Components/TripLayout';
 
 /**
  * Подписи и иконки видов транспорта. Ключи совпадают с Transport::Types на сервере.
@@ -137,7 +137,10 @@ function TicketStatus({ transport }) {
         : <span className="booking-status booking-status--todo">Билет не куплен</span>;
 }
 
-function TransportCard({ transport, onEdit, onDelete }) {
+/**
+ * Карточка переезда. canEdit — можно ли менять (Trip::tabs()); без него кнопок «Изменить/Удалить» нет.
+ */
+function TransportCard({ transport, canEdit, onEdit, onDelete }) {
     return (
         <article className="transport-card">
             <header className="transport-card__header">
@@ -173,10 +176,12 @@ function TransportCard({ transport, onEdit, onDelete }) {
             <footer className="transport-card__footer">
                 <TicketStatus transport={transport} />
                 <p className="transport-card__meta">{transport.note || 'Без заметок'}</p>
-                <div className="transport-card__actions">
-                    <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => onEdit(transport)}>Изменить</button>
-                    <button type="button" className="btn btn--danger-outline btn--sm" onClick={() => onDelete(transport)}>Удалить</button>
-                </div>
+                {canEdit && (
+                    <div className="transport-card__actions">
+                        <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => onEdit(transport)}>Изменить</button>
+                        <button type="button" className="btn btn--danger-outline btn--sm" onClick={() => onDelete(transport)}>Удалить</button>
+                    </div>
+                )}
             </footer>
         </article>
     );
@@ -397,6 +402,8 @@ function TransportForm({ trip, transport, transports, types, directions, typesWi
 export default function TripTransport({ trip, transports, types, directions, typesWithoutTicket, dateLimits, onwardCity }) {
     // Какая форма открыта: null — никакая, 'new' — добавление, объект — редактируемая запись.
     const [openForm, setOpenForm] = useState(null);
+    // Только просмотр (завершённая поездка): ни добавить, ни изменить запись нельзя.
+    const canEdit = canEditTab(trip, 'transport');
 
     const destroy = (transport) => {
         if (window.confirm(`Удалить запись «${transport.departurePlace} → ${transport.arrivalPlace}»?`)) {
@@ -412,7 +419,7 @@ export default function TripTransport({ trip, transports, types, directions, typ
                         <h2 className="section-title">Транспорт и билеты</h2>
                         <p className="section-subtitle section-subtitle--light">Перелёты, поезда и другие переезды поездки — в одном месте.</p>
                     </div>
-                    <button type="button" className="btn btn--solid-dark" onClick={() => setOpenForm('new')}>+ Добавить запись</button>
+                    {canEdit && <button type="button" className="btn btn--solid-dark" onClick={() => setOpenForm('new')}>+ Добавить запись</button>}
                 </header>
 
                 {onwardCity && <NextTripOffer trip={trip} city={onwardCity} />}
@@ -421,15 +428,19 @@ export default function TripTransport({ trip, transports, types, directions, typ
                     {transports.length === 0 ? (
                         <section className="trips-empty">
                             <h3 className="trips-empty__title">Переездов пока нет</h3>
-                            <p className="trips-empty__text">Добавьте перелёт, поезд или трансфер — записи выстроятся по времени отправления.</p>
-                            <button type="button" className="btn btn--solid" onClick={() => setOpenForm('new')}>+ Добавить запись</button>
+                            {canEdit && (
+                                <>
+                                    <p className="trips-empty__text">Добавьте перелёт, поезд или трансфер — записи выстроятся по времени отправления.</p>
+                                    <button type="button" className="btn btn--solid" onClick={() => setOpenForm('new')}>+ Добавить запись</button>
+                                </>
+                            )}
                         </section>
                     ) : transports.map((transport) => (
-                        <TransportCard key={transport.id} transport={transport} onEdit={setOpenForm} onDelete={destroy} />
+                        <TransportCard key={transport.id} transport={transport} canEdit={canEdit} onEdit={setOpenForm} onDelete={destroy} />
                     ))}
                 </div>
 
-                {openForm && (
+                {canEdit && openForm && (
                     <TransportForm
                         trip={trip}
                         transport={openForm === 'new' ? null : openForm}

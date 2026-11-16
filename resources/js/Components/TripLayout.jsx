@@ -26,6 +26,8 @@ export const TRIP_TABS = [
 
 /**
  * Можно ли менять данные на вкладке tabKey (по trip.tabs из Trip::tabs()).
+ * Каждая страница вызывает это сама и не рендерит кнопки и формы изменения, если нельзя,
+ * а галочки делает disabled. Кнопки просмотра (переключатель дней, фильтры, «Что рядом?») работают всегда.
  */
 export const canEditTab = (trip, tabKey) => trip.tabs[tabKey] === true;
 
@@ -35,7 +37,6 @@ export const canEditTab = (trip, tabKey) => trip.tabs[tabKey] === true;
  */
 export default function TripLayout({ trip, activeTab, children }) {
     const visibleTabs = TRIP_TABS.filter((tab) => tab.key in trip.tabs);
-    const isReadOnly = !canEditTab(trip, activeTab);
 
     return (
         <AppLayout title={trip.title}>
@@ -86,9 +87,8 @@ export default function TripLayout({ trip, activeTab, children }) {
                 </div>
             )}
 
-            {/* На вкладке «только просмотр» кнопки и формы изменения скрыты стилями .trip-readonly (app.css):
-                так не нужно проверять это в каждой кнопке каждой вкладки. Запрет на сервере — TripPolicy::update. */}
-            {isReadOnly ? <div className="trip-readonly">{children}</div> : children}
+            {/* Что можно менять, решает каждая вкладка сама (canEditTab). Запрет на сервере — TripPolicy::update. */}
+            {children}
         </AppLayout>
     );
 }

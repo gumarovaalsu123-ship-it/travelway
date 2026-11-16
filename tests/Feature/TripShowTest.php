@@ -6,6 +6,7 @@ use App\Models\Place;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -15,6 +16,8 @@ class TripShowTest extends TestCase
 
     public function test_preparation_tab_shows_steps_and_readiness(): void
     {
+        // «Подготовка» есть только у поездки, которая ещё впереди (Trip::tabs()).
+        Carbon::setTestNow('2026-06-01');
         $user = User::factory()->create();
         $trip = Trip::factory()->for($user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
         $trip->days()->first()->addPlace(Place::factory()->create(['name' => 'Кремль']));

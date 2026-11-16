@@ -3,7 +3,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import Checkbox from '../../Components/Checkbox';
 import FoundPlacesList from '../../Components/FoundPlacesList';
 import Modal from '../../Components/Modal';
-import TripLayout from '../../Components/TripLayout';
+import TripLayout, { canEditTab } from '../../Components/TripLayout';
 import { formatDuration, plural } from '../../utils/format';
 import { searchPlaces } from '../../utils/geocoding';
 import { PLACE_SETS, findNearby } from '../../utils/overpass';
@@ -87,12 +87,14 @@ function NearbyPanel({ point, categories, checkIn }) {
     const [dayId, setDayId] = useState(checkInDay?.id ?? days[0]?.id ?? null);
     const current = NEARBY_TABS[tab];
     const selectedDay = days.find((day) => day.id === dayId);
+    // Добавлять в план можно, только если план поездки можно менять (у завершённой — нельзя, остаётся «В избранное»).
+    const canAddToPlan = canEditTab(trip, 'plan');
 
     const actions = [
         { label: 'В избранное', savedLabel: 'В избранном', url: '/interactive-map/places', extra: { destination: 'favorite' } },
     ];
 
-    if (selectedDay) {
+    if (canAddToPlan && selectedDay) {
         // Без after_trip_place_id сервер ставит место в конец дня (TripPlanController::storePlace).
         actions.push({
             label: `В план дня ${selectedDay.number}`,
@@ -118,7 +120,7 @@ function NearbyPanel({ point, categories, checkIn }) {
                     </button>
                 ))}
             </div>
-            {days.length > 0 && (
+            {canAddToPlan && days.length > 0 && (
                 <label className="acc-nearby__day">
                     Добавлять в план:
                     <select className="form-input form-select" value={dayId} onChange={(event) => setDayId(Number(event.target.value))}>
@@ -142,7 +144,11 @@ function NearbyPanel({ point, categories, checkIn }) {
     );
 }
 
-function AccommodationCard({ tripId, accommodation, categories, onEdit, onDelete }) {
+/**
+ * Карточка жилья. canEdit — можно ли менять (Trip::tabs()); без него нет «Изменить» и «Удалить»,
+ * а «Показать на карте» и «Что рядом?» — просмотр, они есть всегда.
+ */
+function AccommodationCard({ tripId, accommodation, categories, canEdit, onEdit, onDelete }) {
     const { checkIn, checkOut, nights, latitude, longitude } = accommodation;
     const [isNearbyOpen, setNearbyOpen] = useState(false);
     const checkOutHint = [checkOut && `До ${timePart(checkOut)}`, nights !== null && nightsLabel(nights)].filter(Boolean).join(' · ');
@@ -188,7 +194,7 @@ function AccommodationCard({ tripId, accommodation, categories, onEdit, onDelete
                 )}
 
                 <div className="acc-actions">
-                    <button type="button" className="btn btn--solid-dark" onClick={onEdit}>Изменить</button>
+                    {canEdit && <button type="button" className="btn btn--solid-dark" onClick={onEdit}>Изменить</button>}
                     {latitude !== null && (
                         // Вкладка «План» откроет день заезда и подсветит это жильё на карте (TripPlanController, ?lodging=).
                         <Link href={`/my-trips/${tripId}/plan?lodging=${accommodation.id}`} className="btn btn--outline-dark">
@@ -200,7 +206,7 @@ function AccommodationCard({ tripId, accommodation, categories, onEdit, onDelete
                             {isNearbyOpen ? 'Скрыть, что рядом' : 'Что рядом?'}
                         </button>
                     )}
-                    <button type="button" className="btn btn--outline-dark acc-actions__delete" onClick={onDelete}>Удалить</button>
+                    {canEdit && <button type="button" className="btn btn--outline-dark acc-actions__delete" onClick={onDelete}>Удалить</button>}
                 </div>
 
                 {isNearbyOpen && latitude !== null && (
@@ -478,6 +484,8 @@ function AccommodationForm({ tripId, accommodation, types, typesWithoutBooking, 
 export default function TripAccommodation({ trip, accommodations, nights, types, typesWithoutBooking, dateLimits, newDates, categories }) {
     // Какая форма открыта: null — никакая, 'new' — добавление, число — id редактируемого жилья.
     const [openForm, setOpenForm] = useState(null);
+    // Только просмотр (завершённая поездка): ни добавить, ни изменить жильё нельзя.
+    const canEdit = canEditTab(trip, 'accommodation');
 
     const destroy = (accommodation) => {
         if (window.confirm(`Удалить проживание «${accommodation.name}»?`)) {
@@ -485,7 +493,7 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
         }
     };
 
-    const addButton = (className) => (
+    const addButton = (className) => canEdit && (
         <button type="button" className={className} onClick={() => setOpenForm('new')}>+ Добавить проживание</button>
     );
 
@@ -509,9 +517,9 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                         {accommodations.length === 0 && (
                             <section className="trips-empty">
                                 <h3 className="trips-empty__title">Жильё ещё не добавлено</h3>
-                                <p className="trips-empty__text">
+                                {canEdit && <p className="trips-empty__text">
                                     Сохраните здесь отель или апартаменты: адрес, даты заезда и выезда, номер брони.
-                                </p>
+                                </p>}
                                 {addButton('btn btn--solid')}
                             </section>
                         )}
@@ -522,13 +530,14 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                                 tripId={trip.id}
                                 accommodation={accommodation}
                                 categories={categories}
+                                canEdit={canEdit}
                                 onEdit={() => setOpenForm(accommodation.id)}
                                 onDelete={() => destroy(accommodation)}
                             />
                         ))}
 
                         {/* Карточки «ночь без жилья» показываем, только когда уже что-то добавлено. */}
-                        {accommodations.length > 0 && nights.missing.map((range) => (
+                        {canEdit && accommodations.length > 0 && nights.missing.map((range) => (
                             <article key={range.from} className="missing-night-card">
                                 <h3 className="missing-night__title">{missingRangeLabel(range)}: жильё не добавлено</h3>
                                 <p className="missing-night__desc">
@@ -563,7 +572,7 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                     </div>
                 </div>
 
-                {openForm !== null && (
+                {canEdit && openForm !== null && (
                     <AccommodationForm
                         tripId={trip.id}
                         accommodation={openForm === 'new' ? null : accommodations.find((item) => item.id === openForm)}

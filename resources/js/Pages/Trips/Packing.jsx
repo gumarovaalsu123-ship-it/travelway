@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
-import TripLayout from '../../Components/TripLayout';
+import TripLayout, { canEditTab } from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
 
 const FILTERS = [
@@ -47,7 +47,10 @@ function RenameInput({ form, field, onSave, onCancel, maxLength }) {
     );
 }
 
-function PackingItemRow({ tripId, item }) {
+/**
+ * canEdit — можно ли менять список (Trip::tabs()); без него галочка только показывает «собрано».
+ */
+function PackingItemRow({ tripId, item, canEdit }) {
     const [isEditing, setEditing] = useState(false);
     const form = useForm({ name: item.name, note: item.note ?? '' });
     const url = `/my-trips/${tripId}/packing-items/${item.id}`;
@@ -81,7 +84,7 @@ function PackingItemRow({ tripId, item }) {
     return (
         <li className={`packing-item ${item.isCompleted ? 'packing-item--checked' : ''}`}>
             <label className="custom-checkbox custom-checkbox--packing">
-                <input type="checkbox" className="custom-checkbox__input" checked={item.isCompleted} onChange={toggle} />
+                <input type="checkbox" className="custom-checkbox__input" checked={item.isCompleted} disabled={!canEdit} onChange={toggle} />
                 <span className="custom-checkbox__box"><CheckIcon /></span>
             </label>
 
@@ -93,22 +96,28 @@ function PackingItemRow({ tripId, item }) {
                     </>
                 ) : (
                     <>
-                        <button type="button" className="packing-item__name packing-rename-btn" title="Нажмите, чтобы переименовать" onClick={() => setEditing(true)}>
-                            {item.name}
-                        </button>
+                        {canEdit ? (
+                            <button type="button" className="packing-item__name packing-rename-btn" title="Нажмите, чтобы переименовать" onClick={() => setEditing(true)}>
+                                {item.name}
+                            </button>
+                        ) : (
+                            <span className="packing-item__name">{item.name}</span>
+                        )}
                         {item.note && <span className="packing-item__note">{item.note}</span>}
                     </>
                 )}
             </div>
 
-            <button
-                type="button"
-                className="packing-delete-btn"
-                aria-label={`Удалить «${item.name}»`}
-                onClick={() => router.delete(url, keepScroll)}
-            >
-                ×
-            </button>
+            {canEdit && (
+                <button
+                    type="button"
+                    className="packing-delete-btn"
+                    aria-label={`Удалить «${item.name}»`}
+                    onClick={() => router.delete(url, keepScroll)}
+                >
+                    ×
+                </button>
+            )}
         </li>
     );
 }
@@ -149,7 +158,7 @@ function AddItemForm({ tripId, listId }) {
     );
 }
 
-function PackingGroup({ tripId, list, visibleItems }) {
+function PackingGroup({ tripId, list, visibleItems, canEdit }) {
     const [isEditing, setEditing] = useState(false);
     const form = useForm({ title: list.title });
     const url = `/my-trips/${tripId}/packing-lists/${list.id}`;
@@ -185,14 +194,18 @@ function PackingGroup({ tripId, list, visibleItems }) {
             <header className="packing-category__header">
                 {isEditing ? (
                     <RenameInput form={form} field="title" onSave={save} onCancel={cancel} maxLength={60} />
-                ) : (
+                ) : canEdit ? (
                     <button type="button" className="packing-category__title packing-rename-btn" title="Нажмите, чтобы переименовать" onClick={() => setEditing(true)}>
                         {list.title}
                     </button>
+                ) : (
+                    <h3 className="packing-category__title">{list.title}</h3>
                 )}
                 <div className="packing-category__actions">
                     <span className="packing-category__count">{packedCount}/{list.items.length}</span>
-                    <button type="button" className="packing-delete-btn" aria-label={`Удалить группу «${list.title}»`} onClick={remove}>×</button>
+                    {canEdit && (
+                        <button type="button" className="packing-delete-btn" aria-label={`Удалить группу «${list.title}»`} onClick={remove}>×</button>
+                    )}
                 </div>
             </header>
             {form.errors.title && <span className="form-error">{form.errors.title}</span>}
@@ -201,12 +214,12 @@ function PackingGroup({ tripId, list, visibleItems }) {
                 <ul className="packing-list mt-24">
                     {visibleItems.map((item) => (
                         // key с названием: после переименования форма строки начнёт с новых значений.
-                        <PackingItemRow key={`${item.id}-${item.name}-${item.note}`} tripId={tripId} item={item} />
+                        <PackingItemRow key={`${item.id}-${item.name}-${item.note}`} tripId={tripId} item={item} canEdit={canEdit} />
                     ))}
                 </ul>
             )}
 
-            <AddItemForm tripId={tripId} listId={list.id} />
+            {canEdit && <AddItemForm tripId={tripId} listId={list.id} />}
         </article>
     );
 }
@@ -286,6 +299,8 @@ function HintCard({ tripId, hint }) {
 export default function TripPacking({ trip, lists, hints }) {
     const [filter, setFilter] = useState('all');
     const [isAddingGroup, setAddingGroup] = useState(false);
+    // Только просмотр (завершённая поездка): кнопки и формы изменения не показываем, галочки выключены.
+    const canEdit = canEditTab(trip, 'packing');
 
     const allItems = lists.flatMap((list) => list.items);
     const packedCount = allItems.filter((item) => item.isCompleted).length;
@@ -305,26 +320,34 @@ export default function TripPacking({ trip, lists, hints }) {
                 <header className="section-header section-header--spaced">
                     <div className="section-header__text">
                         <h2 className="section-title">Список вещей</h2>
-                        <p className="section-subtitle section-subtitle--light">
-                            Отмечайте, что уже лежит в чемодане. Название вещи или группы можно изменить, нажав на него.
-                        </p>
+                        {canEdit && (
+                            <p className="section-subtitle section-subtitle--light">
+                                Отмечайте, что уже лежит в чемодане. Название вещи или группы можно изменить, нажав на него.
+                            </p>
+                        )}
                     </div>
-                    <div className="packing-header-actions">
-                        <button type="button" className="btn btn--solid-dark" onClick={() => setAddingGroup(true)}>+ Новая группа</button>
-                    </div>
+                    {canEdit && (
+                        <div className="packing-header-actions">
+                            <button type="button" className="btn btn--solid-dark" onClick={() => setAddingGroup(true)}>+ Новая группа</button>
+                        </div>
+                    )}
                 </header>
 
-                {isAddingGroup && <AddGroupForm tripId={trip.id} onDone={() => setAddingGroup(false)} />}
+                {canEdit && isAddingGroup && <AddGroupForm tripId={trip.id} onDone={() => setAddingGroup(false)} />}
 
                 {lists.length === 0 ? (
                     <section className="trips-empty mt-24">
                         <h2 className="trips-empty__title">Список пока пуст</h2>
+                        {canEdit && (
+                            <>
                         {/* Стандартный набор кладётся в каждую новую поездку; кнопка — если человек удалил всё и хочет вернуть. */}
                         <p className="trips-empty__text">
                             Верните стандартный набор — документы, одежда, техника, аптечка — и поправьте его под себя.
                             Или создайте свою группу вещей.
                         </p>
                         <button type="button" className="btn btn--solid" onClick={addDefaults}>Вернуть стандартный набор</button>
+                            </>
+                        )}
                     </section>
                 ) : (
                     <>
@@ -353,13 +376,13 @@ export default function TripPacking({ trip, lists, hints }) {
 
                         <div className="packing-grid mt-24">
                             {lists.map((list) => (
-                                <PackingGroup key={list.id} tripId={trip.id} list={list} visibleItems={list.items.filter(matchesFilter)} />
+                                <PackingGroup key={list.id} tripId={trip.id} list={list} visibleItems={list.items.filter(matchesFilter)} canEdit={canEdit} />
                             ))}
                         </div>
                     </>
                 )}
 
-                {hints.length > 0 && (
+                {canEdit && hints.length > 0 && (
                     <section className="mt-32">
                         <h2 className="section-title">Возможно, пригодится</h2>
                         <p className="section-subtitle section-subtitle--light">

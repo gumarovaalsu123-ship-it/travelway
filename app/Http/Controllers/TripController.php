@@ -91,13 +91,18 @@ class TripController extends Controller
     /**
      * The first tab of the trip page: "Preparation" (readiness by steps and hints on what is missing),
      * and for a trip that is happening now — "Today", the overview of the current day.
+     * A completed trip has neither, so it opens on "Plan".
      */
-    public function show(Trip $trip): Response
+    public function show(Trip $trip): Response|RedirectResponse
     {
         Gate::authorize('view', $trip);
 
         if ($trip->hasTab('today')) {
             return $this->today($trip);
+        }
+
+        if (! $trip->hasTab('overview')) {
+            return to_route('trips.plan', $trip);
         }
 
         $trip->load(self::ReadinessRelations);

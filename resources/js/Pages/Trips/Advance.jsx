@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
-import TripLayout, { TRIP_TABS } from '../../Components/TripLayout';
+import TripLayout, { TRIP_TABS, canEditTab } from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
 
 /**
@@ -70,15 +70,16 @@ function DueLabel({ task }) {
 
 /**
  * Автоматическое дело: галочка, название, срок и ссылка во вкладку, где лежит сама запись.
+ * canEdit — можно ли менять (Trip::tabs()); без него галочка только показывает «сделано».
  */
-function AutoTaskRow({ tripId, task }) {
+function AutoTaskRow({ tripId, task, canEdit }) {
     const url = tabUrl(tripId, task.tab);
     const isOverdue = !task.isDone && task.daysLeft !== null && task.daysLeft < 0;
 
     return (
         <li className={`packing-item advance-task ${task.isDone ? 'packing-item--checked' : ''} ${isOverdue ? 'advance-task--overdue' : ''}`}>
             <label className="custom-checkbox custom-checkbox--packing">
-                <input type="checkbox" className="custom-checkbox__input" checked={task.isDone} onChange={() => toggleDone(tripId, task)} />
+                <input type="checkbox" className="custom-checkbox__input" checked={task.isDone} disabled={!canEdit} onChange={() => toggleDone(tripId, task)} />
                 <span className="custom-checkbox__box"><CheckIcon /></span>
             </label>
             <div className="packing-item__text">
@@ -93,7 +94,7 @@ function AutoTaskRow({ tripId, task }) {
 /**
  * Своё дело: галочка, название и срок; по клику на название — редактирование, × — удалить.
  */
-function OwnTaskRow({ tripId, task }) {
+function OwnTaskRow({ tripId, task, canEdit }) {
     const [isEditing, setEditing] = useState(false);
     const form = useForm({ title: task.title, due_date: task.dueDate ?? '' });
     const url = `/my-trips/${tripId}/tasks/${task.id}`;
@@ -120,7 +121,7 @@ function OwnTaskRow({ tripId, task }) {
     return (
         <li className={`packing-item advance-task ${task.isDone ? 'packing-item--checked' : ''} ${isOverdue ? 'advance-task--overdue' : ''}`}>
             <label className="custom-checkbox custom-checkbox--packing">
-                <input type="checkbox" className="custom-checkbox__input" checked={task.isDone} onChange={() => toggleDone(tripId, task)} />
+                <input type="checkbox" className="custom-checkbox__input" checked={task.isDone} disabled={!canEdit} onChange={() => toggleDone(tripId, task)} />
                 <span className="custom-checkbox__box"><CheckIcon /></span>
             </label>
 
@@ -148,15 +149,19 @@ function OwnTaskRow({ tripId, task }) {
                     </form>
                 ) : (
                     <>
-                        <button type="button" className="packing-item__name packing-rename-btn" title="Нажмите, чтобы изменить" onClick={() => setEditing(true)}>
-                            {task.title}
-                        </button>
+                        {canEdit ? (
+                            <button type="button" className="packing-item__name packing-rename-btn" title="Нажмите, чтобы изменить" onClick={() => setEditing(true)}>
+                                {task.title}
+                            </button>
+                        ) : (
+                            <span className="packing-item__name">{task.title}</span>
+                        )}
                         <DueLabel task={task} />
                     </>
                 )}
             </div>
 
-            <button type="button" className="packing-delete-btn" aria-label={`Удалить «${task.title}»`} onClick={remove}>×</button>
+            {canEdit && <button type="button" className="packing-delete-btn" aria-label={`Удалить «${task.title}»`} onClick={remove}>×</button>}
         </li>
     );
 }
@@ -205,6 +210,8 @@ export default function TripAdvance({ trip, tasks }) {
     const autoTasks = tasks.filter((task) => task.kind !== 'task');
     const ownTasks = tasks.filter((task) => task.kind === 'task');
     const doneCount = tasks.filter((task) => task.isDone).length;
+    // Только просмотр (завершённая поездка): галочки выключены, своих дел не добавить и не изменить.
+    const canEdit = canEditTab(trip, 'advance');
 
     return (
         <TripLayout trip={trip} activeTab="advance">
@@ -224,7 +231,7 @@ export default function TripAdvance({ trip, tasks }) {
                         {autoTasks.length > 0 ? (
                             <ul className="advance-list">
                                 {autoTasks.map((task) => (
-                                    <AutoTaskRow key={`${task.kind}-${task.id}`} tripId={trip.id} task={task} />
+                                    <AutoTaskRow key={`${task.kind}-${task.id}`} tripId={trip.id} task={task} canEdit={canEdit} />
                                 ))}
                             </ul>
                         ) : (
@@ -238,12 +245,13 @@ export default function TripAdvance({ trip, tasks }) {
                         <header className="packing-category__header">
                             <h3 className="packing-category__title">Свои дела</h3>
                         </header>
+                        {!canEdit && ownTasks.length === 0 && <p className="prep-empty">Своих дел не было.</p>}
                         {ownTasks.length > 0 && (
                             <ul className="advance-list">
-                                {ownTasks.map((task) => <OwnTaskRow key={task.id} tripId={trip.id} task={task} />)}
+                                {ownTasks.map((task) => <OwnTaskRow key={task.id} tripId={trip.id} task={task} canEdit={canEdit} />)}
                             </ul>
                         )}
-                        <AddTaskForm tripId={trip.id} />
+                        {canEdit && <AddTaskForm tripId={trip.id} />}
                     </article>
                 </div>
             </main>

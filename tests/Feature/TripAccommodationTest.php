@@ -314,20 +314,4 @@ class TripAccommodationTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('newDates', ['checkIn' => '2026-06-20T12:00', 'checkOut' => '']));
     }
-
-    public function test_only_hotels_apartments_and_hostels_have_a_photo(): void
-    {
-        foreach (['hotel', 'apartment', 'hostel', 'friends', 'other'] as $index => $type) {
-            Accommodation::factory()->for($this->trip)->create(['type' => $type, 'check_in' => "2026-06-1{$index} 15:00"]);
-        }
-
-        $this->actingAs($this->user)
-            ->get($this->url())
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('accommodations.0.hasPhoto', true)
-                ->where('accommodations.1.hasPhoto', true)
-                ->where('accommodations.2.hasPhoto', true)
-                ->where('accommodations.3.hasPhoto', false)
-                ->where('accommodations.4.hasPhoto', false));
-    }
 }

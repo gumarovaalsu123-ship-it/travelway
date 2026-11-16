@@ -66,7 +66,9 @@ function PackingItemRow({ tripId, item, canEdit }) {
         })).patch(`${url}/toggle`, {}, keepScroll);
     }
 
-    function save() {
+    function save(e) {
+        e.preventDefault();
+
         if (form.data.name.trim() === item.name && form.data.note.trim() === (item.note ?? '')) {
             setEditing(false);
             return;
@@ -90,14 +92,35 @@ function PackingItemRow({ tripId, item, canEdit }) {
 
             <div className="packing-item__text">
                 {isEditing ? (
-                    <>
-                        <RenameInput form={form} field="name" onSave={save} onCancel={cancel} maxLength={120} />
+                    // Два поля — название и заметка, поэтому не RenameInput (он отменяет правку, когда фокус уходит из поля).
+                    <form className="packing-edit-form" onSubmit={save} noValidate>
+                        <input
+                            className="form-input packing-inline-input"
+                            aria-label="Название вещи"
+                            value={form.data.name}
+                            maxLength={120}
+                            autoFocus
+                            onChange={(e) => form.setData('name', e.target.value)}
+                            onKeyDown={(e) => e.key === 'Escape' && cancel()}
+                        />
+                        <input
+                            className="form-input packing-inline-input packing-add-form__note"
+                            aria-label="Заметка"
+                            placeholder="Заметка"
+                            value={form.data.note}
+                            maxLength={120}
+                            onChange={(e) => form.setData('note', e.target.value)}
+                            onKeyDown={(e) => e.key === 'Escape' && cancel()}
+                        />
+                        <button type="submit" className="btn btn--solid-dark btn--sm" disabled={form.processing}>Сохранить</button>
+                        <button type="button" className="btn btn--outline-dark btn--sm" onClick={cancel}>Отмена</button>
                         {form.errors.name && <span className="form-error">{form.errors.name}</span>}
-                    </>
+                        {form.errors.note && <span className="form-error">{form.errors.note}</span>}
+                    </form>
                 ) : (
                     <>
                         {canEdit ? (
-                            <button type="button" className="packing-item__name packing-rename-btn" title="Нажмите, чтобы переименовать" onClick={() => setEditing(true)}>
+                            <button type="button" className="packing-item__name packing-rename-btn" title="Нажмите, чтобы изменить название или заметку" onClick={() => setEditing(true)}>
                                 {item.name}
                             </button>
                         ) : (
@@ -108,6 +131,7 @@ function PackingItemRow({ tripId, item, canEdit }) {
                 )}
             </div>
 
+            {/* Одну вещь удаляем без подтверждения — сервер покажет тост «Вещь … удалена». */}
             {canEdit && (
                 <button
                     type="button"

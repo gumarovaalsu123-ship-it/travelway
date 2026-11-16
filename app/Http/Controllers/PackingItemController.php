@@ -8,6 +8,7 @@ use App\Models\PackingList;
 use App\Models\Trip;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
 
 /**
  * Things in the packing list. Routes use scoped bindings, so a thing of another trip gives 404.
@@ -47,11 +48,16 @@ class PackingItemController extends Controller
         return back();
     }
 
+    /**
+     * A single thing is deleted without confirmation, so the page shows a toast instead.
+     */
     public function destroy(Trip $trip, PackingItem $packingItem): RedirectResponse
     {
         Gate::authorize('update', $trip);
 
         $packingItem->delete();
+
+        Inertia::flash('toast', "Вещь «{$packingItem->name}» удалена.");
 
         return back();
     }

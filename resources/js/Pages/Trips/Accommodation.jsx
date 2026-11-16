@@ -4,7 +4,7 @@ import Checkbox from '../../Components/Checkbox';
 import FoundPlacesList from '../../Components/FoundPlacesList';
 import Modal from '../../Components/Modal';
 import TripLayout, { canEditTab } from '../../Components/TripLayout';
-import { formatDuration, plural } from '../../utils/format';
+import { plural } from '../../utils/format';
 import { searchPlaces } from '../../utils/geocoding';
 import { PLACE_SETS, findNearby } from '../../utils/overpass';
 
@@ -155,11 +155,6 @@ function AccommodationCard({ tripId, accommodation, categories, canEdit, onEdit,
 
     return (
         <article className="acc-card">
-            {/* Фото только у отеля, квартиры и хостела (hasPhoto с сервера); у знакомых и «другого» карточка без картинки. */}
-            {accommodation.hasPhoto && (
-                <div className="acc-card__image" style={{ backgroundImage: "url('/images/accommodation.png')" }} />
-            )}
-
             <div className="acc-card__body">
                 <header className="acc-header">
                     <div className="acc-title-group">
@@ -170,7 +165,8 @@ function AccommodationCard({ tripId, accommodation, categories, canEdit, onEdit,
                 </header>
 
                 <div className="acc-card__statuses">
-                    <span className="booking-status booking-status--none">{TYPE_LABELS[accommodation.type]}</span>
+                    {/* Тип жилья — обычный тег, чтобы не путать со статусом брони рядом. */}
+                    <span className="day-badge">{TYPE_LABELS[accommodation.type]}</span>
                     <BookingStatus accommodation={accommodation} />
                 </div>
 
@@ -497,9 +493,10 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
         <button type="button" className={className} onClick={() => setOpenForm('new')}>+ Добавить проживание</button>
     );
 
+    // «Ночи с жильём» — в подзаголовке раздела: продолжительность и так видна в шапке поездки, а места — по карточкам.
     const subtitle = nights.covered === null || nights.total === 0
-        ?'Бронирование, адрес и важные детали заселения.'
-        : `Бронирование, адрес и важные детали заселения. Добавлены ${nights.covered} из ${nightsLabel(nights.total)}.`;
+        ? 'Бронирование, адрес и важные детали заселения.'
+        : `Бронирование, адрес и важные детали заселения. Ночи с жильём: ${nights.covered} из ${nights.total}.`;
 
     return (
         <TripLayout trip={trip} activeTab="accommodation">
@@ -512,64 +509,39 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
                     {addButton('btn btn--solid-dark')}
                 </header>
 
-                <div className="trip-plan-grid mt-16">
-                    <div className="accommodation-list">
-                        {accommodations.length === 0 && (
-                            <section className="trips-empty">
-                                <h3 className="trips-empty__title">Жильё ещё не добавлено</h3>
-                                {canEdit && <p className="trips-empty__text">
-                                    Сохраните здесь отель или апартаменты: адрес, даты заезда и выезда, номер брони.
-                                </p>}
-                                {addButton('btn btn--solid')}
-                            </section>
-                        )}
+                <div className="accommodation-list mt-16">
+                    {accommodations.length === 0 && (
+                        <section className="trips-empty">
+                            <h3 className="trips-empty__title">Жильё ещё не добавлено</h3>
+                            {canEdit && <p className="trips-empty__text">
+                                Сохраните здесь отель или апартаменты: адрес, даты заезда и выезда, номер брони.
+                            </p>}
+                            {addButton('btn btn--solid')}
+                        </section>
+                    )}
 
-                        {accommodations.map((accommodation) => (
-                            <AccommodationCard
-                                key={accommodation.id}
-                                tripId={trip.id}
-                                accommodation={accommodation}
-                                categories={categories}
-                                canEdit={canEdit}
-                                onEdit={() => setOpenForm(accommodation.id)}
-                                onDelete={() => destroy(accommodation)}
-                            />
-                        ))}
+                    {accommodations.map((accommodation) => (
+                        <AccommodationCard
+                            key={accommodation.id}
+                            tripId={trip.id}
+                            accommodation={accommodation}
+                            categories={categories}
+                            canEdit={canEdit}
+                            onEdit={() => setOpenForm(accommodation.id)}
+                            onDelete={() => destroy(accommodation)}
+                        />
+                    ))}
 
-                        {/* Карточки «ночь без жилья» показываем, только когда уже что-то добавлено. */}
-                        {canEdit && accommodations.length > 0 && nights.missing.map((range) => (
-                            <article key={range.from} className="missing-night-card">
-                                <h3 className="missing-night__title">{missingRangeLabel(range)}: жильё не добавлено</h3>
-                                <p className="missing-night__desc">
-                                    Добавьте ещё одну бронь или заметку о ночном переезде, чтобы закрыть эти даты.
-                                </p>
-                                {addButton('btn btn--outline-dark missing-night__btn')}
-                            </article>
-                        ))}
-                    </div>
-
-                    <div className="trip-plan__side-col">
-                        <aside className="trip-details-card">
-                            <h3 className="trip-details__title">Детали поездки</h3>
-
-                            <div className="trip-details__list">
-                                <div className="detail-item">
-                                    <span className="detail-label">Продолжительность</span>
-                                    <span className="detail-value">{formatDuration(trip.daysCount)}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Ночи с жильём</span>
-                                    <span className="detail-value">
-                                        {nights.covered === null ? 'Даты поездки не выбраны' : `${nights.covered} из ${nights.total}`}
-                                    </span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Мест проживания</span>
-                                    <span className="detail-value">{accommodations.length}</span>
-                                </div>
-                            </div>
-                        </aside>
-                    </div>
+                    {/* Карточки «ночь без жилья» показываем, только когда уже что-то добавлено. */}
+                    {canEdit && accommodations.length > 0 && nights.missing.map((range) => (
+                        <article key={range.from} className="missing-night-card">
+                            <h3 className="missing-night__title">{missingRangeLabel(range)}: жильё не добавлено</h3>
+                            <p className="missing-night__desc">
+                                Добавьте ещё одну бронь или заметку о ночном переезде, чтобы закрыть эти даты.
+                            </p>
+                            {addButton('btn btn--outline-dark missing-night__btn')}
+                        </article>
+                    ))}
                 </div>
 
                 {canEdit && openForm !== null && (

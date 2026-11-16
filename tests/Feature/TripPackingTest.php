@@ -94,8 +94,26 @@ class TripPackingTest extends TestCase
         $this->patch("/my-trips/{$trip->id}/packing-items/{$item->id}", ['name' => 'Зарядка для телефона'])->assertRedirect();
         $this->assertSame('Зарядка для телефона', $item->fresh()->name);
 
-        $this->delete("/my-trips/{$trip->id}/packing-items/{$item->id}")->assertRedirect();
+        $this->delete("/my-trips/{$trip->id}/packing-items/{$item->id}")
+            ->assertRedirect()
+            ->assertInertiaFlash('toast', 'Вещь «Зарядка для телефона» удалена.');
         $this->assertModelMissing($item);
+    }
+
+    public function test_owner_can_change_and_clear_item_note(): void
+    {
+        $user = User::factory()->create();
+        $trip = Trip::factory()->for($user)->create();
+        $item = PackingItem::factory()->for(PackingList::factory()->for($trip))->create(['name' => 'Зарядка', 'note' => null]);
+        $url = "/my-trips/{$trip->id}/packing-items/{$item->id}";
+
+        $this->actingAs($user)->patch($url, ['name' => 'Зарядка', 'note' => 'Type-C'])->assertRedirect();
+        $this->assertSame('Type-C', $item->fresh()->note);
+
+        $this->patch($url, ['name' => 'Зарядка', 'note' => ''])->assertRedirect();
+        $this->assertNull($item->fresh()->note);
+
+        $this->patch($url, ['name' => 'Зарядка', 'note' => str_repeat('a', 121)])->assertSessionHasErrors('note');
     }
 
     public function test_standard_set_is_added_once(): void

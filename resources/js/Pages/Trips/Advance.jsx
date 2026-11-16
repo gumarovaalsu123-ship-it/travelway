@@ -139,6 +139,7 @@ function OwnTaskRow({ tripId, task, canEdit }) {
                         <input
                             type="date"
                             className="form-input advance-task-form__date"
+                            aria-label="Срок (необязательно)"
                             value={form.data.due_date}
                             onChange={(e) => form.setData('due_date', e.target.value)}
                         />
@@ -187,13 +188,16 @@ function AddTaskForm({ tripId }) {
                     value={form.data.title}
                     onChange={(e) => form.setData('title', e.target.value)}
                 />
-                <input
-                    type="date"
-                    className="form-input advance-task-form__date"
-                    title="Срок (необязательно)"
-                    value={form.data.due_date}
-                    onChange={(e) => form.setData('due_date', e.target.value)}
-                />
+                <label className="advance-due-field">
+                    <span className="advance-due-field__label">Срок</span>
+                    <input
+                        type="date"
+                        className="form-input advance-task-form__date"
+                        aria-label="Срок (необязательно)"
+                        value={form.data.due_date}
+                        onChange={(e) => form.setData('due_date', e.target.value)}
+                    />
+                </label>
                 <button type="submit" className="btn btn--solid btn--sm" disabled={form.processing}>+</button>
             </div>
             {form.errors.title && <span className="form-error">{form.errors.title}</span>}

@@ -29,11 +29,6 @@ class Accommodation extends Model
     public const TypesWithoutBooking = ['friends'];
 
     /**
-     * Types whose card shows a photo. At friends' or "other" there is nothing to show.
-     */
-    public const TypesWithPhoto = ['hotel', 'apartment', 'hostel'];
-
-    /**
      * На сколько дней жильё может выходить за даты поездки: приехали накануне вечером
      * или выезжаем утром на следующий день после последнего дня.
      */

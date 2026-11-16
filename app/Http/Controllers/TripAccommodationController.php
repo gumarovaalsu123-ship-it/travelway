@@ -47,8 +47,6 @@ class TripAccommodationController extends Controller
                 'latitude' => $accommodation->latitude,
                 'longitude' => $accommodation->longitude,
                 'note' => $accommodation->note,
-                // Фото показываем только у отеля, квартиры и хостела; у знакомых и «другого» карточка без картинки.
-                'hasPhoto' => in_array($accommodation->type, Accommodation::TypesWithPhoto, true),
             ])->values(),
             'nights' => $this->nightsCoverage($trip, $accommodations),
             'types' => Accommodation::Types,

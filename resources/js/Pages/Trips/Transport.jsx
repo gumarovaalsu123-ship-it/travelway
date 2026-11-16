@@ -141,6 +141,8 @@ function TicketStatus({ transport }) {
  * Карточка переезда. canEdit — можно ли менять (Trip::tabs()); без него кнопок «Изменить/Удалить» нет.
  */
 function TransportCard({ transport, canEdit, onEdit, onDelete }) {
+    const labels = TYPE_FORM[transport.type] ?? GENERIC_FORM;
+
     return (
         <article className="transport-card">
             <header className="transport-card__header">
@@ -152,15 +154,17 @@ function TransportCard({ transport, canEdit, onEdit, onDelete }) {
                     </div>
                 </div>
                 <div className="transport-card__badges">
-                    <span className="day-badge">{DIRECTION_LABELS[transport.direction] ?? 'Направление не указано'}</span>
+                    {/* Направление обязательно, но у старых записей его может не быть — тогда бейдж не показываем. */}
+                    {DIRECTION_LABELS[transport.direction] && <span className="day-badge">{DIRECTION_LABELS[transport.direction]}</span>}
                     <span className="day-badge">{TYPE_LABELS[transport.type]}</span>
                 </div>
             </header>
 
+            {/* Откуда и куда — в заголовке; здесь только время с подписью «Вылет/Прилёт», «Отправление/Прибытие»… */}
             <div className="transport-card__body">
                 <div className="time-block">
                     <div className="time-block__time">{formatTime(transport.departureAt)}</div>
-                    <div className="time-block__place">{transport.departurePlace}</div>
+                    <div className="time-block__place">{labels.departure}</div>
                 </div>
                 <div className="time-block__arrow">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -169,13 +173,13 @@ function TransportCard({ transport, canEdit, onEdit, onDelete }) {
                 </div>
                 <div className="time-block">
                     <div className="time-block__time">{formatTime(transport.arrivalAt)}</div>
-                    <div className="time-block__place">{transport.arrivalPlace}</div>
+                    <div className="time-block__place">{labels.arrival}</div>
                 </div>
             </div>
 
             <footer className="transport-card__footer">
                 <TicketStatus transport={transport} />
-                <p className="transport-card__meta">{transport.note || 'Без заметок'}</p>
+                {transport.note && <p className="transport-card__meta">{transport.note}</p>}
                 {canEdit && (
                     <div className="transport-card__actions">
                         <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => onEdit(transport)}>Изменить</button>

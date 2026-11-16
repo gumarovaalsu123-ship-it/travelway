@@ -2773,13 +2773,6 @@
   flex-direction: column;
 }
 
-.acc-card__image {
-  width: 100%;
-  height: 250px;
-  background-size: cover;
-  background-position: center;
-}
-
 .acc-card__body {
   padding: 32px;
   display: flex;
@@ -6218,7 +6211,8 @@ section[id] {
     color: var(--color-accent-orange);
 }
 
-.advance-task-form {
+.advance-task-form,
+.packing-edit-form {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -6226,6 +6220,18 @@ section[id] {
 
 .advance-task-form__date {
     max-width: 170px;
+}
+
+/* Поле срока в форме своего дела: видимая подпись «Срок» слева от даты. */
+.advance-due-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.advance-due-field__label {
+    font-size: 13px;
+    color: var(--color-text-muted);
 }
 
 .plan-stop__booking {

@@ -151,14 +151,12 @@ class TripStagesTest extends TestCase
 
         $this->post("/my-trips/{$trip->id}/packing-lists", ['title' => 'Одежда'])->assertForbidden();
         $this->patch("/my-trips/{$trip->id}/packing-lists/{$list->id}", ['title' => 'Новое'])->assertForbidden();
-        $this->patch("/my-trips/{$trip->id}/days/{$day->id}", ['title' => 'Новое название'])->assertForbidden();
         $this->post("/my-trips/{$trip->id}/tasks", ['title' => 'Купить сувениры'])->assertForbidden();
         $this->post('/places/'.Place::factory()->create()->id.'/trip-places', ['trip_day_id' => $day->id])->assertForbidden();
         $this->delete("/trip-places/{$visit->id}")->assertForbidden();
 
         $this->assertModelExists($visit);
         $this->assertSame(1, $trip->tripPlaces()->count());
-        $this->assertNull($day->fresh()->title);
     }
 
     public function test_completed_trip_settings_can_fix_dates_and_trip_can_be_deleted(): void

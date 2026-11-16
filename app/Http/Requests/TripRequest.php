@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Trip;
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -24,7 +25,22 @@ class TripRequest extends FormRequest
             'destination' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
             'start_date' => ['nullable', 'required_with:end_date', 'date'],
-            'end_date' => ['nullable', 'required_with:start_date', 'date', 'after_or_equal:start_date'],
+            // Новую поездку, которая уже закончилась (последний день — вчера или раньше), создать нельзя.
+            // При редактировании правило не действует: в завершённой поездке можно исправить ошибочные даты.
+            'end_date' => [
+                'bail',
+                'nullable',
+                'required_with:start_date',
+                'date',
+                'after_or_equal:start_date',
+                Rule::when($this->isMethod('post'), [
+                    function (string $attribute, mixed $value, Closure $fail): void {
+                        if (Carbon::parse($value)->lt(today())) {
+                            $fail('Эта поездка уже закончилась — нельзя создать путешествие в прошлом.');
+                        }
+                    },
+                ]),
+            ],
             'days_count' => [Rule::excludeIf($hasDates), 'required', 'integer', 'min:1', 'max:'.Trip::MaxDays],
             // Предыдущий город цепочки (только при создании, форма редактирования его не шлёт):
             // своя поездка, у которой ещё нет следующей.

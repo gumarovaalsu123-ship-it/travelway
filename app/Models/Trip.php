@@ -284,7 +284,7 @@ class Trip extends Model
     }
 
     /**
-     * Find a photo of the destination in Wikipedia and keep its URL as the cover (null — the page shows a stock picture).
+     * Find a photo of the destination (Wikipedia, then Wikidata — see CityCover) and keep its URL as the cover (null — the page shows a stock picture).
      * Called when the trip is created or its city changes, and by the trips:covers command for old trips.
      */
     public function refreshCover(): void

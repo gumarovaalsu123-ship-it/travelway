@@ -25,7 +25,6 @@ class StoreMapPlaceRequest extends StoreTripPlaceRequest
             'start_time' => ['exclude_unless:destination,trip', 'nullable', 'date_format:H:i'],
             // Миниатюры Википедия отдаёт с thumb.wikimedia.org, оригиналы — с upload.wikimedia.org.
             'image' => ['nullable', 'string', 'max:2000', 'url:https', 'regex:#^https://(upload|thumb)\.wikimedia\.org/#'],
-            'description' => ['nullable', 'string', 'max:2000'],
             'opening_hours' => ['nullable', 'string', 'max:255'],
             'website' => ['nullable', 'string', 'max:500', 'url:http,https'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -44,7 +43,6 @@ class StoreMapPlaceRequest extends StoreTripPlaceRequest
             'category_id' => 'категория',
             'address' => 'адрес',
             'image' => 'фото',
-            'description' => 'описание',
             'opening_hours' => 'часы работы',
             'website' => 'сайт',
             'phone' => 'телефон',

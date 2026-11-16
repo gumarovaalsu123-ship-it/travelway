@@ -40,9 +40,8 @@ export default function PlaceMarker({ place, isSelected, isFocused = false, onAd
                     {place.category && <span className="place-popup__category">{place.category.name}</span>}
                     <h3 className="place-popup__title">{place.name}</h3>
                     {place.address && place.address !== place.name && <p className="place-popup__address">{place.address}</p>}
-                    {place.description && <p className="place-popup__description">{place.description}</p>}
                     <PlaceContacts openingHours={place.openingHours} phone={place.phone} website={place.website} />
-                    {(place.image || place.description) && <WikipediaCredit url={place.wikiUrl} />}
+                    {place.image && <WikipediaCredit url={place.wikiUrl} />}
 
                     {place.visits.length > 0 && (
                         <ul className="place-popup__visits">

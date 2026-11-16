@@ -177,7 +177,7 @@ class DaySchedule
                     'minutes' => $visit->travel_minutes,
                     // Время на общественном транспорте — только оценка, поэтому «≈» и ссылка на точный маршрут.
                     'approximate' => $visit->calculated_mode === 'transit',
-                    'yandexUrl' => $visit->calculated_mode === 'transit' && $previousPoint ? self::yandexTransitUrl($previousPoint, $point) : null,
+                    'yandexUrl' => $previousPoint ? self::yandexRouteUrl([$previousPoint, $point], $visit->calculated_mode) : null,
                 ];
             }
 
@@ -378,15 +378,27 @@ class DaySchedule
     }
 
     /**
-     * Link to the exact route by public transport in Yandex Maps — an ordinary URL with coordinates, no API.
-     *
-     * @param  array{0: float, 1: float}  $from
-     * @param  array{0: float, 1: float}  $to
+     * Yandex Maps route type (parameter rtt) for our travel modes.
      */
-    public static function yandexTransitUrl(array $from, array $to): string
+    public const YandexRouteTypes = [
+        'walk' => 'pd',
+        'transit' => 'mt',
+        'car' => 'auto',
+        'taxi' => 'taxi',
+    ];
+
+    /**
+     * Link to the exact route in Yandex Maps — an ordinary URL with coordinates, no API.
+     *
+     * @param  array<int, array{0: float, 1: float}>  $points  two or more points in order
+     */
+    public static function yandexRouteUrl(array $points, ?string $mode): string
     {
-        // rtext — «откуда~куда» в формате «широта,долгота», rtt=mt — общественный транспорт.
-        return "https://yandex.ru/maps/?rtext={$from[0]},{$from[1]}~{$to[0]},{$to[1]}&rtt=mt";
+        // rtext — точки через «~» в формате «широта,долгота», rtt — способ: pd пешком, mt транспорт, auto машина.
+        $text = implode('~', array_map(fn (array $point) => "{$point[0]},{$point[1]}", $points));
+        $type = self::YandexRouteTypes[$mode] ?? self::YandexRouteTypes['walk'];
+
+        return "https://yandex.ru/maps/?rtext={$text}&rtt={$type}";
     }
 
     /**

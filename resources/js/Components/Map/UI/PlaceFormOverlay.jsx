@@ -40,7 +40,6 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
         trip_day_id: focusTrip ? focusDayId : (trips[0]?.days[0]?.id ?? ''),
         start_time: '',
         image: null,
-        description: '',
         opening_hours: null,
         website: null,
         phone: null,
@@ -61,7 +60,6 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
             longitude: draft.lng,
             start_time: '',
             image: null,
-            description: '',
             opening_hours: null,
             website: null,
             phone: null,
@@ -106,8 +104,6 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
             setData((current) => ({
                 ...current,
                 image: summary.image,
-                // Описание, которое пользователь уже успел ввести сам, не затираем.
-                description: current.description || summary.description || '',
             }));
         });
 
@@ -215,7 +211,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             {errors.category_id && <span className="form-error">{errors.category_id}</span>}
                         </div>
 
-                        {isWikiLoading && <Loader variant="block" rows={1} text="Загружаем фото и описание из Википедии…" />}
+                        {isWikiLoading && <Loader variant="block" rows={1} text="Загружаем фото из Википедии…" />}
 
                         {data.image && (
                             <div className={`place-form-info ${errors.image ? 'has-error' : ''}`}>
@@ -227,25 +223,12 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             </div>
                         )}
 
-                        <div className={`form-group ${errors.description ? 'has-error' : ''}`}>
-                            <label className="form-label" htmlFor="place-description">Описание (необязательно)</label>
-                            <textarea
-                                id="place-description"
-                                className="form-input form-input--filled"
-                                rows={isWikiLoading ? 2 : 3}
-                                value={data.description}
-                                onChange={(event) => setData('description', event.target.value)}
-                                placeholder="Чем интересно это место"
-                                maxLength={2000}
-                            />
-                            {errors.description && <span className="form-error">{errors.description}</span>}
-                        </div>
 
                         <PlaceContacts openingHours={data.opening_hours} phone={data.phone} website={data.website} />
                         {['opening_hours', 'website', 'phone', 'wiki_url'].map((field) => (
                             errors[field] && <span key={field} className="form-error">{errors[field]}</span>
                         ))}
-                        {(data.image || data.description) && <WikipediaCredit url={data.wiki_url} />}
+                        {data.image && <WikipediaCredit url={data.wiki_url} />}
                     </>
                 )}
 

@@ -70,7 +70,7 @@ class PublicTripLinkTest extends TestCase
     public function test_guest_sees_the_trip_by_token_without_login(): void
     {
         $day = $this->trip->days()->where('day_number', 1)->sole();
-        $visit = $day->addPlace(Place::factory()->create(['name' => 'Кремль', 'description' => 'Крепость XVI века']));
+        $visit = $day->addPlace(Place::factory()->create(['name' => 'Кремль']));
         $visit->update(['start_time' => '10:00', 'note' => 'Личная заметка', 'needs_booking' => true, 'is_booked' => true]);
         Transport::factory()->for($this->trip)->create(['type' => 'train', 'departure_place' => 'Москва', 'arrival_place' => 'Казань', 'note' => 'Место 12, вагон 5']);
         Accommodation::factory()->for($this->trip)->create(['name' => 'Отель «Волга»', 'address' => 'ул. Баумана, 1', 'latitude' => 55.79, 'longitude' => 49.12]);
@@ -86,7 +86,6 @@ class PublicTripLinkTest extends TestCase
                 ->where('trip.placesCount', 1)
                 ->has('days', 2)
                 ->where('days.0.places.0.name', 'Кремль')
-                ->where('days.0.places.0.description', 'Крепость XVI века')
                 ->where('days.0.places.0.startTime', '10:00')
                 ->where('transports.0.departurePlace', 'Москва')
                 ->where('accommodations.0.name', 'Отель «Волга»')

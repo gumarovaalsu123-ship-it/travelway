@@ -64,7 +64,6 @@ class MapPlaceDetailsTest extends TestCase
     {
         $this->storePlace([
             'image' => self::IMAGE_URL,
-            'description' => 'Древнейшая часть Казани, объект Всемирного наследия ЮНЕСКО.',
             'opening_hours' => 'Mo-Su 08:00-22:00',
             'website' => 'https://kazan-kremlin.ru',
             'phone' => '+7 843 567-80-01',
@@ -74,7 +73,6 @@ class MapPlaceDetailsTest extends TestCase
         $this->assertDatabaseHas('places', [
             'name' => 'Казанский кремль',
             'image' => self::IMAGE_URL,
-            'description' => 'Древнейшая часть Казани, объект Всемирного наследия ЮНЕСКО.',
             'opening_hours' => 'Mo-Su 08:00-22:00',
             'website' => 'https://kazan-kremlin.ru',
             'phone' => '+7 843 567-80-01',
@@ -89,7 +87,6 @@ class MapPlaceDetailsTest extends TestCase
         $place = Place::firstWhere('name', 'Казанский кремль');
 
         $this->assertNull($place->image);
-        $this->assertNull($place->description);
         $this->assertNull($place->opening_hours);
         $this->assertNull($place->website);
         $this->assertNull($place->phone);
@@ -161,13 +158,6 @@ class MapPlaceDetailsTest extends TestCase
         $this->storePlace(['website' => 'http://kazan-kremlin.ru'])->assertSessionHasNoErrors();
     }
 
-    public function test_description_is_limited_to_2000_characters(): void
-    {
-        $this->storePlace(['description' => Str::repeat('а', 2001)])->assertSessionHasErrors('description');
-
-        $this->storePlace(['description' => Str::repeat('а', 2000)])->assertSessionHasNoErrors();
-    }
-
     public function test_phone_and_opening_hours_have_length_limits(): void
     {
         $this->storePlace([
@@ -189,7 +179,6 @@ class MapPlaceDetailsTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('InteractiveMap')
                 ->where('places.0.image', $place->image)
-                ->where('places.0.description', $place->description)
                 ->where('places.0.openingHours', $place->opening_hours)
                 ->where('places.0.website', $place->website)
                 ->where('places.0.phone', $place->phone)
@@ -207,7 +196,6 @@ class MapPlaceDetailsTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Favorites/Index')
                 ->where('places.0.image', $place->image)
-                ->where('places.0.description', $place->description)
                 ->where('places.0.wikiUrl', $place->wiki_url));
     }
 

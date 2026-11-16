@@ -24,7 +24,10 @@ class TripTest extends TestCase
 
         // При создании поездки ищется обложка в Википедии (TripCoverTest) — здесь отвечаем «не найдено».
         Http::preventStrayRequests();
-        Http::fake(['*.wikipedia.org/*' => Http::response([], 404)]);
+        Http::fake([
+            '*.wikipedia.org/*' => Http::response([], 404),
+            'www.wikidata.org/*' => Http::response(['search' => []]),
+        ]);
 
         Carbon::setTestNow('2026-06-10');
         $this->user = User::factory()->create();
@@ -98,12 +101,12 @@ class TripTest extends TestCase
 
     public function test_trip_with_dates_is_created_with_a_day_per_date(): void
     {
-        $this->actingAs($this->user)
+        $response = $this->actingAs($this->user)
             ->post('/my-trips', $this->payload())
-            ->assertRedirect('/interactive-map')
             ->assertSessionHasNoErrors();
 
         $trip = $this->user->trips()->first();
+        $response->assertRedirect(route('trips.show', $trip));
         $this->assertSame(3, $trip->days_count);
         $this->assertFalse($trip->is_public);
         $this->assertSame(['2026-06-15', '2026-06-16', '2026-06-17'], $trip->days->map(fn ($day) => $day->date->toDateString())->all());
@@ -136,6 +139,34 @@ class TripTest extends TestCase
             ->assertSessionHasErrors('end_date');
 
         $this->assertSame(0, Trip::count());
+    }
+
+    public function test_trip_that_already_ended_cannot_be_created(): void
+    {
+        // Сегодня 2026-06-10: поездка, закончившаяся вчера, уже в прошлом.
+        $this->actingAs($this->user)
+            ->post('/my-trips', $this->payload(['start_date' => '2026-06-05', 'end_date' => '2026-06-09']))
+            ->assertSessionHasErrors(['end_date' => 'Эта поездка уже закончилась — нельзя создать путешествие в прошлом.']);
+
+        $this->assertSame(0, Trip::count());
+
+        // Поездка, которая заканчивается сегодня, ещё идёт — её создать можно.
+        $this->actingAs($this->user)
+            ->post('/my-trips', $this->payload(['start_date' => '2026-06-05', 'end_date' => '2026-06-10']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Trip::count());
+    }
+
+    public function test_dates_of_existing_trip_can_be_moved_to_the_past(): void
+    {
+        $trip = Trip::factory()->for($this->user)->create(['start_date' => '2026-06-15', 'end_date' => '2026-06-17']);
+
+        $this->actingAs($this->user)
+            ->put("/my-trips/{$trip->id}", $this->payload(['start_date' => '2026-06-01', 'end_date' => '2026-06-03']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('2026-06-03', $trip->fresh()->end_date->toDateString());
     }
 
     public function test_shortening_a_trip_removes_extra_days_and_their_places(): void

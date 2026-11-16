@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import FoundPlacesList from '../../Components/FoundPlacesList';
+import Modal from '../../Components/Modal';
 import TripLayout from '../../Components/TripLayout';
 import DayMap from '../../Components/Trip/DayMap';
+import TravelModeIcon from '../../Components/Trip/TravelModeIcon';
 import { formatDateRange, formatDayLabel, plural } from '../../utils/format';
 import { PLACE_SETS, findAlongSegment, findNearby } from '../../utils/overpass';
-import { TRAVEL_MODES, formatMinutes, timeLabel } from '../../utils/travel';
+import { dayRoute } from '../../utils/dayRoute';
+import { findArea, isInsideArea } from '../../utils/geocoding';
+import { TRAVEL_MODES, formatMinutes, timeLabel, yandexRouteUrl } from '../../utils/travel';
 
 const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
@@ -19,12 +23,15 @@ const keepScroll = { preserveScroll: true };
 const placesLabel = (count) => `${count} ${plural(count, ['место', 'места', 'мест'])}`;
 
 /**
- * Отрезок пути: «🚶 12 мин». Время на общественном транспорте — только оценка, поэтому «≈».
+ * Отрезок пути: иконка способа и «12 мин». Время на общественном транспорте — только оценка, поэтому «≈».
  */
 function segmentLabel(segment) {
-    const mode = TRAVEL_MODES[segment.mode] ?? TRAVEL_MODES.walk;
-
-    return `${mode.icon} ${segment.approximate ? '≈ ' : ''}${formatMinutes(segment.minutes)}`;
+    return (
+        <>
+            <TravelModeIcon mode={segment.mode} size={14} />
+            {`${segment.approximate ? '≈ ' : ''}${formatMinutes(segment.minutes)}`}
+        </>
+    );
 }
 
 /**
@@ -142,97 +149,131 @@ function MealHintRow({ meal, place, onShow }) {
 }
 
 /**
- * Список дней поездки. Номер дня — в адресе (?day=N): ссылкой можно поделиться,
- * а после любого действия сервер возвращает back() и открыт тот же день.
+ * Закрывает выпадающее меню по клику мимо него и по Esc. Возвращает ref — его вешают на обёртку меню.
  */
-function DaysCalendar({ trip, days, selectedDayId }) {
-    return (
-        <section className="days-calendar">
-            <div className="days-calendar__header">
-                <h2 className="days-calendar__title">Дни поездки</h2>
-                <span className="days-calendar__month">{formatDateRange(trip.startDate, trip.endDate)}</span>
-            </div>
+function useCloseOnOutside(isOpen, close) {
+    const ref = useRef(null);
 
-            <div className="days-calendar__list">
-                {days.map((day) => (
-                    <Link
-                        key={day.id}
-                        href={`/my-trips/${trip.id}/plan?day=${day.number}`}
-                        preserveScroll
-                        className={`day-card ${day.id === selectedDayId ? 'active' : ''}`}
-                    >
-                        <span className="day-card__name">День {day.number}</span>
-                        {day.date && <span className="day-card__date">{dayMonthFormatter.format(toDate(day.date))}</span>}
-                        <span className="day-card__date">{day.placesCount > 0 ? placesLabel(day.placesCount) : 'Пусто'}</span>
-                    </Link>
-                ))}
-            </div>
+    useEffect(() => {
+        if (!isOpen) {
+            return undefined;
+        }
 
-            {/* Длина поездки меняется только в форме редактирования, поэтому кнопки «+ Добавить день» здесь нет. */}
-            <Link href={`/my-trips/${trip.id}/edit`} className="plan-edit-dates-link">Изменить даты поездки</Link>
-        </section>
-    );
+        const closeOnOutsideClick = (event) => {
+            if (!ref.current?.contains(event.target)) {
+                close();
+            }
+        };
+        const closeOnEscape = (event) => event.key === 'Escape' && close();
+
+        document.addEventListener('mousedown', closeOnOutsideClick);
+        document.addEventListener('keydown', closeOnEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', closeOnOutsideClick);
+            document.removeEventListener('keydown', closeOnEscape);
+        };
+    }, [isOpen, close]);
+
+    return ref;
+}
+
+/** «12 мая, вторник» — или пустая строка, если у дня нет даты (черновик без дат). */
+const dayDateLabel = (date) => (date ? `${dayMonthFormatter.format(toDate(date))}, ${weekdayFormatter.format(toDate(date))}` : '');
+
+/** Первые места дня для выпадающего списка: «Эрмитаж · Кафе · ещё 2». */
+const PREVIEW_PLACES = 2;
+
+function placesPreview(day) {
+    if (day.placesCount === 0) {
+        return 'Мест пока нет';
+    }
+
+    const names = day.placeNames.slice(0, PREVIEW_PLACES).join(' · ');
+    const rest = day.placesCount - PREVIEW_PLACES;
+
+    return rest > 0 ? `${names} · ещё ${rest}` : names;
 }
 
 /**
- * Название дня, которое редактируется на месте: клик — поле, Enter — сохранить, Esc — отменить.
+ * Переключатель дней над планом: «‹ День 2 из 4 ▾ ›».
+ * Стрелки — соседний день, клик по названию открывает список всех дней с датой, числом мест и первыми местами.
+ * Номер дня — в адресе (?day=N): ссылкой можно поделиться, а после любого действия сервер
+ * возвращает back() и открыт тот же день.
  */
-function DayTitle({ tripId, day }) {
-    const [isEditing, setEditing] = useState(false);
-    const form = useForm({ title: day.title ?? '' });
+function DaySwitcher({ trip, days, selectedDay }) {
+    const [isOpen, setOpen] = useState(false);
+    const close = useCallback(() => setOpen(false), []);
+    const switcherRef = useCloseOnOutside(isOpen, close);
 
-    function save() {
-        if (form.data.title.trim() === (day.title ?? '')) {
-            setEditing(false);
-            return;
-        }
+    const index = days.findIndex((day) => day.id === selectedDay.id);
+    const previous = days[index - 1];
+    const next = days[index + 1];
+    const dayUrl = (day) => `/my-trips/${trip.id}/plan?day=${day.number}`;
+    const placesCount = selectedDay.places.length;
 
-        form.patch(`/my-trips/${tripId}/days/${day.id}`, { ...keepScroll, onSuccess: () => setEditing(false) });
-    }
-
-    function cancel() {
-        form.setData('title', day.title ?? '');
-        form.clearErrors();
-        setEditing(false);
-    }
-
-    if (!isEditing) {
-        return (
-            <button type="button" className="plan-day-title" title="Нажмите, чтобы изменить название" onClick={() => setEditing(true)}>
-                {day.title || <span className="plan-day-title__placeholder">+ Добавить название дня</span>}
-            </button>
+    /** Стрелка к соседнему дню; у первого и последнего дня — неактивная заглушка того же размера. */
+    function arrow(day, label, symbol) {
+        return day ? (
+            <Link href={dayUrl(day)} preserveScroll className="btn btn--outline-dark btn--icon-sm" aria-label={label} title={label}>{symbol}</Link>
+        ) : (
+            <span className="btn btn--outline-dark btn--icon-sm day-switcher__arrow--off" aria-hidden="true">{symbol}</span>
         );
     }
 
     return (
-        <div className="plan-day-title-form">
-            <input
-                className="form-input form-input--filled"
-                value={form.data.title}
-                maxLength={100}
-                placeholder="Например, «Знакомство с Алфамой»"
-                autoFocus
-                onChange={(e) => form.setData('title', e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        save();
-                    }
-                    if (e.key === 'Escape') {
-                        cancel();
-                    }
-                }}
-            />
-            <button type="button" className="btn btn--solid-dark btn--sm" disabled={form.processing} onClick={save}>Сохранить</button>
-            <button type="button" className="btn btn--outline-dark btn--sm" onClick={cancel}>Отмена</button>
-            {form.errors.title && <span className="form-error">{form.errors.title}</span>}
-        </div>
+        <header className="day-switcher" ref={switcherRef}>
+            {arrow(previous, 'Предыдущий день', '‹')}
+
+            <button
+                type="button"
+                className="day-switcher__current"
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
+                onClick={() => setOpen(!isOpen)}
+            >
+                <span className="day-switcher__title">
+                    День {selectedDay.number} из {days.length}
+                    <span className={`day-switcher__caret ${isOpen ? 'is-open' : ''}`} aria-hidden="true">▾</span>
+                </span>
+                <span className="day-switcher__meta">
+                    {[dayDateLabel(selectedDay.date), placesCount > 0 ? placesLabel(placesCount) : 'Нет мест'].filter(Boolean).join(' · ')}
+                </span>
+            </button>
+
+            {arrow(next, 'Следующий день', '›')}
+
+            {isOpen && (
+                <div className="day-switcher__menu" role="menu">
+                    <div className="day-switcher__menu-head">{formatDateRange(trip.startDate, trip.endDate)}</div>
+                    {days.map((day) => (
+                        <Link
+                            key={day.id}
+                            href={dayUrl(day)}
+                            preserveScroll
+                            role="menuitem"
+                            className={`day-switcher__item ${day.id === selectedDay.id ? 'is-active' : ''}`}
+                            onClick={close}
+                        >
+                            <span className="day-switcher__item-number">{day.number}</span>
+                            <span className="day-switcher__item-text">
+                                <span className="day-switcher__item-date">{dayDateLabel(day.date) || `День ${day.number}`}</span>
+                                <span className="day-switcher__item-places">{placesPreview(day)}</span>
+                            </span>
+                            <span className="day-switcher__item-count">{day.placesCount || '—'}</span>
+                        </Link>
+                    ))}
+                    {/* Длина поездки меняется только в форме редактирования, поэтому кнопки «+ Добавить день» здесь нет. */}
+                    <Link href={`/my-trips/${trip.id}/edit`} className="day-switcher__edit" onClick={close}>Изменить даты поездки</Link>
+                </div>
+            )}
+        </header>
     );
 }
 
 /**
  * Строка между местами: как добраться от предыдущей точки и сколько это займёт.
- * Для общественного транспорта — ссылка на точный маршрут в Яндекс.Картах (обычная ссылка, без API).
+ * У каждого отрезка — ссылка на точный маршрут в Яндекс.Картах тем же способом (пешком, транспорт, машина).
  */
 function SegmentRow({ segment, onShowAlong }) {
     return (
@@ -244,7 +285,7 @@ function SegmentRow({ segment, onShowAlong }) {
             )}
             {segment?.yandexUrl && (
                 <a className="plan-segment__link" href={segment.yandexUrl} target="_blank" rel="noreferrer">
-                    Точный маршрут в Яндекс.Картах
+                    Маршрут в Яндекс.Картах
                 </a>
             )}
         </li>
@@ -264,22 +305,53 @@ function ScheduleForm({ tripId, day }) {
     }
 
     return (
+        // «Начало дня» прижато влево, кнопка — вправо (justify-content: space-between в app.css).
         <form className="plan-schedule-form" onSubmit={submit} noValidate>
-            <label className="form-label" htmlFor="day-start-time">Начало дня</label>
-            <input
-                id="day-start-time"
-                type="time"
-                className="form-input form-input--filled plan-schedule-form__time"
-                value={form.data.start_time}
-                title={`Если пусто — ${day.scheduleStartTime}`}
-                onChange={(e) => form.setData('start_time', e.target.value)}
-            />
+            <div className="plan-schedule-form__start">
+                <label className="form-label" htmlFor="day-start-time">Начало дня</label>
+                <input
+                    id="day-start-time"
+                    type="time"
+                    className="form-input form-input--filled plan-schedule-form__time"
+                    value={form.data.start_time}
+                    title={`Если пусто — ${day.scheduleStartTime}`}
+                    onChange={(e) => form.setData('start_time', e.target.value)}
+                />
+            </div>
             <button type="submit" className="btn btn--solid-dark btn--sm" disabled={form.processing}>
                 {form.processing ? 'Считаем…' : 'Рассчитать время'}
             </button>
             {form.errors.start_time && <span className="form-error">{form.errors.start_time}</span>}
             {form.errors.schedule && <span className="form-error">{form.errors.schedule}</span>}
         </form>
+    );
+}
+
+/**
+ * Весь маршрут дня одной ссылкой: жильё утром → все места по порядку → жильё вечером.
+ * Способ выбирает человек — Яндекс.Карты построят маршрут через все точки.
+ */
+const FULL_ROUTE_MODES = ['walk', 'transit', 'car'];
+
+function FullRouteLinks({ day }) {
+    const { points } = dayRoute(day);
+
+    if (points.length < 2) {
+        return null;
+    }
+
+    return (
+        <div className="plan-full-route">
+            <span className="plan-full-route__title">Весь маршрут дня в Яндекс.Картах</span>
+            <div className="plan-full-route__links">
+                {FULL_ROUTE_MODES.map((mode) => (
+                    <a key={mode} className="btn btn--outline-dark btn--sm" href={yandexRouteUrl(points, mode)} target="_blank" rel="noreferrer">
+                        <TravelModeIcon mode={mode} />
+                        {TRAVEL_MODES[mode].label}
+                    </a>
+                ))}
+            </div>
+        </div>
     );
 }
 
@@ -307,6 +379,7 @@ function DayTotal({ day }) {
             {day.warnings.map((warning) => (
                 <p key={warning} className="plan-stop__warning">{warning}</p>
             ))}
+            <FullRouteLinks day={day} />
         </div>
     );
 }
@@ -397,7 +470,7 @@ function EditPlaceForm({ tripId, place, onClose }) {
                     >
                         <option value="">Автоматически</option>
                         {Object.entries(TRAVEL_MODES).map(([key, mode]) => (
-                            <option key={key} value={key}>{mode.icon} {mode.label}</option>
+                            <option key={key} value={key}>{mode.label}</option>
                         ))}
                     </select>
                     {form.errors.travel_mode && <span className="form-error">{form.errors.travel_mode}</span>}
@@ -474,41 +547,156 @@ function BookingMarks({ tripId, place }) {
 }
 
 /**
- * Одно место в плане дня: номер, время, название, адрес, заметка и действия.
- * Клик по карточке (не по кнопке) выбирает место — его маркер подсвечивается на карте.
+ * Кнопка «⋮» с выпадающим меню действий места. Меню закрывается по клику мимо него и по Esc.
  */
-function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, isSelected, onSelect }) {
-    const [isEditing, setEditing] = useState(false);
-    const url = `/my-trips/${tripId}/trip-places/${place.id}`;
+function PlaceMenu({ onEdit, onRemove }) {
+    const [isOpen, setOpen] = useState(false);
+    const close = useCallback(() => setOpen(false), []);
+    const menuRef = useCloseOnOutside(isOpen, close);
 
-    function move(direction) {
-        router.patch(`${url}/move`, { direction }, keepScroll);
+    function choose(action) {
+        setOpen(false);
+        action();
     }
 
+    return (
+        <div className="plan-stop__menu" ref={menuRef}>
+            <button
+                type="button"
+                className="btn btn--outline-dark btn--icon-sm"
+                aria-label="Действия"
+                aria-expanded={isOpen}
+                onClick={() => setOpen(!isOpen)}
+                title="Действия"
+            >
+                {/* Три точки вертикально — в стиле иконок админки (24×24, линии) */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M12 5h.01M12 12h.01M12 19h.01" />
+                </svg>
+            </button>
+            {isOpen && (
+                <div className="plan-stop__menu-list" role="menu">
+                    <button type="button" role="menuitem" className="plan-stop__menu-item" onClick={() => choose(onEdit)}>Изменить</button>
+                    <button type="button" role="menuitem" className="plan-stop__menu-item plan-stop__menu-item--danger" onClick={() => choose(onRemove)}>
+                        Убрать из плана
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Окно «Изменить место»: сверху — перенос в другой день, ниже — форма времени, способа добраться и заметки.
+ */
+function EditPlaceModal({ tripId, place, otherDays, onClose }) {
     function changeDay(dayId) {
         if (dayId) {
-            router.patch(`${url}/day`, { trip_day_id: Number(dayId) }, keepScroll);
-        }
-    }
-
-    function remove() {
-        // Существующий маршрут trip-places.destroy: место исчезнет из базы, только если оно больше нигде не нужно.
-        if (window.confirm(`Убрать «${place.name}» из плана?`)) {
-            router.delete(`/trip-places/${place.id}`, keepScroll);
-        }
-    }
-
-    function select(e) {
-        // Нажали на кнопку, поле или ссылку внутри карточки — это своё действие, место не выбираем.
-        if (!e.target.closest('button, a, input, select, textarea, label')) {
-            onSelect(place.id);
+            router.patch(`/my-trips/${tripId}/trip-places/${place.id}/day`, { trip_day_id: Number(dayId) }, { ...keepScroll, onSuccess: onClose });
         }
     }
 
     return (
+        <Modal title={`Изменить «${place.name}»`} onClose={onClose}>
+            {otherDays.length > 0 && (
+                <div className="form-group">
+                    <label className="form-label" htmlFor={`move-${place.id}`}>Перенести в другой день</label>
+                    <select
+                        id={`move-${place.id}`}
+                        className="form-input form-input--filled"
+                        value=""
+                        onChange={(e) => changeDay(e.target.value)}
+                    >
+                        <option value="">Выберите день…</option>
+                        {otherDays.map((day) => (
+                            <option key={day.id} value={day.id}>{formatDayLabel(day.number, day.date)}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+            <EditPlaceForm tripId={tripId} place={place} onClose={onClose} />
+        </Modal>
+    );
+}
+
+/**
+ * Окно-подтверждение «Убрать из плана?» вместо браузерного window.confirm.
+ */
+function RemovePlaceModal({ place, onClose }) {
+    const [isProcessing, setProcessing] = useState(false);
+
+    function remove() {
+        // Существующий маршрут trip-places.destroy: место исчезнет из базы, только если оно больше нигде не нужно.
+        setProcessing(true);
+        router.delete(`/trip-places/${place.id}`, { ...keepScroll, onFinish: () => setProcessing(false) });
+    }
+
+    return (
+        <Modal title="Убрать из плана?" onClose={onClose}>
+            <p>Место «{place.name}» пропадёт из этого дня. В избранном оно останется, если вы его туда сохраняли.</p>
+            <div className="plan-place-form__actions">
+                <button type="button" className="btn btn--solid-dark btn--sm" disabled={isProcessing} onClick={remove}>Убрать</button>
+                <button type="button" className="btn btn--outline-dark btn--sm" onClick={onClose}>Отмена</button>
+            </div>
+        </Modal>
+    );
+}
+
+/**
+ * Плашка слева в карточке места — одной ширины у всех мест, чтобы карточки стояли ровной сеткой.
+ * Есть фото: пока оно грузится — блик-скелетон (как в Loader), номер в углу.
+ * Нет фото или оно не загрузилось: пустая плашка с номером по центру.
+ */
+function PlacePhotoBox({ image, alt, number, badgeClass }) {
+    // 'loading' | 'loaded' | 'failed'
+    const [status, setStatus] = useState('loading');
+    const hasPhoto = image && status !== 'failed';
+
+    return (
+        <div className={`plan-stop__photo ${hasPhoto ? '' : 'plan-stop__photo--empty'} ${hasPhoto && status === 'loading' ? 'plan-stop__photo--loading' : ''}`}>
+            {hasPhoto && (
+                <img
+                    src={image}
+                    alt={alt}
+                    loading="lazy"
+                    className={status === 'loaded' ? 'is-loaded' : ''}
+                    onLoad={() => setStatus('loaded')}
+                    onError={() => setStatus('failed')}
+                />
+            )}
+            {/* Номер совпадает с маркером на карте. */}
+            <span className={`${badgeClass} ${hasPhoto ? 'plan-stop__photo-number' : ''}`}>{number}</span>
+        </div>
+    );
+}
+
+/**
+ * Одно место в плане дня: фото (или номер, если фото нет), время, название, адрес, заметка;
+ * справа — стрелки порядка и между ними меню «⋮» (изменить / убрать).
+ * Клик по карточке (не по кнопке) выбирает место — его маркер подсвечивается на карте.
+ */
+function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, isSelected, onSelect }) {
+    // Открытое окно: 'edit', 'remove' или null.
+    const [openModal, setOpenModal] = useState(null);
+    const closeModal = () => setOpenModal(null);
+
+    function move(direction) {
+        router.patch(`/my-trips/${tripId}/trip-places/${place.id}/move`, { direction }, keepScroll);
+    }
+
+    function select(e) {
+        // Нажали на кнопку, поле, ссылку или внутри окна — это своё действие, место не выбираем.
+        if (!e.target.closest('button, a, input, select, textarea, label, .modal-backdrop')) {
+            onSelect(place.id);
+        }
+    }
+
+    const badgeClass = `stop-number-badge ${isSelected ? 'stop-number-badge--active' : ''}`;
+
+    return (
         // id нужен, чтобы по клику на маркер прокрутить список к этому месту.
         <li id={`plan-place-${place.id}`} className={`stop-item plan-stop ${isSelected ? 'plan-stop--selected' : ''}`} onClick={select}>
-            <span className={`stop-number-badge ${isSelected ? 'stop-number-badge--active' : ''}`}>{number}</span>
+            <PlacePhotoBox image={place.image} alt={place.name} number={number} badgeClass={badgeClass} />
 
             <div className="stop-info">
                 {place.startTime && (
@@ -519,10 +707,6 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, 
                 )}
                 <span className="stop-name">{place.name}</span>
                 {(place.address || place.category) && <span className="stop-desc">{place.address || place.category}</span>}
-                <span className="plan-stop__stay">
-                    На месте {formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}
-                    {place.stayMinutes === null && ' (по категории)'}
-                </span>
                 {place.note && <p className="plan-stop__note">{place.note}</p>}
                 {warning && <span className="plan-stop__warning">{warning}</span>}
                 {/* Подсказки после расчёта: приезд позже закреплённого времени или заметно раньше него. */}
@@ -535,88 +719,125 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, 
                     <span className="plan-stop__free">Свободное окно {formatMinutes(place.freeMinutes)}</span>
                 )}
                 <BookingMarks tripId={tripId} place={place} />
+            </div>
 
-                {isEditing ? (
-                    <EditPlaceForm tripId={tripId} place={place} onClose={() => setEditing(false)} />
-                ) : (
-                    <div className="plan-stop__actions">
-                        {!isFirst && (
-                            <button type="button" className="btn btn--outline-dark btn--icon-sm" aria-label="Выше" title="Выше" onClick={() => move('up')}>↑</button>
-                        )}
-                        {!isLast && (
-                            <button type="button" className="btn btn--outline-dark btn--icon-sm" aria-label="Ниже" title="Ниже" onClick={() => move('down')}>↓</button>
-                        )}
-                        <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => setEditing(true)}>Изменить</button>
-                        {otherDays.length > 0 && (
-                            <select
-                                className="form-input plan-stop__move-select"
-                                value=""
-                                aria-label="Перенести в другой день"
-                                onChange={(e) => changeDay(e.target.value)}
-                            >
-                                <option value="">Перенести в…</option>
-                                {otherDays.map((day) => (
-                                    <option key={day.id} value={day.id}>{formatDayLabel(day.number, day.date)}</option>
-                                ))}
-                            </select>
-                        )}
-                        <button type="button" className="link-button plan-stop__remove" onClick={remove}>Убрать из плана</button>
-                    </div>
+            {/* Колонка справа: «выше» сверху, меню посередине, «ниже» снизу.
+                У первого и последнего места вместо недостающей стрелки — пустое место того же размера, чтобы меню не съезжало. */}
+            {/* Сколько провести на месте — крупно, по центру карточки по высоте. Подробности — во всплывающей подсказке. */}
+            <span
+                className="plan-stop__stay"
+                title={`На месте ${formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}${place.stayMinutes === null ? ' (по категории)' : ''}`}
+            >
+                {formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}
+            </span>
+
+            <div className="plan-stop__side">
+                {isFirst ? <span className="plan-stop__side-gap" /> : (
+                    <button type="button" className="btn btn--outline-dark btn--icon-sm" aria-label="Выше" title="Выше" onClick={() => move('up')}>↑</button>
+                )}
+                <PlaceMenu onEdit={() => setOpenModal('edit')} onRemove={() => setOpenModal('remove')} />
+                {isLast ? <span className="plan-stop__side-gap" /> : (
+                    <button type="button" className="btn btn--outline-dark btn--icon-sm" aria-label="Ниже" title="Ниже" onClick={() => move('down')}>↓</button>
                 )}
             </div>
+
+            {openModal === 'edit' && <EditPlaceModal tripId={tripId} place={place} otherDays={otherDays} onClose={closeModal} />}
+            {openModal === 'remove' && <RemovePlaceModal place={place} onClose={closeModal} />}
         </li>
     );
 }
 
 /**
- * Окно «Из избранного»: место добавляется в конец выбранного дня
- * через уже существующий маршрут trip-places.store.
+ * Избранное только из города (страны) поездки: Nominatim по названию даёт рамку города,
+ * оставляем места, чьи координаты в неё попадают.
+ * Пока рамку ищем — null (кнопку «Избранное» не показываем, чтобы число не прыгало).
+ * Nominatim не ответил или не знает такого города — всё избранное, как раньше.
  */
-function FavoritesDialog({ favorites, day, onClose }) {
+function useTripFavorites(favorites, destination) {
+    const [area, setArea] = useState({ status: 'loading', bounds: null });
+
+    useEffect(() => {
+        let isActive = true;
+        setArea({ status: 'loading', bounds: null });
+
+        findArea(destination)
+            .then((city) => isActive && setArea({ status: 'done', bounds: city?.bounds ?? null }))
+            .catch(() => isActive && setArea({ status: 'done', bounds: null }));
+
+        return () => {
+            isActive = false;
+        };
+    }, [destination]);
+
+    if (area.status === 'loading') {
+        return null;
+    }
+
+    return area.bounds ? favorites.filter((place) => isInsideArea(area.bounds, place.lat, place.lng)) : favorites;
+}
+
+/**
+ * Карточка «Добавить место» под списком (во всю ширину, как карточки мест). Два способа, не уходя со страницы:
+ * клик по карте справа (см. Components/Trip/AddPlaceOnMap.jsx) и избранное — список раскрывается прямо в карточке.
+ * Место из избранного встаёт в конец дня через уже существующий маршрут trip-places.store.
+ * favorites — уже отфильтрованные по городу поездки (useTripFavorites); null — ещё ищем город.
+ */
+function AddPlaceCard({ favorites: tripFavorites, day }) {
+    const [isFavoritesOpen, setFavoritesOpen] = useState(false);
     const [processingId, setProcessingId] = useState(null);
+    const favorites = tripFavorites ?? [];
 
     function add(place) {
         setProcessingId(place.id);
         router.post(`/places/${place.id}/trip-places`, { trip_day_id: day.id }, {
             ...keepScroll,
-            onSuccess: onClose,
             onFinish: () => setProcessingId(null),
         });
     }
 
     return (
-        <div className="plan-dialog-backdrop" onClick={onClose}>
-            {/* Клик внутри окна не должен закрывать его, поэтому не пропускаем событие к подложке. */}
-            <div className="plan-dialog" role="dialog" aria-modal="true" aria-label="Добавить из избранного" onClick={(e) => e.stopPropagation()}>
-                <div className="plan-dialog__header">
-                    <h3 className="plan-dialog__title">Из избранного в день {day.number}</h3>
-                    <button type="button" className="btn-close" aria-label="Закрыть" onClick={onClose}>×</button>
+        <div className="plan-add-card">
+            <div className="plan-add-card__head">
+                <div className="plan-add-card__text">
+                    <span className="plan-add-card__title">Добавить место в день {day.number}</span>
+                    <span className="plan-add-card__hint">
+                        Нажмите на любую точку карты — появится плашка с кнопкой «Добавить».
+                        {favorites.length > 0 && ' Или выберите из избранного.'}
+                    </span>
                 </div>
-
-                {favorites.length === 0 ? (
-                    <p className="form-hint">
-                        В избранном пока пусто. Сохраняйте места на <Link href="/interactive-map">интерактивной карте</Link>.
-                    </p>
-                ) : (
-                    <ul className="plan-dialog__list">
-                        {favorites.map((place) => (
-                            <li key={place.id} className="plan-dialog__item">
-                                <div className="stop-info">
-                                    <span className="stop-name">{place.name}</span>
-                                    {(place.address || place.category) && <span className="stop-desc">{place.address || place.category}</span>}
-                                </div>
-                                <button
-                                    type="button"
-                                    className="btn btn--solid-dark btn--sm"
-                                    disabled={processingId !== null}
-                                    onClick={() => add(place)}
-                                >
-                                    Добавить
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
+                {favorites.length > 0 && (
+                    <button
+                        type="button"
+                        className="btn btn--outline-dark btn--sm"
+                        aria-expanded={isFavoritesOpen}
+                        onClick={() => setFavoritesOpen(!isFavoritesOpen)}
+                    >
+                        ★ Избранное ({favorites.length}) {isFavoritesOpen ? '▴' : '▾'}
+                    </button>
                 )}
+            </div>
+
+            {/* Список всегда в разметке: так его можно плавно раскрыть и свернуть (анимация в app.css).
+                inert — у свёрнутого списка кнопки не ловят Tab и клики. */}
+            <div className={`plan-add-card__drawer ${isFavoritesOpen ? 'is-open' : ''}`} inert={!isFavoritesOpen}>
+                <ul className="plan-add-card__favorites">
+                    {favorites.map((place) => (
+                        <li key={place.id} className="plan-add-card__favorite">
+                            <div className="stop-info">
+                                <span className="stop-name">{place.name}</span>
+                                {(place.address || place.category) && <span className="stop-desc">{place.address || place.category}</span>}
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn--solid-dark btn--sm"
+                                disabled={processingId !== null}
+                                onClick={() => add(place)}
+                            >
+                                {processingId === place.id ? 'Добавляем…' : 'Добавить'}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
             </div>
         </div>
     );
@@ -626,12 +847,12 @@ function FavoritesDialog({ favorites, day, onClose }) {
  * Вкладка «План»: слева (на узком экране — под картой) список мест выбранного дня со всеми действиями,
  * справа — карта этого дня (Components/Trip/DayMap.jsx). Список и карта связаны через selectedPlaceId.
  */
-export default function Plan({ trip, days, selectedDay, favorites, categories, focusLodging }) {
-    const [isFavoritesOpen, setFavoritesOpen] = useState(false);
+export default function Plan({ trip, days, selectedDay, favorites, categories, focusLodging, mapCenter }) {
     // Открытое окно подсказки Overpass: { title, load, emptyText, afterPlace } или null.
     const [foundDialog, setFoundDialog] = useState(null);
     // Место, выбранное в списке или на карте (id), — подсвечено и там, и там.
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+    const tripFavorites = useTripFavorites(favorites, trip.destination);
 
     if (!selectedDay) {
         return (
@@ -645,7 +866,6 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
 
     const places = selectedDay.places;
     const otherDays = days.filter((day) => day.id !== selectedDay.id);
-    const findOnMapUrl = `/interactive-map?day=${selectedDay.id}`;
     const meals = mealHints(places, selectedDay.isCalculated);
 
     /** Клик по маркеру: подсвечиваем место в списке и прокручиваем к нему. */
@@ -672,54 +892,18 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
         });
     }
 
-    const addButtons = (
-        <>
-            <Link href={findOnMapUrl} className="btn btn--solid-dark btn--sm">Найти на карте</Link>
-            <button type="button" className="btn btn--outline-dark btn--sm" onClick={() => setFavoritesOpen(true)}>Из избранного</button>
-        </>
-    );
-
     return (
         <TripLayout trip={trip} activeTab="plan">
             <main className="container trip-plan-main">
-                <DaysCalendar trip={trip} days={days} selectedDayId={selectedDay.id} />
-
                 <div className="trip-plan-grid">
-                    <div className="trip-plan__main-col">
-                        <header className="selected-day-header">
-                            <div className="selected-day-info">
-                                <h2 className="selected-day-title">{formatDayLabel(selectedDay.number, selectedDay.date)}</h2>
-                                {selectedDay.date && <span className="selected-day-weekday">{weekdayFormatter.format(toDate(selectedDay.date))}</span>}
-                            </div>
-                            <span className="selected-day-badge">{places.length > 0 ? placesLabel(places.length) : 'Нет мест'}</span>
-                        </header>
+                    {/* Переключатель — отдельная ячейка сетки над списком: на узком экране он встаёт выше карты (app.css). */}
+                    <DaySwitcher trip={trip} days={days} selectedDay={selectedDay} />
 
+                    <div className="trip-plan__main-col">
                         <div className="day-itinerary-card">
                             <div className="itinerary-block">
-                                <div className="itinerary-block__header plan-day-header">
-                                    {/* key: при переходе на другой день форма названия создаётся заново со своим значением. */}
-                                    <DayTitle key={selectedDay.id} tripId={trip.id} day={selectedDay} />
-                                    <div className="itinerary-block__actions">
-                                        {places.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn btn--outline-dark btn--sm"
-                                                onClick={() => router.post(`/my-trips/${trip.id}/days/${selectedDay.id}/sort-by-time`, {}, keepScroll)}
-                                            >
-                                                Упорядочить по времени
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
                                 {places.length === 0 ? (
-                                    <div className="empty-day-row plan-empty-day">
-                                        <div className="empty-day-info">
-                                            <span className="empty-day-name">{formatDayLabel(selectedDay.number, selectedDay.date)}</span>
-                                            <span className="empty-day-desc">Места ещё не добавлены</span>
-                                        </div>
-                                        <div className="plan-add-buttons">{addButtons}</div>
-                                    </div>
+                                    <AddPlaceCard favorites={tripFavorites} day={selectedDay} />
                                 ) : (
                                     <>
                                         {/* key: у каждого дня своё начало, форма создаётся заново при переходе. */}
@@ -752,8 +936,8 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                                                 </React.Fragment>
                                             ))}
                                         </ul>
+                                        <AddPlaceCard favorites={tripFavorites} day={selectedDay} />
                                         <DayTotal day={selectedDay} />
-                                        <div className="plan-add-buttons">{addButtons}</div>
                                     </>
                                 )}
                             </div>
@@ -771,12 +955,14 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                             focusLodging={focusLodging}
                             selectedPlaceId={selectedPlaceId}
                             onMarkerClick={selectFromMap}
+                            categories={categories}
+                            emptyCenter={mapCenter}
+                            destination={trip.destination}
                         />
                     </div>
                 </div>
             </main>
 
-            {isFavoritesOpen && <FavoritesDialog favorites={favorites} day={selectedDay} onClose={() => setFavoritesOpen(false)} />}
             {foundDialog && (
                 <FoundPlacesDialog
                     {...foundDialog}

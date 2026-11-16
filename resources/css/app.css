@@ -26,6 +26,8 @@
     }
     a { text-decoration: none; color: inherit; }
     button { cursor: pointer; border: none; background: transparent; font-family: inherit; }
+    /* Поля и пункты выпадающих списков по умолчанию берут системный шрифт — подставляем шрифт проекта */
+    input, select, textarea, option { font-family: inherit; }
     ul { list-style: none; }
 
     /* === LAYOUT CONTAINER === */
@@ -1771,23 +1773,8 @@
   width: 100%;
 }
 
-.days-calendar__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
-.days-calendar__title {
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--color-text-dark);
-}
 
-.days-calendar__month {
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
 
 .days-calendar__list {
   display: flex;
@@ -1873,40 +1860,10 @@
   flex-direction: column;
 }
 
-.selected-day-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
 
-.selected-day-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 
-.selected-day-title {
-  font-weight: 700;
-  font-size: 22px;
-  line-height: 1.3;
-  color: var(--color-text-dark);
-}
 
-.selected-day-weekday {
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
 
-.selected-day-badge {
-  background: #E8EFE5;
-  color: var(--color-accent-green);
-  font-weight: 400;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 99px;
-}
 
 /* Карточка полного расписания */
 .day-itinerary-card {
@@ -3371,13 +3328,6 @@
 .public-place__address {
   font-size: 13px;
   color: var(--color-text-muted);
-}
-
-.public-place__desc {
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--color-text-dark);
-  margin-top: 4px;
 }
 
 .public-place__tags {
@@ -5448,17 +5398,6 @@ section[id] {
     color: var(--color-text-muted);
 }
 
-.place-popup__description,
-.favorite-card__description {
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--color-text-dark);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
 .place-form-info {
     display: flex;
     flex-direction: column;
@@ -5490,62 +5429,6 @@ section[id] {
     text-decoration: none;
 }
 
-.plan-edit-dates-link {
-    align-self: flex-start;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-accent-green);
-}
-
-.plan-day-header {
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.itinerary-block__actions {
-    flex-wrap: wrap;
-}
-
-/* Название дня: выглядит как заголовок, по клику превращается в поле */
-.plan-day-title {
-    border: none;
-    background: none;
-    padding: 0;
-    font: inherit;
-    font-weight: 700;
-    font-size: 18px;
-    color: var(--color-text-dark);
-    text-align: left;
-    cursor: pointer;
-}
-
-.plan-day-title:hover {
-    text-decoration: underline;
-}
-
-.plan-day-title__placeholder {
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--color-accent-green);
-}
-
-.plan-day-title-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 260px;
-}
-
-.plan-day-title-form .form-input {
-    flex: 1;
-    min-width: 200px;
-}
-
-.plan-day-title-form .form-error {
-    width: 100%;
-}
 
 .plan-stop {
     align-items: flex-start;
@@ -5584,15 +5467,120 @@ section[id] {
     cursor: pointer;
 }
 
-.plan-stop__move-select {
-    width: auto;
-    padding: 6px 10px;
-    font-size: 13px;
+/* Фото места слева вместо номера: узкое, по высоте всей карточки */
+.plan-stop__photo {
+    position: relative;
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 76px;
+    min-height: 76px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F7F5F0;
 }
 
-.plan-stop__remove {
-    font-size: 13px;
-    color: var(--color-text-muted);
+/* Пока фото не загрузилось, прячем его: иначе браузер показывает текст из alt поверх плашки */
+.plan-stop__photo img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.plan-stop__photo img.is-loaded {
+    opacity: 1;
+}
+
+/* Фото грузится — бегущий блик, как у .loader__line */
+.plan-stop__photo--loading {
+    background: linear-gradient(90deg, var(--color-border-light) 25%, var(--color-bg-alt) 50%, var(--color-border-light) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.2s ease-in-out infinite;
+}
+
+/* Фото нет — та же плашка, номер по центру */
+.plan-stop__photo--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plan-stop__photo-number {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+}
+
+/* Правая колонка карточки: «выше» сверху, меню «⋮» посередине, «ниже» снизу */
+.plan-stop__side {
+    flex-shrink: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* Пустое место вместо стрелки у первого/последнего места — размером с кнопку */
+.plan-stop__side-gap {
+    width: 34px;
+    height: 34px;
+}
+
+.plan-stop__side .btn {
+    cursor: pointer;
+}
+
+.plan-stop__menu {
+    position: relative;
+}
+
+/* Окна «Изменить» и «Убрать» лежат внутри карточки — не наследуем от неё курсор-руку */
+.plan-stop .modal-backdrop {
+    cursor: default;
+}
+
+.plan-stop__menu-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(30, 38, 32, 0.12);
+}
+
+.plan-stop__menu-item {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font-size: 14px;
+    color: var(--color-text-dark);
+    cursor: pointer;
+}
+
+.plan-stop__menu-item:hover {
+    background: #F7F5F0;
+}
+
+.plan-stop__menu-item--danger {
+    color: var(--color-accent-orange);
 }
 
 .plan-place-form {
@@ -5620,9 +5608,16 @@ section[id] {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     padding: 8px 0 12px;
     border-bottom: 1px solid var(--color-border-warm);
+}
+
+.plan-schedule-form__start {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .plan-schedule-form .form-label {
@@ -5638,9 +5633,22 @@ section[id] {
     width: 100%;
 }
 
+/* Время на месте — между текстом и стрелками, по центру по высоте. «2 ч 35 мин» переносится в две строки. */
 .plan-stop__stay {
-    font-size: 12px;
-    color: var(--color-text-muted);
+    flex-shrink: 0;
+    align-self: center;
+    max-width: 64px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--color-accent-green);
+    margin-left: auto;
+}
+
+/* Время уже оттолкнуло всё вправо — колонке стрелок отступ не нужен */
+.plan-stop__stay + .plan-stop__side {
+    margin-left: 0;
 }
 
 .plan-stop__free {
@@ -5655,7 +5663,7 @@ section[id] {
     align-items: center;
     gap: 12px;
     padding: 6px 0 6px 12px;
-    margin-left: 4px;
+    margin-left: 16px; /* под левым краем фото места (поле карточки 12px) */
     border-left: 2px dashed var(--color-border-warm);
     font-size: 13px;
     color: var(--color-text-muted);
@@ -5685,12 +5693,143 @@ section[id] {
     color: var(--color-text-dark);
 }
 
-.plan-empty-day {
+/* Карточка «Добавить место» во всю ширину списка: зелёная плашка со светлым текстом */
+.plan-add-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 12px 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--color-accent-green);
+    color: #FDFBF7;
+}
+
+.plan-add-card__head {
+    display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 12px;
 }
 
-.plan-add-buttons {
+.plan-add-card__text {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.plan-add-card__title {
+    font-weight: 600;
+    font-size: 15px;
+    color: #FDFBF7;
+}
+
+.plan-add-card__hint {
+    font-size: 13px;
+    color: rgba(253, 251, 247, 0.75);
+}
+
+/* Кнопка «★ Избранное»: светлая обводка вместо тёмной — тёмная на зелёном не видна */
+.plan-add-card .btn--outline-dark {
+    border-color: rgba(253, 251, 247, 0.7);
+    color: #FDFBF7;
+}
+
+.plan-add-card .btn--outline-dark:hover {
+    background: rgba(253, 251, 247, 0.12);
+}
+
+/* Избранное плавно выезжает вниз. Высота строки сетки анимируется от 0fr до 1fr —
+   так не нужно знать высоту списка заранее (у max-height анимация была бы рваной). */
+.plan-add-card__drawer {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-top: -12px; /* свёрнутый список не должен добавлять отступ (gap) карточки */
+    transition: grid-template-rows 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+}
+
+.plan-add-card__drawer.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    margin-top: 0;
+}
+
+/* Длинный список прокручивается внутри; min-height: 0 даёт строке сетки сжаться до нуля */
+.plan-add-card__favorites {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 280px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(253, 251, 247, 0.25);
+}
+
+/* Кто отключил анимации в системе — список просто появляется */
+@media (prefers-reduced-motion: reduce) {
+    .plan-add-card__drawer {
+        transition: none;
+    }
+}
+
+.plan-add-card__favorite {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(253, 251, 247, 0.25);
+}
+
+.plan-add-card__favorite:last-child {
+    border-bottom: none;
+}
+
+.plan-add-card__favorite .stop-name {
+    color: #FDFBF7;
+}
+
+.plan-add-card__favorite .stop-desc {
+    color: rgba(253, 251, 247, 0.7);
+}
+
+/* «Добавить» у места из избранного — светлая кнопка с зелёным текстом */
+.plan-add-card__favorite .btn {
+    background-color: #FDFBF7;
+    border-color: #FDFBF7;
+    color: var(--color-accent-green);
+}
+
+.plan-add-card__favorite .btn:hover {
+    background-color: var(--color-border-warm);
+    border-color: var(--color-border-warm);
+}
+
+.plan-add-card__favorite .btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* «Весь маршрут дня в Яндекс.Картах»: подпись и три кнопки способа */
+.plan-full-route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border-warm);
+}
+
+.plan-full-route__title {
+    font-weight: 600;
+    color: var(--color-text-dark);
+}
+
+.plan-full-route__links {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -5758,7 +5897,7 @@ section[id] {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: 1500; /* выше шапки .navbar (1100), ниже уведомления .toast (2000) */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6182,6 +6321,20 @@ section[id] {
     height: 100%;
 }
 
+/* Подпись OpenStreetMap: оставляем (требование лицензии), но делаем почти незаметной */
+.leaflet-container .leaflet-control-attribution {
+    background: transparent;
+    font-size: 9px;
+    line-height: 1.2;
+    padding: 0 4px;
+    opacity: 0.5;
+}
+
+.leaflet-container .leaflet-control-attribution,
+.leaflet-container .leaflet-control-attribution a {
+    color: var(--color-text-muted);
+}
+
 .map-route-note {
     position: absolute;
     left: 16px;
@@ -6193,6 +6346,32 @@ section[id] {
     font-size: 12px;
     color: var(--color-text-muted);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.map-add-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.map-add-popup__name {
+    padding: 6px 10px;
+    font-weight: 600;
+}
+
+.map-add-popup__loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.map-add-popup__address {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
 }
 
 .map-stop-popup-body {
@@ -6450,11 +6629,15 @@ section[id] {
 /* Место в списке можно выбрать кликом — его маркер подсветится на карте. */
 .plan-stop {
     cursor: pointer;
+    padding: 12px;
+    border-radius: 12px;
 }
 
+/* Полоса слева — у самого края, фото начинается после поля карточки и её не закрывает */
 .plan-stop--selected {
     background: #FBF3EA;
     box-shadow: inset 3px 0 0 var(--color-accent-orange);
+    border-radius: 4px 12px 12px 4px;
 }
 
 /* Узкий экран: колонки друг под другом, карта сверху (над списком) и уже не липкая. */
@@ -6472,6 +6655,194 @@ section[id] {
         order: 0;
         height: 360px;
         min-height: 0;
+    }
+}
+
+/* === ПЕРЕКЛЮЧАТЕЛЬ ДНЕЙ «‹ День 2 из 4 ▾ ›» ===
+   В сетке: слева сверху — переключатель, под ним список; карта справа на обе строки. */
+.day-switcher {
+    grid-column: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: -12px; /* Сетка даёт 32px между строками — переключатель ближе к своему списку */
+}
+
+.trip-plan-grid > .trip-plan__main-col {
+    grid-column: 1;
+}
+
+.trip-plan-grid > .trip-plan__map-col {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+}
+
+.day-switcher__arrow--off {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Название дня — кнопка, открывающая список; занимает всё место между стрелками. */
+.day-switcher__current {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.day-switcher__current:hover {
+    background: #F7F5F0;
+}
+
+.day-switcher__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.3;
+    color: var(--color-text-dark);
+}
+
+.day-switcher__caret {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    transition: transform 0.2s;
+}
+
+.day-switcher__caret.is-open {
+    transform: rotate(180deg);
+}
+
+.day-switcher__meta {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+/* Выпадающий список дней — в стиле меню «⋮» у места (.plan-stop__menu-list). */
+.day-switcher__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    width: min(400px, 100%);
+    max-height: 420px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(30, 38, 32, 0.12);
+}
+
+.day-switcher__menu-head {
+    padding: 6px 12px 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.day-switcher__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--color-text-dark);
+}
+
+.day-switcher__item:hover {
+    background: #F7F5F0;
+}
+
+.day-switcher__item.is-active {
+    background: #E8EFE5;
+}
+
+/* Номер дня в кружке; у выбранного — зелёный, как была активная карточка дня. */
+.day-switcher__item-number {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border-light);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.day-switcher__item.is-active .day-switcher__item-number {
+    background: var(--color-accent-green);
+    border-color: var(--color-accent-green);
+    color: var(--color-white);
+}
+
+.day-switcher__item-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.day-switcher__item-date {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Названия мест — в одну строку с многоточием, чтобы список не разъезжался. */
+.day-switcher__item-places {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.day-switcher__item-count {
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.day-switcher__edit {
+    margin-top: 4px;
+    padding: 10px 12px 6px;
+    border-top: 1px solid var(--color-border-light);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+/* Узкий экран: одна колонка — переключатель, под ним карта, под ней список. */
+@media (max-width: 1024px) {
+    .day-switcher {
+        order: -2;
+        margin-bottom: -16px;
+    }
+
+    .trip-plan-grid > .trip-plan__main-col,
+    .trip-plan-grid > .trip-plan__map-col {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .day-switcher__title {
+        font-size: 18px;
     }
 }
 
@@ -6814,4 +7185,19 @@ a.navbar__user-name:hover {
 /* Быстрые действия на главной админки — ссылки, а не кнопки: выравниваем текст как у кнопок макета. */
 a.quick-action-card {
   text-align: center;
+}
+
+.leaflet-control-attribution {
+    display: none;
+}
+
+/* Иконка способа передвижения в плане дня (вместо смайлика) */
+.plan-segment__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.travel-mode-icon {
+    flex: none;
 }

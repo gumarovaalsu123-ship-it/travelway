@@ -56,7 +56,6 @@ class PublicTripController extends Controller
                     'name' => $visit->place->name,
                     'address' => $visit->place->address,
                     // Описание самого места (из Википедии/OSM), а не личная заметка путешественника.
-                    'description' => $visit->place->description,
                     'category' => $visit->place->category?->name,
                     'lat' => $visit->place->latitude,
                     'lng' => $visit->place->longitude,

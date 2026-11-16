@@ -15,6 +15,22 @@ function daysBetween(startDate, endDate) {
 }
 
 /**
+ * Сегодняшняя дата в формате «2026-06-15» по местному времени (toISOString дал бы дату по UTC).
+ */
+function todayIso() {
+    const now = new Date();
+
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Более поздняя из двух дат: строки «ГГГГ-ММ-ДД» можно сравнивать как текст.
+ */
+function latestDate(first, second) {
+    return (first || '') > second ? first : second;
+}
+
+/**
  * Дата окончания поездки длиной daysCount дней, начиная со startDate (формат «2026-06-15»).
  */
 function endDateFor(startDate, daysCount) {
@@ -270,7 +286,7 @@ export default function TripForm({ trip, previousTrip = null }) {
                                         id="end_date"
                                         type="date"
                                         className="form-input form-input--filled"
-                                        min={data.start_date || undefined}
+                                        min={isEditing ? (data.start_date || undefined) : latestDate(data.start_date, todayIso())}
                                         value={data.end_date}
                                         onChange={(event) => setData('end_date', event.target.value)}
                                     />
@@ -329,7 +345,6 @@ export default function TripForm({ trip, previousTrip = null }) {
                             )}
 
                             <div className="form-actions">
-                                <Link href="/my-trips" className="btn btn--outline-dark">Отмена без сохранения</Link>
                                 <button type="submit" className="btn btn--solid-dark" disabled={processing}>
                                     {isEditing ? 'Сохранить изменения' : 'Создать и добавить места'}
                                 </button>

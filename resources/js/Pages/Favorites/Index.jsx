@@ -21,8 +21,7 @@ function FavoriteCard({ place }) {
             {place.address && place.address !== place.name && (
                 <p className="favorite-card__address">{place.address}</p>
             )}
-            {place.description && <p className="favorite-card__description">{place.description}</p>}
-            {(place.image || place.description) && <WikipediaCredit url={place.wikiUrl} />}
+            {place.image && <WikipediaCredit url={place.wikiUrl} />}
             <div className="favorite-card__actions">
                 <Link href={`/interactive-map?place=${place.id}`} className="btn btn--solid btn--sm">
                     Показать на карте

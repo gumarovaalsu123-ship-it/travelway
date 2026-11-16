@@ -60,7 +60,7 @@ class MapController extends Controller
         $place = Place::create([
             ...$request->safe()->only([
                 'name', 'category_id', 'address', 'latitude', 'longitude',
-                'image', 'description', 'opening_hours', 'website', 'phone', 'wiki_url',
+                'image', 'opening_hours', 'website', 'phone', 'wiki_url',
             ]),
             'user_id' => $user->id,
         ]);

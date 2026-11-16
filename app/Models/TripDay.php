@@ -76,26 +76,6 @@ class TripDay extends Model
     }
 
     /**
-     * Put the places of the day in order of their start time.
-     * Places without time go to the end and keep their previous order.
-     */
-    public function sortPlacesByTime(): void
-    {
-        $places = $this->tripPlaces()
-            ->reorder()
-            ->orderByRaw('start_time is null')
-            ->orderBy('start_time')
-            ->orderBy('visit_order')
-            ->get();
-
-        DB::transaction(function () use ($places) {
-            foreach ($places->values() as $index => $place) {
-                $place->update(['visit_order' => $index + 1]);
-            }
-        });
-    }
-
-    /**
      * Forget the calculated travel times of the day. Called when the order of places changes:
      * old segments would connect other places, so it is more honest to show nothing until the next calculation.
      */

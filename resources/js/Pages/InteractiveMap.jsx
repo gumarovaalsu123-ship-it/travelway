@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import AppLayout from '../Components/AppLayout';
@@ -87,7 +87,9 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
                 </header>
 
                 <div className="full-map-area mt-16">
-                    <MapContainer center={DEFAULT_CENTER} zoom={13} zoomControl={false} ref={setMap}>
+                    <MapContainer center={DEFAULT_CENTER} zoom={13} zoomControl={false} attributionControl={false} ref={setMap}>
+                        {/* Подпись OSM без префикса «Leaflet |» */}
+                        <AttributionControl prefix={false} />
                         <TileLayer
                             attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

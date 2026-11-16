@@ -13,7 +13,7 @@ use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
- * Trip covers from Wikipedia (App\Services\CityCover). The real Wikipedia is never called:
+ * Trip covers from Wikipedia and Wikidata (App\Services\CityCover). The real Wikimedia is never called:
  * Http::fake answers instead of it, preventStrayRequests fails the test on any other request.
  */
 class TripCoverTest extends TestCase
@@ -45,6 +45,16 @@ class TripCoverTest extends TestCase
             'originalimage' => ['source' => $original, 'width' => $width, 'height' => 800],
             'thumbnail' => ['source' => $thumbnail ?? $original, 'width' => 320, 'height' => 200],
         ];
+    }
+
+    /**
+     * One Wikidata statement: its value is a file name for P18 and {latitude, longitude} for P625.
+     *
+     * @return array{mainsnak: array{datavalue: array{value: mixed}}}
+     */
+    private function claim(mixed $value): array
+    {
+        return ['mainsnak' => ['datavalue' => ['value' => $value]]];
     }
 
     private function createTrip(string $destination): Trip
@@ -109,9 +119,36 @@ class TripCoverTest extends TestCase
         Http::fake([
             'ru.wikipedia.org/*' => Http::response($this->summary('https://example.com/kazan.jpg', 1200)),
             'en.wikipedia.org/*' => Http::response($this->summary('https://upload.wikimedia.org/wikipedia/commons/c/cc/Coat_of_Arms.svg', 500)),
+            'www.wikidata.org/*' => Http::response(['search' => []]),
         ]);
 
         $this->assertNull($this->createTrip('Казань')->cover_image);
+    }
+
+    public function test_photo_from_wikidata_is_used_when_wikipedia_has_none(): void
+    {
+        $thumbnail = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Pushkin_town.jpg/1280px-Pushkin_town.jpg';
+        Http::fake([
+            '*.wikipedia.org/*' => Http::response([], 404),
+            'www.wikidata.org/*' => Http::sequence()
+                ->push(['search' => [['id' => 'Q7200'], ['id' => 'Q172342']]])
+                ->push(['entities' => [
+                    // Поэт: фото есть, координат нет — это не точка на карте, пропускаем.
+                    'Q7200' => ['claims' => ['P18' => [$this->claim('Pushkin poet.jpg')]]],
+                    'Q172342' => ['claims' => [
+                        'P625' => [$this->claim(['latitude' => 59.72, 'longitude' => 30.41])],
+                        'P18' => [$this->claim('Pushkin town.jpg')],
+                    ]],
+                ]]),
+            'commons.wikimedia.org/*' => Http::response(['query' => ['pages' => [
+                ['imageinfo' => [['mime' => 'image/jpeg', 'url' => 'https://upload.wikimedia.org/wikipedia/commons/b/bb/Pushkin_town.jpg', 'thumburl' => $thumbnail]]],
+            ]]]),
+        ]);
+
+        $this->assertSame($thumbnail, $this->createTrip('Пушкин')->cover_image);
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'commons.wikimedia.org')
+            && $request['titles'] === 'File:Pushkin town.jpg'
+            && (int) $request['iiurlwidth'] === 1280);
     }
 
     public function test_cover_is_refreshed_only_when_the_city_changes(): void

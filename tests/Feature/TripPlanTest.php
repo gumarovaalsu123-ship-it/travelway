@@ -45,7 +45,6 @@ class TripPlanTest extends TestCase
     public function test_owner_sees_selected_day_with_places_in_order(): void
     {
         $second = $this->day(2);
-        $second->update(['title' => 'Знакомство с городом']);
         $later = $second->addPlace(Place::factory()->create(['name' => 'Музей']));
         $second->addPlace(Place::factory()->create(['name' => 'Кафе']));
         $later->update(['start_time' => '10:00', 'end_time' => '11:30', 'note' => 'Взять билеты']);
@@ -59,14 +58,31 @@ class TripPlanTest extends TestCase
                 ->has('days', 3)
                 ->where('days.1.placesCount', 2)
                 ->where('days.0.placesCount', 0)
+                ->where('days.1.placeNames', ['Музей', 'Кафе'])
+                ->where('days.0.placeNames', [])
                 ->where('selectedDay.number', 2)
-                ->where('selectedDay.title', 'Знакомство с городом')
                 ->where('selectedDay.places.0.name', 'Музей')
                 ->where('selectedDay.places.0.startTime', '10:00')
                 ->where('selectedDay.places.0.endTime', '11:30')
                 ->where('selectedDay.places.0.note', 'Взять билеты')
                 ->where('selectedDay.places.1.name', 'Кафе')
                 ->where('selectedDay.places.1.startTime', null));
+    }
+
+    public function test_empty_day_map_is_centered_on_a_place_of_the_trip(): void
+    {
+        // Пока в поездке нет точек, центр карты браузер ищет по городу.
+        $this->actingAs($this->user)
+            ->get($this->planUrl('/plan?day=1'))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('mapCenter', null));
+
+        $this->day(2)->addPlace(Place::factory()->create(['latitude' => 55.79, 'longitude' => 49.11]));
+
+        // День 1 пустой, но на карте можно кликнуть рядом с местом из другого дня.
+        $this->get($this->planUrl('/plan?day=1'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('selectedDay.places', [])
+                ->where('mapCenter', ['lat' => 55.79, 'lng' => 49.11]));
     }
 
     public function test_stranger_cannot_open_the_plan(): void
@@ -111,64 +127,21 @@ class TripPlanTest extends TestCase
                 ->where('selectedDay.date', null));
     }
 
-    public function test_plan_lists_only_own_favorites(): void
+    public function test_plan_lists_only_own_favorites_with_coordinates(): void
     {
-        $favorite = Place::factory()->create(['name' => 'Мой любимый парк']);
+        $favorite = Place::factory()->create(['name' => 'Мой любимый парк', 'latitude' => 55.7887, 'longitude' => 49.1221]);
         $this->user->favoritePlaces()->attach($favorite);
         User::factory()->create()->favoritePlaces()->attach(Place::factory()->create());
 
+        // Координаты нужны браузеру: он оставляет в списке только места внутри города поездки.
         $this->actingAs($this->user)
             ->get($this->planUrl('/plan'))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->has('favorites', 1)
                 ->where('favorites.0.id', $favorite->id)
-                ->where('favorites.0.name', 'Мой любимый парк'));
-    }
-
-    // --- Шаг 2. Название дня ---
-
-    public function test_owner_can_rename_day_and_clear_the_title(): void
-    {
-        $day = $this->day(1);
-
-        $this->actingAs($this->user)
-            ->patch($this->planUrl("/days/{$day->id}"), ['title' => 'Прогулка по центру'])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect();
-        $this->assertSame('Прогулка по центру', $day->fresh()->title);
-
-        // Пустая строка сохраняется как null — тогда на странице просто «День 1».
-        $this->patch($this->planUrl("/days/{$day->id}"), ['title' => ''])->assertSessionHasNoErrors();
-        $this->assertNull($day->fresh()->title);
-    }
-
-    public function test_day_title_is_limited_to_100_characters(): void
-    {
-        $day = $this->day(1);
-
-        $this->actingAs($this->user)
-            ->patch($this->planUrl("/days/{$day->id}"), ['title' => str_repeat('а', 101)])
-            ->assertSessionHasErrors('title');
-
-        $this->assertNull($day->fresh()->title);
-    }
-
-    public function test_stranger_cannot_rename_day_and_day_of_another_trip_is_not_found(): void
-    {
-        $day = $this->day(1);
-
-        $this->actingAs(User::factory()->create())
-            ->patch($this->planUrl("/days/{$day->id}"), ['title' => 'Чужое'])
-            ->assertForbidden();
-
-        $foreignDay = Trip::factory()->create()->days()->first();
-
-        $this->actingAs($this->user)
-            ->patch($this->planUrl("/days/{$foreignDay->id}"), ['title' => 'Чужое'])
-            ->assertNotFound();
-
-        $this->assertNull($day->fresh()->title);
-        $this->assertNull($foreignDay->fresh()->title);
+                ->where('favorites.0.name', 'Мой любимый парк')
+                ->where('favorites.0.lat', 55.7887)
+                ->where('favorites.0.lng', 49.1221));
     }
 
     // --- Шаг 3. Время и заметка ---
@@ -374,32 +347,5 @@ class TripPlanTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame(['Первое', 'Из избранного'], $this->placeNames($day));
-    }
-
-    // --- Шаг 9. Упорядочить по времени ---
-
-    public function test_places_can_be_sorted_by_time_with_untimed_places_last(): void
-    {
-        $day = $this->day(1);
-        $day->addPlace(Place::factory()->create(['name' => 'Без времени 1']));
-        $day->addPlace(Place::factory()->create(['name' => 'Обед']), '13:00');
-        $day->addPlace(Place::factory()->create(['name' => 'Без времени 2']));
-        $day->addPlace(Place::factory()->create(['name' => 'Завтрак']), '09:00');
-
-        $this->actingAs($this->user)
-            ->post($this->planUrl("/days/{$day->id}/sort-by-time"))
-            ->assertRedirect();
-
-        $this->assertSame(['Завтрак', 'Обед', 'Без времени 1', 'Без времени 2'], $this->placeNames($day));
-        $this->assertSame([1, 2, 3, 4], $day->tripPlaces()->pluck('visit_order')->all());
-    }
-
-    public function test_stranger_cannot_sort_the_day(): void
-    {
-        $day = $this->day(1);
-
-        $this->actingAs(User::factory()->create())
-            ->post($this->planUrl("/days/{$day->id}/sort-by-time"))
-            ->assertForbidden();
     }
 }

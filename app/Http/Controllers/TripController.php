@@ -82,9 +82,9 @@ class TripController extends Controller
         // Обложку ищем уже после сохранения: если Википедия не ответит, поездка всё равно создана.
         $trip->refreshCover();
 
-        Inertia::flash('toast', "Путешествие «{$trip->title}» создано. Добавьте в него места на карте.");
+        Inertia::flash('toast', "Путешествие «{$trip->title}» создано.");
 
-        return to_route('map.index');
+        return to_route('trips.show', $trip);
     }
 
     /**

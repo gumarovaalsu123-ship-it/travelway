@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import AddPlaceOnMap from './AddPlaceOnMap';
 import CustomZoomControl from '../Map/UI/CustomZoomControl';
 import FitToPlaces from '../Map/Logic/FitToPlaces';
 import Loader from '../Loader';
 import useRouteLines from '../Map/Logic/useRouteLines';
 import { lodgingIcon, stopIcon } from '../../utils/mapIcons';
 import { dayLodgings, dayRoute } from '../../utils/dayRoute';
+import { findArea } from '../../utils/geocoding';
 import { timeLabel } from '../../utils/travel';
 
 /**
@@ -17,12 +19,15 @@ import { timeLabel } from '../../utils/travel';
  *
  * selectedPlaceId — место, выбранное в списке: его маркер подсвечен, карта сдвигается к нему.
  * onMarkerClick(id) — нажали на маркер: страница подсвечивает место в списке и прокручивает к нему.
+ * categories — передаёт только вкладка «План» владельца: тогда кликом по карте можно добавить место (AddPlaceOnMap).
+ * emptyCenter / destination — куда смотреть карте, если в дне пока ничего нет: точка поездки с сервера,
+ * а если её нет — город поездки, найденный по названию в Nominatim.
  *
  * Страница создаёт компонент заново при смене дня (key), поэтому масштаб карты сбрасывается сам.
  * После изменений плана (↑↓, перенос, добавление, расчёт) сервер присылает новые места — номера и линия
  * пересчитываются из них же.
  */
-export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onMarkerClick }) {
+export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onMarkerClick, categories, emptyCenter, destination }) {
     const [map, setMap] = useState(null);
     const markerRefs = useRef({});
     const focusMarkerRef = useRef(null);
@@ -34,6 +39,29 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
 
     // В дне может не быть ни мест, ни жилья — тогда карту строим вокруг одного жилья из «Показать на карте».
     const mapPoints = points.length > 0 ? points : lodgings;
+    const canAddPlaces = Boolean(tripId && categories);
+
+    // Пустой день у владельца: карту всё равно показываем — на ней добавляют первое место.
+    const [foundCenter, setFoundCenter] = useState(null);
+    const needsCityCenter = canAddPlaces && mapPoints.length === 0 && !emptyCenter && Boolean(destination);
+
+    useEffect(() => {
+        if (!needsCityCenter) {
+            return undefined;
+        }
+
+        // Тот же запрос делает список избранного в Plan.jsx — findArea отдаст обоим один ответ.
+        let isActive = true;
+        findArea(destination)
+            .then((city) => isActive && city && setFoundCenter({ lat: city.lat, lng: city.lng }))
+            .catch(() => {}); // Не нашли город — останется подсказка вместо карты.
+
+        return () => {
+            isActive = false;
+        };
+    }, [needsCityCenter, destination]);
+
+    const center = mapPoints[0] ?? (canAddPlaces ? emptyCenter ?? foundCenter : null);
 
     // Выбрали место в списке (или нажали на маркер) — показываем его на карте и открываем подпись.
     useEffect(() => {
@@ -52,21 +80,26 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
         }
     }, [map, focusLodging]);
 
-    if (mapPoints.length === 0) {
+    if (!center) {
         return (
             <div className="day-map day-map--empty">
-                <p className="form-hint">Добавьте места в этот день — здесь появится маршрут на карте.</p>
+                <p className="form-hint">
+                    {needsCityCenter ? 'Ищем город поездки на карте…' : 'Добавьте места в этот день — здесь появится маршрут на карте.'}
+                </p>
             </div>
         );
     }
 
     return (
         <div className="day-map map-interactive-area">
-            <MapContainer center={[mapPoints[0].lat, mapPoints[0].lng]} zoom={13} zoomControl={false} ref={setMap}>
+            <MapContainer center={[center.lat, center.lng]} zoom={13} zoomControl={false} attributionControl={false} ref={setMap}>
+                {/* Подпись OSM без префикса «Leaflet |» */}
+                <AttributionControl prefix={false} />
                 <TileLayer
                     attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                {canAddPlaces && <AddPlaceOnMap tripId={tripId} day={day} categories={categories} />}
 
                 {/* Вписываем карту во все точки дня, при переходе к жилью — центрируем на нём.
                     key: добавили или убрали место — вписываем заново, чтобы новое место было видно. */}

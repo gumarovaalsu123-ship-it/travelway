@@ -54,8 +54,6 @@ Route::middleware('auth')->group(function () {
     // План по дням. scopeBindings: {day} ищется среди дней этой поездки, {tripPlace} — среди её мест, иначе 404.
     // Убрать место из плана — существующий trip-places.destroy (ниже).
     Route::scopeBindings()->prefix('/my-trips/{trip}')->name('trips.')->controller(TripPlanController::class)->group(function () {
-        Route::patch('/days/{day}', 'updateDay')->name('days.update');
-        Route::post('/days/{day}/sort-by-time', 'sortByTime')->name('days.sort-by-time');
         Route::post('/days/{day}/schedule', 'calculateSchedule')->name('days.schedule');
         // Место, найденное подсказками Overpass («Что по пути?», «Пора пообедать?»), — сразу в нужное место дня.
         Route::post('/days/{day}/places', 'storePlace')->name('days.places.store');

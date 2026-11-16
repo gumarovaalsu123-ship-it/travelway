@@ -132,7 +132,6 @@ export default function PublicTrip({ trip, days, transports, accommodations }) {
                                                 {place.address && place.address !== place.name && (
                                                     <p className="public-place__address">{place.address}</p>
                                                 )}
-                                                {place.description && <p className="public-place__desc">{place.description}</p>}
                                                 {place.category && (
                                                     <div className="public-place__tags">
                                                         <span className="place-tag">{place.category}</span>

@@ -189,6 +189,56 @@ export async function searchPlaces(text, map, signal) {
         .slice(0, 6);
 }
 
+// Найденные города (страны) по названию: одна поездка — один запрос, даже если город нужен и карте, и списку избранного.
+const areaRequests = new Map();
+
+// Запас вокруг рамки, в градусах (~30 км): чтобы в поездку можно было взять и пригород (Свияжск у Казани, Петергоф у Петербурга).
+const AREA_MARGIN = 0.3;
+
+/**
+ * Город или страна по названию: центр и рамка (boundingbox) от Nominatim. null — ничего не нашли.
+ * Рамка — четыре числа: самая южная и северная широта, самая западная и восточная долгота.
+ */
+export function findArea(text) {
+    if (!areaRequests.has(text)) {
+        const promise = request('search', { q: text, limit: '1' })
+            .then(([result]) => {
+                if (!result?.boundingbox) {
+                    return null;
+                }
+
+                const [south, north, west, east] = result.boundingbox.map(Number);
+
+                return {
+                    lat: Number(result.lat),
+                    lng: Number(result.lon),
+                    bounds: { south: south - AREA_MARGIN, north: north + AREA_MARGIN, west: west - AREA_MARGIN, east: east + AREA_MARGIN },
+                };
+            })
+            .catch((error) => {
+                areaRequests.delete(text); // Сеть или таймаут — при следующем открытии спросим ещё раз.
+                throw error;
+            });
+
+        areaRequests.set(text, promise);
+    }
+
+    return areaRequests.get(text);
+}
+
+/**
+ * Лежит ли точка внутри рамки из findArea.
+ * Если west > east, рамка пересекает 180-й меридиан (так бывает у России) — долгота подходит с любой его стороны.
+ */
+export function isInsideArea(bounds, lat, lng) {
+    const fitsLatitude = lat >= bounds.south && lat <= bounds.north;
+    const fitsLongitude = bounds.west <= bounds.east
+        ? lng >= bounds.west && lng <= bounds.east
+        : lng >= bounds.west || lng <= bounds.east;
+
+    return fitsLatitude && fitsLongitude;
+}
+
 /**
  * Какие объекты OpenStreetMap подходят как пункт отправления/прибытия для вида транспорта:
  * keyword — слово, которое добавляем к запросу («вокзал Казань» Nominatim понимает лучше, чем просто «Казань»),
@@ -241,28 +291,15 @@ export async function searchStations(text, transportType, signal) {
 }
 
 const WIKIPEDIA_TIMEOUT_MS = 4000;
-const DESCRIPTION_LENGTH = 500;
-
-/** Обрезаем описание по границе слова, чтобы карточки были одинаково компактными. */
-function shortDescription(text) {
-    if (!text || text.length <= DESCRIPTION_LENGTH) {
-        return text || null;
-    }
-
-    const cut = text.slice(0, DESCRIPTION_LENGTH);
-
-    return `${cut.slice(0, cut.lastIndexOf(' ')).trimEnd()}…`;
-}
-
 /**
- * Фото и краткое описание статьи Википедии по тегу «ru:Казанский кремль».
+ * Фото из статьи Википедии по тегу «ru:Казанский кремль».
  * Любая ошибка (нет статьи, сеть, таймаут 4 с) означает просто «данных нет» — пользователю её не показываем.
  * signal — отмена снаружи: форму закрыли или кликнули в другую точку.
  */
 const WIKIMEDIA_IMAGE = /^https:\/\/(upload|thumb)\.wikimedia\.org\//;
 
 export async function fetchWikipediaSummary(wikipediaTag, signal) {
-    const empty = { image: null, description: null };
+    const empty = { image: null };
     const article = parseWikipediaTag(wikipediaTag);
 
     if (!article) {
@@ -291,7 +328,6 @@ export async function fetchWikipediaSummary(wikipediaTag, signal) {
             // Сервер принимает фото только с серверов картинок Википедии
             // (upload.wikimedia.org или thumb.wikimedia.org) — другие ссылки сразу отбрасываем.
             image: WIKIMEDIA_IMAGE.test(image ?? '') ? image : null,
-            description: summary.type === 'disambiguation' ? null : shortDescription(summary.extract),
         };
     } catch {
         return empty;

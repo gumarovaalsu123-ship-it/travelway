@@ -7,6 +7,7 @@ use App\Models\Trip;
 use App\Models\User;
 use App\Services\TripReadiness;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
@@ -28,7 +29,13 @@ class TripChainTest extends TestCase
 
         // При создании поездки ищется обложка в Википедии (TripCoverTest) — здесь отвечаем «не найдено».
         Http::preventStrayRequests();
-        Http::fake(['*.wikipedia.org/*' => Http::response([], 404)]);
+        Http::fake([
+            '*.wikipedia.org/*' => Http::response([], 404),
+            'www.wikidata.org/*' => Http::response(['search' => []]),
+        ]);
+
+        // Поездки в июне 2026 — «сегодня» до них, иначе новую поездку в цепочке не создать (она была бы в прошлом).
+        Carbon::setTestNow('2026-06-10');
 
         $this->user = User::factory()->create();
         $this->kazan = Trip::factory()->for($this->user)->create([

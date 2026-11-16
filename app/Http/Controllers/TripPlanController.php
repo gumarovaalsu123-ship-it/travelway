@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CalculateDayScheduleRequest;
 use App\Http\Requests\ChangeTripPlaceDayRequest;
 use App\Http\Requests\StoreDayPlaceRequest;
-use App\Http\Requests\UpdateTripDayRequest;
 use App\Http\Requests\UpdateTripPlaceRequest;
 use App\Models\Accommodation;
 use App\Models\Place;
@@ -33,7 +32,8 @@ class TripPlanController extends Controller
     {
         Gate::authorize('view', $trip);
 
-        $days = $trip->days()->withCount('tripPlaces')->get();
+        // Названия мест каждого дня — для выпадающего списка дней (только id и name, одним запросом).
+        $days = $trip->days()->withCount('tripPlaces')->with('tripPlaces.place:id,name')->get();
 
         // «Показать на карте» на вкладке «Проживание» ведёт сюда с ?lodging=id: это жильё подсвечиваем на карте.
         // Ищем только среди жилья этой поездки и только с координатами — иначе показать нечего.
@@ -56,14 +56,13 @@ class TripPlanController extends Controller
                 'id' => $day->id,
                 'number' => $day->day_number,
                 'date' => $day->date?->toDateString(),
-                'title' => $day->title,
                 'placesCount' => $day->trip_places_count,
+                'placeNames' => $day->tripPlaces->pluck('place.name')->values(),
             ])->values(),
             'selectedDay' => $selectedDay ? [
                 'id' => $selectedDay->id,
                 'number' => $selectedDay->day_number,
                 'date' => $selectedDay->date?->toDateString(),
-                'title' => $selectedDay->title,
                 // Начало дня, которое выбрал человек (null — по умолчанию), и то, от которого считается расписание.
                 'startTime' => $selectedDay->start_time ? substr($selectedDay->start_time, 0, 5) : null,
                 'scheduleStartTime' => $summary['startTime'],
@@ -118,8 +117,14 @@ class TripPlanController extends Controller
                     'name' => $place->name,
                     'address' => $place->address,
                     'category' => $place->category?->name,
+                    // По координатам Plan.jsx оставляет в списке только места в городе (стране) поездки.
+                    'lat' => $place->latitude,
+                    'lng' => $place->longitude,
                 ]),
             'focusLodging' => $this->lodging($focusLodging),
+            // Центр карты для пустого дня, чтобы было куда кликнуть и добавить первое место:
+            // любое место или жильё этой поездки. null — браузер найдёт город поездки по названию.
+            'mapCenter' => $this->mapCenter($trip),
         ]);
     }
 
@@ -135,6 +140,24 @@ class TripPlanController extends Controller
         $daysFromStart = (int) $trip->start_date->diffInDays($lodging->check_in->copy()->startOfDay(), false);
 
         return max($daysFromStart, 0) + 1;
+    }
+
+    /**
+     * Любая точка поездки с координатами: сначала места из плана, потом жильё.
+     *
+     * @return array{lat: float, lng: float}|null
+     */
+    private function mapCenter(Trip $trip): ?array
+    {
+        $place = $trip->tripPlaces()->with('place')->first()?->place;
+
+        if ($place !== null) {
+            return ['lat' => $place->latitude, 'lng' => $place->longitude];
+        }
+
+        $lodging = $trip->accommodations()->whereNotNull('latitude')->first();
+
+        return $lodging ? ['lat' => $lodging->latitude, 'lng' => $lodging->longitude] : null;
     }
 
     /**
@@ -155,18 +178,6 @@ class TripPlanController extends Controller
             'lat' => $lodging->latitude,
             'lng' => $lodging->longitude,
         ];
-    }
-
-    /**
-     * Rename the day, for example "Знакомство с Алфамой". An empty title means just "День N".
-     */
-    public function updateDay(UpdateTripDayRequest $request, Trip $trip, TripDay $day): RedirectResponse
-    {
-        Gate::authorize('update', $trip);
-
-        $day->update($request->validated());
-
-        return back();
     }
 
     /**
@@ -255,21 +266,6 @@ class TripPlanController extends Controller
         $day->forgetTravelTimes();
 
         Inertia::flash('toast', "Место перенесено в день {$day->day_number}.");
-
-        return back();
-    }
-
-    /**
-     * Put the places of the day in order of their start time; places without time go to the end.
-     */
-    public function sortByTime(Trip $trip, TripDay $day): RedirectResponse
-    {
-        Gate::authorize('update', $trip);
-
-        $day->sortPlacesByTime();
-        $day->forgetTravelTimes();
-
-        Inertia::flash('toast', 'Места упорядочены по времени.');
 
         return back();
     }

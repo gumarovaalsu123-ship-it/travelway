@@ -139,11 +139,6 @@ class DayScheduleTest extends TestCase
         $this->assertSame(['12:12', '13:12', 12, 'walk'], [$this->time($cafe->start_time), $this->time($cafe->end_time), $cafe->travel_minutes, $cafe->calculated_mode]);
         // Машина не понадобилась — к серверу был один запрос.
         Http::assertSentCount(1);
-
-        // Ссылка на Яндекс.Карты есть у любого способа: пешком — rtt=pd.
-        $this->actingAs($this->user)->get($this->url('/plan?day=1'))
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('selectedDay.places.1.segment.yandexUrl', fn (string $url) => str_ends_with($url, '&rtt=pd')));
     }
 
     public function test_start_time_of_the_day_is_saved_and_own_stay_minutes_are_used(): void
@@ -179,7 +174,7 @@ class DayScheduleTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('selectedDay.places.1.segment.mode', 'transit')
                 ->where('selectedDay.places.1.segment.approximate', true)
-                ->where('selectedDay.places.1.segment.yandexUrl', fn (string $url) => str_starts_with($url, 'https://yandex.ru/maps/?rtext=') && str_ends_with($url, '&rtt=mt')));
+                ->missing('selectedDay.places.1.segment.yandexUrl'));
     }
 
     public function test_far_segment_goes_by_car_when_traveller_came_in_own_car(): void

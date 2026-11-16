@@ -140,7 +140,7 @@ class DaySchedule
      * @return array{
      *     startTime: string,
      *     isCalculated: bool,
-     *     places: array<int, array{segment: ?array{mode: ?string, minutes: int, approximate: bool, yandexUrl: ?string}, lateMinutes: ?int, freeMinutes: ?int}>,
+     *     places: array<int, array{segment: ?array{mode: ?string, minutes: int, approximate: bool}, lateMinutes: ?int, freeMinutes: ?int}>,
      *     returnSegment: ?array{mode: ?string, minutes: int, approximate: bool, lodging: string},
      *     endTime: ?string,
      *     travelMinutes: int,
@@ -162,10 +162,8 @@ class DaySchedule
         $places = [];
         $travelMinutes = (int) $day->return_minutes;
         $previousEnd = self::toMinutes($startTime);
-        $previousPoint = $morningLodging ? [$morningLodging->latitude, $morningLodging->longitude] : null;
 
         foreach ($visits as $visit) {
-            $point = [$visit->place->latitude, $visit->place->longitude];
             $segment = null;
             $lateMinutes = null;
             $freeMinutes = null;
@@ -175,9 +173,8 @@ class DaySchedule
                 $segment = [
                     'mode' => $visit->calculated_mode,
                     'minutes' => $visit->travel_minutes,
-                    // Время на общественном транспорте — только оценка, поэтому «≈» и ссылка на точный маршрут.
+                    // Время на общественном транспорте — только оценка, поэтому «≈». Точный маршрут — кнопки «Весь маршрут дня».
                     'approximate' => $visit->calculated_mode === 'transit',
-                    'yandexUrl' => $previousPoint ? self::yandexRouteUrl([$previousPoint, $point], $visit->calculated_mode) : null,
                 ];
             }
 
@@ -190,7 +187,6 @@ class DaySchedule
 
             $places[$visit->id] = ['segment' => $segment, 'lateMinutes' => $lateMinutes, 'freeMinutes' => $freeMinutes];
             $previousEnd = $visit->end_time ? self::toMinutes($visit->end_time) : null;
-            $previousPoint = $point;
         }
 
         $returnSegment = null;
@@ -375,30 +371,6 @@ class DaySchedule
             ->map(fn (Transport $transport) => 'До отправления в '.$transport->departure_at->format('H:i').' остаётся меньше часа — уберите место или начните день раньше.')
             ->values()
             ->all();
-    }
-
-    /**
-     * Yandex Maps route type (parameter rtt) for our travel modes.
-     */
-    public const YandexRouteTypes = [
-        'walk' => 'pd',
-        'transit' => 'mt',
-        'car' => 'auto',
-        'taxi' => 'taxi',
-    ];
-
-    /**
-     * Link to the exact route in Yandex Maps — an ordinary URL with coordinates, no API.
-     *
-     * @param  array<int, array{0: float, 1: float}>  $points  two or more points in order
-     */
-    public static function yandexRouteUrl(array $points, ?string $mode): string
-    {
-        // rtext — точки через «~» в формате «широта,долгота», rtt — способ: pd пешком, mt транспорт, auto машина.
-        $text = implode('~', array_map(fn (array $point) => "{$point[0]},{$point[1]}", $points));
-        $type = self::YandexRouteTypes[$mode] ?? self::YandexRouteTypes['walk'];
-
-        return "https://yandex.ru/maps/?rtext={$text}&rtt={$type}";
     }
 
     /**

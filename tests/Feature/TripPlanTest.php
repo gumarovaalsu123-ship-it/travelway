@@ -151,17 +151,18 @@ class TripPlanTest extends TestCase
         $visit = $this->day(1)->addPlace(Place::factory()->create());
 
         $this->actingAs($this->user)
-            ->patch($this->planUrl("/trip-places/{$visit->id}"), ['start_time' => '10:00', 'end_time' => '11:30', 'note' => 'Купить билеты заранее'])
+            ->patch($this->planUrl("/trip-places/{$visit->id}"), ['start_time' => '10:00', 'stay_minutes' => 90, 'note' => 'Купить билеты заранее'])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
         $visit->refresh();
         // В MySQL время хранится как «10:00:00», поэтому сравниваем первые пять символов.
         $this->assertSame('10:00', substr($visit->start_time, 0, 5));
+        // Окончание не вводится: начало + время на месте.
         $this->assertSame('11:30', substr($visit->end_time, 0, 5));
         $this->assertSame('Купить билеты заранее', $visit->note);
 
-        $this->patch($this->planUrl("/trip-places/{$visit->id}"), ['start_time' => '', 'end_time' => '', 'note' => ''])
+        $this->patch($this->planUrl("/trip-places/{$visit->id}"), ['start_time' => '', 'note' => ''])
             ->assertSessionHasNoErrors();
 
         $visit->refresh();
@@ -176,11 +177,8 @@ class TripPlanTest extends TestCase
         $url = $this->planUrl("/trip-places/{$visit->id}");
 
         $this->actingAs($this->user)
-            ->patch($url, ['start_time' => '12:00', 'end_time' => '11:00'])
-            ->assertSessionHasErrors(['end_time' => 'Окончание должно быть позже начала.']);
-
-        $this->patch($url, ['start_time' => '', 'end_time' => '11:00'])
-            ->assertSessionHasErrors('start_time');
+            ->patch($url, ['start_time' => '', 'time_locked' => true])
+            ->assertSessionHasErrors(['start_time' => 'Чтобы закрепить время, укажите начало.']);
 
         $this->patch($url, ['start_time' => '25:00'])
             ->assertSessionHasErrors('start_time');
@@ -281,15 +279,20 @@ class TripPlanTest extends TestCase
 
     // --- Шаг 5. Перенос в другой день ---
 
-    public function test_place_moves_to_the_end_of_another_day_with_its_time_and_note(): void
+    public function test_save_moves_the_place_to_the_end_of_another_day_together_with_form_changes(): void
     {
         $visit = $this->day(1)->addPlace(Place::factory()->create(['name' => 'Переезжает']));
-        $visit->update(['start_time' => '15:00', 'note' => 'Заметка']);
         $target = $this->day(3);
         $target->addPlace(Place::factory()->create(['name' => 'Уже там']));
 
+        // Одно «Сохранить»: и правки формы, и новый день — ничего не теряется.
         $this->actingAs($this->user)
-            ->patch($this->planUrl("/trip-places/{$visit->id}/day"), ['trip_day_id' => $target->id])
+            ->patch($this->planUrl("/trip-places/{$visit->id}"), [
+                'start_time' => '15:00',
+                'note' => 'Заметка',
+                'needs_booking' => true,
+                'trip_day_id' => $target->id,
+            ])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
@@ -298,26 +301,45 @@ class TripPlanTest extends TestCase
         $this->assertSame(2, $visit->visit_order);
         $this->assertSame('15:00', substr($visit->start_time, 0, 5));
         $this->assertSame('Заметка', $visit->note);
+        $this->assertTrue($visit->needs_booking);
         $this->assertSame(['Уже там', 'Переезжает'], $this->placeNames($target));
     }
 
-    public function test_place_cannot_move_to_a_day_of_another_trip_or_to_the_same_day(): void
+    public function test_place_cannot_move_to_a_day_of_another_trip_and_the_same_day_keeps_its_order(): void
     {
         $day = $this->day(1);
         $visit = $day->addPlace(Place::factory()->create());
+        $day->addPlace(Place::factory()->create());
         $foreignDay = Trip::factory()->create()->days()->first();
 
         $this->actingAs($this->user)
-            ->patch($this->planUrl("/trip-places/{$visit->id}/day"), ['trip_day_id' => $foreignDay->id])
+            ->patch($this->planUrl("/trip-places/{$visit->id}"), ['trip_day_id' => $foreignDay->id, 'note' => 'Не сохранится'])
             ->assertSessionHasErrors('trip_day_id');
 
-        $this->patch($this->planUrl("/trip-places/{$visit->id}/day"), ['trip_day_id' => $day->id])
-            ->assertSessionHasErrors('trip_day_id');
+        $this->assertNull($visit->fresh()->note);
 
-        $this->patch($this->planUrl("/trip-places/{$visit->id}/day"), [])
-            ->assertSessionHasErrors('trip_day_id');
+        // Тот же день — это не перенос: место не уезжает в конец списка.
+        $this->patch($this->planUrl("/trip-places/{$visit->id}"), ['trip_day_id' => $day->id, 'note' => 'Сохранится'])
+            ->assertSessionHasNoErrors();
 
-        $this->assertSame($day->id, $visit->fresh()->trip_day_id);
+        $visit->refresh();
+        $this->assertSame($day->id, $visit->trip_day_id);
+        $this->assertSame(1, $visit->visit_order);
+        $this->assertSame('Сохранится', $visit->note);
+    }
+
+    public function test_unchecking_booking_in_the_form_clears_bought_mark(): void
+    {
+        $visit = $this->day(1)->addPlace(Place::factory()->create());
+        $visit->update(['needs_booking' => true, 'is_booked' => true]);
+
+        $this->actingAs($this->user)
+            ->patch($this->planUrl("/trip-places/{$visit->id}"), ['needs_booking' => false])
+            ->assertSessionHasNoErrors();
+
+        $visit->refresh();
+        $this->assertFalse($visit->needs_booking);
+        $this->assertFalse($visit->is_booked);
     }
 
     public function test_stranger_cannot_move_a_place(): void
@@ -325,7 +347,7 @@ class TripPlanTest extends TestCase
         $visit = $this->day(1)->addPlace(Place::factory()->create());
 
         $this->actingAs(User::factory()->create())
-            ->patch($this->planUrl("/trip-places/{$visit->id}/day"), ['trip_day_id' => $this->day(2)->id])
+            ->patch($this->planUrl("/trip-places/{$visit->id}"), ['trip_day_id' => $this->day(2)->id])
             ->assertForbidden();
 
         $this->actingAs(User::factory()->create())

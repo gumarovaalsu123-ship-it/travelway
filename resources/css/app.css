@@ -5646,6 +5646,14 @@ section[id] {
     margin-left: auto;
 }
 
+/* Подпись под крупной цифрой, чтобы было ясно, что это время на месте, а не в пути */
+.plan-stop__stay-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
 /* Время уже оттолкнуло всё вправо — колонке стрелок отступ не нужен */
 .plan-stop__stay + .plan-stop__side {
     margin-left: 0;

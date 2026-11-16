@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CalculateDayScheduleRequest;
-use App\Http\Requests\ChangeTripPlaceDayRequest;
 use App\Http\Requests\StoreDayPlaceRequest;
 use App\Http\Requests\UpdateTripPlaceRequest;
 use App\Models\Accommodation;
@@ -15,6 +14,7 @@ use App\Models\TripPlace;
 use App\Services\DaySchedule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -181,13 +181,14 @@ class TripPlanController extends Controller
     }
 
     /**
-     * Change the visit time and the note of a place in the plan.
+     * The "Сохранить" button of the "Изменить" window: time, time on the place, way to get there, note,
+     * the booking question and the day — everything in one request, so nothing typed in the form is lost.
      */
     public function update(UpdateTripPlaceRequest $request, Trip $trip, TripPlace $tripPlace): RedirectResponse
     {
         Gate::authorize('update', $trip);
 
-        $tripPlace->fill($request->validated());
+        $tripPlace->fill($request->safe()->except('trip_day_id'));
 
         // Сменили способ — старое время в пути к нему больше не подходит, его покажет следующий расчёт.
         if ($tripPlace->isDirty('travel_mode')) {
@@ -195,9 +196,34 @@ class TripPlanController extends Controller
             $tripPlace->calculated_mode = null;
         }
 
-        $tripPlace->save();
+        // Билет больше не нужен — значит, и «куплено» не о чем.
+        if (! $tripPlace->needs_booking) {
+            $tripPlace->is_booked = false;
+        }
 
-        Inertia::flash('toast', 'Изменения сохранены.');
+        // Окончание не вводится: это всегда начало + время на месте (так же считает DaySchedule).
+        $tripPlace->end_time = $tripPlace->start_time
+            ? DaySchedule::formatTime(DaySchedule::toMinutes($tripPlace->start_time) + $tripPlace->stayMinutes())
+            : null;
+
+        $newDay = $trip->days()->find($request->validated('trip_day_id'));
+        $isMoving = $newDay !== null && $newDay->id !== $tripPlace->trip_day_id;
+
+        // Транзакция: правки и перенос сохраняются вместе или не сохраняются вовсе.
+        DB::transaction(function () use ($tripPlace, $newDay, $isMoving) {
+            $tripPlace->save();
+
+            if ($isMoving) {
+                $previousDay = $tripPlace->day;
+                $tripPlace->moveToDay($newDay);
+
+                // Порядок поменялся в обоих днях — старые отрезки соединяли бы не те места.
+                $previousDay->forgetTravelTimes();
+                $newDay->forgetTravelTimes();
+            }
+        });
+
+        Inertia::flash('toast', $isMoving ? "Изменения сохранены, место перенесено в день {$newDay->day_number}." : 'Изменения сохранены.');
 
         return back();
     }
@@ -246,26 +272,6 @@ class TripPlanController extends Controller
         }
 
         $tripPlace->day->forgetTravelTimes();
-
-        return back();
-    }
-
-    /**
-     * Move the place to the end of another day of the same trip.
-     */
-    public function changeDay(ChangeTripPlaceDayRequest $request, Trip $trip, TripPlace $tripPlace): RedirectResponse
-    {
-        Gate::authorize('update', $trip);
-
-        $day = $trip->days()->findOrFail($request->validated('trip_day_id'));
-        $previousDay = $tripPlace->day;
-        $tripPlace->moveToDay($day);
-
-        // Порядок поменялся в обоих днях — старые отрезки соединяли бы не те места.
-        $previousDay->forgetTravelTimes();
-        $day->forgetTravelTimes();
-
-        Inertia::flash('toast', "Место перенесено в день {$day->day_number}.");
 
         return back();
     }

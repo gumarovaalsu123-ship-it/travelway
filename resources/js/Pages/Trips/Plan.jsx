@@ -276,7 +276,7 @@ function DaySwitcher({ trip, days, selectedDay }) {
 
 /**
  * Строка между местами: как добраться от предыдущей точки и сколько это займёт.
- * У каждого отрезка — ссылка на точный маршрут в Яндекс.Картах тем же способом (пешком, транспорт, машина).
+ * Точный маршрут в Яндекс.Картах — одной кнопкой на весь день (FullRouteLinks под списком), а не у каждого отрезка.
  */
 function SegmentRow({ segment, onShowAlong }) {
     return (
@@ -285,11 +285,6 @@ function SegmentRow({ segment, onShowAlong }) {
             {/* «Что по пути?» — только между двумя местами (у отрезка от жилья кнопки нет). */}
             {onShowAlong && (
                 <button type="button" className="link-button plan-segment__link" onClick={onShowAlong}>Что по пути?</button>
-            )}
-            {segment?.yandexUrl && (
-                <a className="plan-segment__link" href={segment.yandexUrl} target="_blank" rel="noreferrer">
-                    Маршрут в Яндекс.Картах
-                </a>
             )}
         </li>
     );
@@ -388,16 +383,32 @@ function DayTotal({ day }) {
 }
 
 /**
- * Форма «Изменить» у места: время, сколько провести, способ добраться, закрепление и заметка.
+ * «10:00» + 90 минут → «11:30». Так же окончание считает сервер (TripPlanController::update).
  */
-function EditPlaceForm({ tripId, place, onClose }) {
+function addMinutes(time, minutes) {
+    const [hours, mins] = time.split(':').map(Number);
+    const total = Math.min(hours * 60 + mins + minutes, 23 * 60 + 59);
+
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Окно «Изменить место»: день, время, сколько провести, способ добраться, билет (для «прочих» категорий) и заметка.
+ * Всё — поля одной формы и уходит одним запросом по «Сохранить», поэтому перенос в другой день не теряет правки.
+ * Окончания в форме нет: оно всегда «начало + время на месте».
+ */
+function EditPlaceModal({ tripId, place, otherDays, onClose }) {
+    // У музея, достопримечательности и ресторана вопрос о билете стоит на карточке, у остальных — только здесь.
+    const asksBookingInForm = !BOOKING_QUESTIONS[place.categorySlug];
+
     const form = useForm({
+        trip_day_id: '',
         start_time: place.startTime ?? '',
-        end_time: place.endTime ?? '',
         note: place.note ?? '',
         stay_minutes: place.stayMinutes ?? '',
         travel_mode: place.travelMode ?? '',
         time_locked: place.timeLocked,
+        ...(asksBookingInForm ? { needs_booking: place.needsBooking } : {}),
     });
 
     // Время, поставленное вручную, сразу закрепляем — иначе следующий расчёт его передвинет.
@@ -410,59 +421,74 @@ function EditPlaceForm({ tripId, place, onClose }) {
         form.patch(`/my-trips/${tripId}/trip-places/${place.id}`, { ...keepScroll, onSuccess: onClose });
     }
 
+    const stayMinutes = Number(form.data.stay_minutes) || place.defaultStayMinutes;
+
     return (
-        <form className="plan-place-form" onSubmit={submit} noValidate>
-            <div className="form-row">
-                <div className={`form-group ${form.errors.start_time ? 'has-error' : ''}`}>
-                    <label className="form-label" htmlFor={`start-${place.id}`}>Начало</label>
-                    <input
-                        id={`start-${place.id}`}
-                        type="time"
-                        className="form-input form-input--filled"
-                        value={form.data.start_time}
-                        onChange={(e) => changeStartTime(e.target.value)}
-                    />
-                    {form.errors.start_time && <span className="form-error">{form.errors.start_time}</span>}
-                </div>
-                <div className={`form-group ${form.errors.end_time ? 'has-error' : ''}`}>
-                    <label className="form-label" htmlFor={`end-${place.id}`}>Окончание</label>
-                    <input
-                        id={`end-${place.id}`}
-                        type="time"
-                        className="form-input form-input--filled"
-                        value={form.data.end_time}
-                        onChange={(e) => form.setData('end_time', e.target.value)}
-                    />
-                    {form.errors.end_time && <span className="form-error">{form.errors.end_time}</span>}
-                </div>
-            </div>
+        <Modal title={`Изменить «${place.name}»`} onClose={onClose}>
+            <form className="plan-place-form" onSubmit={submit} noValidate>
+                {otherDays.length > 0 && (
+                    <div className={`form-group ${form.errors.trip_day_id ? 'has-error' : ''}`}>
+                        <label className="form-label" htmlFor={`day-${place.id}`}>День</label>
+                        <select
+                            id={`day-${place.id}`}
+                            className="form-input form-input--filled"
+                            value={form.data.trip_day_id}
+                            onChange={(e) => form.setData('trip_day_id', e.target.value)}
+                        >
+                            <option value="">Оставить в этом дне</option>
+                            {otherDays.map((day) => (
+                                <option key={day.id} value={day.id}>Перенести: {formatDayLabel(day.number, day.date)}</option>
+                            ))}
+                        </select>
+                        {form.errors.trip_day_id && <span className="form-error">{form.errors.trip_day_id}</span>}
+                    </div>
+                )}
 
-            <label className="plan-place-form__check">
-                <input
-                    type="checkbox"
-                    checked={form.data.time_locked}
-                    onChange={(e) => form.setData('time_locked', e.target.checked)}
-                />
-                🔒 Закрепить время — «Рассчитать время» его не сдвинет
-            </label>
-            {form.errors.time_locked && <span className="form-error">{form.errors.time_locked}</span>}
-
-            <div className="form-row">
-                <div className={`form-group ${form.errors.stay_minutes ? 'has-error' : ''}`}>
-                    <label className="form-label" htmlFor={`stay-${place.id}`}>Сколько провести, мин</label>
-                    <input
-                        id={`stay-${place.id}`}
-                        type="number"
-                        min={5}
-                        max={720}
-                        step={5}
-                        className="form-input form-input--filled"
-                        placeholder={`${place.defaultStayMinutes} (по категории)`}
-                        value={form.data.stay_minutes}
-                        onChange={(e) => form.setData('stay_minutes', e.target.value)}
-                    />
-                    {form.errors.stay_minutes && <span className="form-error">{form.errors.stay_minutes}</span>}
+                <div className="form-row">
+                    <div className={`form-group ${form.errors.start_time ? 'has-error' : ''}`}>
+                        <label className="form-label" htmlFor={`start-${place.id}`}>Начало</label>
+                        <input
+                            id={`start-${place.id}`}
+                            type="time"
+                            className="form-input form-input--filled"
+                            value={form.data.start_time}
+                            onChange={(e) => changeStartTime(e.target.value)}
+                        />
+                        {form.errors.start_time && <span className="form-error">{form.errors.start_time}</span>}
+                        {form.data.start_time && form.data.time_locked && (
+                            <span className="form-hint">Время закреплено — расчёт его не сдвинет</span>
+                        )}
+                    </div>
+                    <div className={`form-group ${form.errors.stay_minutes ? 'has-error' : ''}`}>
+                        <label className="form-label" htmlFor={`stay-${place.id}`}>Сколько провести, мин</label>
+                        <input
+                            id={`stay-${place.id}`}
+                            type="number"
+                            min={5}
+                            max={720}
+                            step={5}
+                            className="form-input form-input--filled"
+                            placeholder={`${place.defaultStayMinutes} (по категории)`}
+                            value={form.data.stay_minutes}
+                            onChange={(e) => form.setData('stay_minutes', e.target.value)}
+                        />
+                        {form.errors.stay_minutes && <span className="form-error">{form.errors.stay_minutes}</span>}
+                        {form.data.start_time && (
+                            <span className="form-hint">Окончание — {addMinutes(form.data.start_time, stayMinutes)}</span>
+                        )}
+                    </div>
                 </div>
+
+                <label className="plan-place-form__check">
+                    <input
+                        type="checkbox"
+                        checked={form.data.time_locked}
+                        onChange={(e) => form.setData('time_locked', e.target.checked)}
+                    />
+                    🔒 Закрепить время
+                </label>
+                {form.errors.time_locked && <span className="form-error">{form.errors.time_locked}</span>}
+
                 <div className={`form-group ${form.errors.travel_mode ? 'has-error' : ''}`}>
                     <label className="form-label" htmlFor={`mode-${place.id}`}>Как добраться</label>
                     <select
@@ -478,27 +504,38 @@ function EditPlaceForm({ tripId, place, onClose }) {
                     </select>
                     {form.errors.travel_mode && <span className="form-error">{form.errors.travel_mode}</span>}
                 </div>
-            </div>
 
-            <div className={`form-group ${form.errors.note ? 'has-error' : ''}`}>
-                <label className="form-label" htmlFor={`note-${place.id}`}>Заметка</label>
-                <textarea
-                    id={`note-${place.id}`}
-                    className="form-input form-input--filled"
-                    rows={2}
-                    maxLength={500}
-                    placeholder="Например, купить билеты заранее"
-                    value={form.data.note}
-                    onChange={(e) => form.setData('note', e.target.value)}
-                />
-                {form.errors.note && <span className="form-error">{form.errors.note}</span>}
-            </div>
+                {asksBookingInForm && (
+                    <label className="plan-place-form__check">
+                        <input
+                            type="checkbox"
+                            checked={form.data.needs_booking}
+                            onChange={(e) => form.setData('needs_booking', e.target.checked)}
+                        />
+                        {DEFAULT_BOOKING_QUESTION.question}
+                    </label>
+                )}
 
-            <div className="plan-place-form__actions">
-                <button type="submit" className="btn btn--solid-dark btn--sm" disabled={form.processing}>Сохранить</button>
-                <button type="button" className="btn btn--outline-dark btn--sm" onClick={onClose}>Отмена</button>
-            </div>
-        </form>
+                <div className={`form-group ${form.errors.note ? 'has-error' : ''}`}>
+                    <label className="form-label" htmlFor={`note-${place.id}`}>Заметка</label>
+                    <textarea
+                        id={`note-${place.id}`}
+                        className="form-input form-input--filled"
+                        rows={2}
+                        maxLength={500}
+                        placeholder="Например, взять с собой воду"
+                        value={form.data.note}
+                        onChange={(e) => form.setData('note', e.target.value)}
+                    />
+                    {form.errors.note && <span className="form-error">{form.errors.note}</span>}
+                </div>
+
+                <div className="plan-place-form__actions">
+                    <button type="submit" className="btn btn--solid-dark btn--sm" disabled={form.processing}>Сохранить</button>
+                    <button type="button" className="btn btn--outline-dark btn--sm" onClick={onClose}>Отмена</button>
+                </div>
+            </form>
+        </Modal>
     );
 }
 
@@ -517,13 +554,16 @@ const DEFAULT_BOOKING_QUESTION = { question: 'Нужен билет или бр�
 /**
  * Отметки «нужен билет/бронь» и «куплено» у места. Место с билетом, который ещё не куплен,
  * попадает в дела вкладки «Заранее»; отметка «куплено» там и здесь — одна и та же.
+ * Вопрос на карточке — только у музея, достопримечательности и ресторана; у кафе, парка и прочих
+ * он в окне «Изменить», а на карточке появляется, лишь когда билет уже отмечен как нужный.
  * Без canEdit (завершённая поездка) галочки только показывают, что было, а вопрос без отметки не нужен вовсе.
  */
 function BookingMarks({ tripId, place, canEdit }) {
-    const labels = BOOKING_QUESTIONS[place.categorySlug] ?? DEFAULT_BOOKING_QUESTION;
+    const categoryLabels = BOOKING_QUESTIONS[place.categorySlug];
+    const labels = categoryLabels ?? DEFAULT_BOOKING_QUESTION;
     const url = `/my-trips/${tripId}/trip-places/${place.id}/booking`;
 
-    if (!canEdit && !place.needsBooking) {
+    if (!place.needsBooking && (!canEdit || !categoryLabels)) {
         return null;
     }
 
@@ -593,39 +633,6 @@ function PlaceMenu({ onEdit, onRemove }) {
                 </div>
             )}
         </div>
-    );
-}
-
-/**
- * Окно «Изменить место»: сверху — перенос в другой день, ниже — форма времени, способа добраться и заметки.
- */
-function EditPlaceModal({ tripId, place, otherDays, onClose }) {
-    function changeDay(dayId) {
-        if (dayId) {
-            router.patch(`/my-trips/${tripId}/trip-places/${place.id}/day`, { trip_day_id: Number(dayId) }, { ...keepScroll, onSuccess: onClose });
-        }
-    }
-
-    return (
-        <Modal title={`Изменить «${place.name}»`} onClose={onClose}>
-            {otherDays.length > 0 && (
-                <div className="form-group">
-                    <label className="form-label" htmlFor={`move-${place.id}`}>Перенести в другой день</label>
-                    <select
-                        id={`move-${place.id}`}
-                        className="form-input form-input--filled"
-                        value=""
-                        onChange={(e) => changeDay(e.target.value)}
-                    >
-                        <option value="">Выберите день…</option>
-                        {otherDays.map((day) => (
-                            <option key={day.id} value={day.id}>{formatDayLabel(day.number, day.date)}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
-            <EditPlaceForm tripId={tripId} place={place} onClose={onClose} />
-        </Modal>
     );
 }
 
@@ -733,12 +740,13 @@ function PlaceRow({ tripId, place, number, isFirst, isLast, warning, otherDays, 
 
             {/* Колонка справа: «выше» сверху, меню посередине, «ниже» снизу.
                 У первого и последнего места вместо недостающей стрелки — пустое место того же размера, чтобы меню не съезжало. */}
-            {/* Сколько провести на месте — крупно, по центру карточки по высоте. Подробности — во всплывающей подсказке. */}
+            {/* Сколько провести на месте — крупно, по центру карточки по высоте, с подписью «на месте» под цифрой. */}
             <span
                 className="plan-stop__stay"
                 title={`На месте ${formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}${place.stayMinutes === null ? ' (по категории)' : ''}`}
             >
                 {formatMinutes(place.stayMinutes ?? place.defaultStayMinutes)}
+                <span className="plan-stop__stay-label">на месте</span>
             </span>
 
             {/* Порядок и меню «⋮» меняют план — только если его можно менять. */}

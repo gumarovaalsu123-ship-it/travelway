@@ -59,7 +59,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/days/{day}/places', 'storePlace')->name('days.places.store');
         Route::patch('/trip-places/{tripPlace}', 'update')->name('trip-places.update');
         Route::patch('/trip-places/{tripPlace}/move', 'move')->name('trip-places.move');
-        Route::patch('/trip-places/{tripPlace}/day', 'changeDay')->name('trip-places.change-day');
     });
 
     // Отдельной вкладки «Карта» больше нет: карта дня теперь на вкладке «План». Старый адрес оставили,

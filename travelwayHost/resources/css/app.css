@@ -1,0 +1,7204 @@
+@font-face {
+    font-family: 'Manrope';
+    src: url('/fonts/Manrope-VariableFont_wght.ttf');
+}
+
+:root {
+      --font-main: 'Manrope';
+      --color-bg-main: #FAF8F4;
+      --color-bg-alt: #F7F5F0;
+      --color-white: #FFFFFF;
+      --color-text-dark: #1E2620;
+      --color-text-muted: #616E63;
+      --color-accent-orange: #C87156;
+      --color-accent-green: #3D5A3E;
+      --color-success-green: #8FA886;
+      --color-border-light: #E2E8E3;
+      --color-border-warm: #E8DCC8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-main);
+      background-color: var(--color-bg-main);
+      color: var(--color-text-dark);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; border: none; background: transparent; font-family: inherit; }
+    /* Поля и пункты выпадающих списков по умолчанию берут системный шрифт — подставляем шрифт проекта */
+    input, select, textarea, option { font-family: inherit; }
+    ul { list-style: none; }
+
+    /* === LAYOUT CONTAINER === */
+    /* Ограничиваем ширину макета 1440px по центру, как в Figma */
+    .page-wrapper {
+      max-width: 1440px;
+      margin: 0 auto;
+      background: var(--color-bg-main);
+      position: relative;
+      /* clip, а не hidden: hidden ломает «липкую» шапку (position: sticky) */
+      overflow-x: clip;
+    }
+
+    /* === HEADER === */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 80px;
+      height: 91px;
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .logo-group { display: flex; align-items: center; gap: 12px; }
+    .logo-symbol { width: 51px; height: 51px; }
+    .logo-text-group { display: flex; flex-direction: column; gap: 2px; }
+    .brand-name { font-weight: 700; font-size: 24px; line-height: 33px; color: var(--color-text-dark); }
+    .brand-tagline { font-weight: 600; font-size: 9px; line-height: 12px; text-transform: uppercase; color: var(--color-accent-orange); }
+
+    .navigation-links { display: flex; align-items: center; gap: 24px; }
+    .navigation-links a { font-weight: 500; font-size: 15px; line-height: 20px; color: var(--color-text-muted); transition: color 0.2s; }
+    .navigation-links a:hover { color: var(--color-text-dark); }
+
+    .auth-actions { display: flex; align-items: center; gap: 12px; }
+    .btn { display: flex; justify-content: center; align-items: center; padding: 12px 24px; gap: 8px; border-radius: 30px; font-weight: 600; font-size: 14px; line-height: 19px; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.8; }
+    .btn--outline { border: 1.5px solid var(--color-accent-green); color: var(--color-accent-green); }
+    .btn--solid { background: var(--color-accent-green); color: var(--color-white); }
+    .btn--white { background: var(--color-white); color: var(--color-text-dark); }
+    .btn--outline-white { border: 1.5px solid var(--color-white); color: var(--color-white); }
+
+    /* === HERO SECTION === */
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 80px;
+      height: 600px;
+      background: linear-gradient(0deg, rgba(30, 38, 32, 0.55), rgba(30, 38, 32, 0.55)), url('/images/Hero.png') center/cover no-repeat;
+    }
+
+    .hero-info { display: flex; flex-direction: column; gap: 32px; width: 640px; }
+    .hero-headlines { display: flex; flex-direction: column; gap: 16px; }
+    .hero-title { font-weight: 800; font-size: 56px; line-height: 1.14; color: var(--color-white); }
+    .hero-desc { font-weight: 400; font-size: 18px; line-height: 1.44; color: var(--color-white); opacity: 0.9; }
+
+    .hero-actions { display: flex; gap: 16px; }
+    .btn-icon { width: 16px; height: 16px; display: flex; justify-content: center; align-items: center; font-size: 14px; } /* Место под SVG */
+
+    .floating-card-wrapper { width: 340px; }
+    .floating-preview-card {
+      background: var(--color-white);
+      box-shadow: 0px 16px 32px rgba(0, 0, 0, 0.125);
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-photo { height: 150px; background: url('https://images.unsplash.com/photo-1558486012-817176f84c6d?auto=format&fit=crop&w=400&q=80') center/cover; }
+    .tag-badge { position: absolute; top: 16px; left: 16px; background: var(--color-accent-orange); color: var(--color-white); padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; line-height: 15px; }
+    .card-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .card-title { font-weight: 700; font-size: 18px; line-height: 25px; color: var(--color-text-dark); }
+    .card-dates { font-weight: 400; font-size: 13px; color: var(--color-text-muted); display: flex; gap: 6px; align-items: center; }
+    .card-line { width: 100%; height: 1px; background: var(--color-border-light); }
+    .card-places { font-weight: 600; font-size: 13px; color: var(--color-accent-green); display: flex; gap: 6px; align-items: center; }
+
+    /* === FEATURES SECTION === */
+    .features-section { padding: 100px 80px; background: var(--color-white); display: flex; flex-direction: column; gap: 56px; }
+    .section-header { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+    .section-subtitle { font-weight: 700; font-size: 13px; line-height: 18px; text-transform: uppercase; color: var(--color-accent-orange); }
+    .section-title { font-weight: 700; font-size: 36px; line-height: 49px; color: var(--color-text-dark); }
+    .section-desc { font-weight: 400; font-size: 16px; line-height: 22px; color: var(--color-text-muted); max-width: 1280px; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; row-gap: 24px; }
+    .feature-card { padding: 28px; background: var(--color-white); border: 1px solid var(--color-border-light); box-shadow: 0px 8px 16px rgba(30, 38, 32, 0.02); border-radius: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .feature-icon-container { width: 48px; height: 48px; background: var(--color-accent-green); border-radius: 24px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
+    .feature-text-group { display: flex; flex-direction: column; gap: 8px; }
+    .feature-name { font-weight: 700; font-size: 18px; line-height: 25px; color: var(--color-text-dark); }
+    .feature-details { font-weight: 400; font-size: 14px; line-height: 1.43; color: var(--color-text-muted); }
+
+    /* === HOW IT WORKS === */
+    .how-it-works { padding: 100px 80px; background: var(--color-bg-alt); display: flex; flex-direction: column; gap: 56px; }
+    .steps-container { display: flex; gap: 32px; justify-content: space-between; }
+    .step-card { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
+    .number-bubble { width: 48px; height: 48px; background: var(--color-accent-green); border-radius: 24px; display: flex; justify-content: center; align-items: center; color: var(--color-white); font-weight: 700; font-size: 18px; line-height: 25px; }
+
+    /* === EXAMPLES (ROUTE CARDS) === */
+    .personal-routes { padding: 100px 80px; background: var(--color-white); display: flex; flex-direction: column; gap: 48px; }
+    .personal-routes .section-header { align-items: flex-start; text-align: left; }
+    .route-row { display: flex; gap: 24px; }
+    .route-card { flex: 1; background: var(--color-bg-alt); border: 1px solid var(--color-border-warm); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; }
+    .route-image-wrapper { position: relative; height: 220px; background-color: #ddd; background-size: cover; background-position: center; }
+    .route-tag { position: absolute; top: 16px; left: 16px; background: var(--color-white); box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.06); border-radius: 20px; padding: 6px 12px; font-weight: 600; font-size: 13px; color: var(--color-accent-green); }
+    .route-status { position: absolute; top: 16px; right: 16px; border-radius: 20px; padding: 6px 12px; font-weight: 600; font-size: 12px; color: var(--color-white); }
+    .status-active { background: var(--color-accent-orange); }
+    .status-process { background: var(--color-accent-green); }
+    .status-done { background: var(--color-success-green); }
+
+    .route-content { padding: 24px; display: flex; flex-direction: column; gap: 20px; flex-grow: 1; }
+    .route-meta { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .route-duration { display: flex; gap: 6px; color: var(--color-text-muted); align-items: center;}
+    .route-places-count { font-weight: 600; color: var(--color-text-dark); }
+    .route-title { font-weight: 700; font-size: 20px; line-height: 27px; color: var(--color-text-dark); margin-bottom: auto;}
+    .route-divider { height: 1px; background: var(--color-border-warm); width: 100%; }
+    .route-action { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; color: var(--color-accent-green); cursor: pointer; }
+
+    /* === STATISTICS === */
+    .statistics { padding: 64px 80px; background: var(--color-accent-green); display: flex; justify-content: space-between; gap: 32px; }
+    .stat-block { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .stat-number { font-weight: 800; font-size: 40px; line-height: 55px; color: var(--color-white); }
+    .stat-label { font-weight: 400; font-size: 15px; line-height: 20px; color: var(--color-white); opacity: 0.8; text-align: center; }
+
+    /* === CTA SECTION === */
+    .cta-section { padding: 120px 80px; display: flex; flex-direction: column; align-items: center; gap: 32px; background: linear-gradient(0deg, rgba(30, 38, 32, 0.512), rgba(30, 38, 32, 0.7)), url('/images/cta.png') center/cover; }
+    .cta-content { max-width: 720px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+    .cta-title { font-weight: 800; font-size: 40px; line-height: 55px; color: var(--color-white); }
+    .cta-desc { font-weight: 400; font-size: 16px; line-height: 22px; color: var(--color-white); opacity: 0.8; }
+
+    /* === FOOTER === */
+    .footer { padding: 80px 80px 48px; background: #1E2620; display: flex; flex-direction: column; gap: 60px; color: var(--color-white); }
+    .footer-top { display: flex; justify-content: space-between; }
+    .footer-col-1 .brand-name { color: var(--color-white); }
+    .footer-col-2 { display: flex; flex-direction: column; gap: 20px; align-items: center; }
+    .footer-title { font-weight: 700; font-size: 14px; text-transform: uppercase; color: var(--color-accent-orange); }
+    .footer-link { font-size: 15px; opacity: 0.7; transition: opacity 0.2s; }
+    .footer-link:hover { opacity: 1; }
+    .footer-desc { width: 240px; font-size: 15px; line-height: 1.47; text-align: right; opacity: 0.6; }
+
+    .footer-bottom { display: flex; flex-direction: column; gap: 24px; }
+    .footer-line { height: 1px; background: var(--color-white); opacity: 0.1; }
+    .bottom-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; opacity: 0.4; }
+    .legal { display: flex; gap: 24px; }
+
+    /* =========================================
+   СТРАНИЦА АВТОРИЗАЦИИ (LOGIN / REGISTER)
+   ========================================= */
+
+.auth-layout {
+  display: flex;
+  min-height: 100vh; /* Занимает весь экран по высоте */
+  width: 100%;
+  background-color: var(--color-bg-alt);
+}
+
+/* === ЛЕВАЯ ЧАСТЬ (КАРТИНКА) === */
+.auth-layout__left {
+  flex: 1; /* Занимает 50% ширины */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: flex-end;
+  padding: 40px;
+  position: relative;
+}
+
+.auth-quote {
+  background: rgba(30, 38, 32, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 32px;
+  color: var(--color-white);
+  max-width: 624px;
+  width: 100%;
+}
+
+.auth-quote__text {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.auth-quote__author {
+  font-weight: 400;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* === ПРАВАЯ ЧАСТЬ (ФОРМА) === */
+.auth-layout__right {
+  flex: 1; /* Занимает 50% ширины */
+  display: flex;
+  flex-direction: column;
+  padding: 40px 80px;
+}
+
+.auth-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-back-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.auth-back-link:hover {
+  color: var(--color-text-dark);
+}
+
+.auth-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* Центрируем форму на правой половине */
+  width: 100%;
+}
+
+.auth-title {
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.2;
+  color: var(--color-text-dark);
+  margin-bottom: 12px;
+}
+
+.auth-subtitle {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
+/* === ФОРМА И ИНПУТЫ === */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-dark);
+}
+
+.form-input-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-warm);
+  border-radius: 10px;
+  background: transparent;
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--color-text-dark);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: #A0A0A0;
+}
+
+.form-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+/* Отступ справа, чтобы текст не наезжал на иконку глаза */
+.form-input-inner .form-input {
+  padding-right: 48px;
+}
+
+
+.form-icon-btn:hover {
+  color: var(--color-text-dark);
+}
+
+/* Кастомный чекбокс */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-checkbox__input {
+  display: none; /* Прячем системный чекбокс */
+}
+
+.custom-checkbox__box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox__input:checked + .custom-checkbox__box {
+  background-color: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+  color: var(--color-white); /* Показываем галочку */
+}
+
+.custom-checkbox__label {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.auth-forgot-link {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.auth-forgot-link:hover {
+  color: var(--color-text-dark);
+}
+
+/* Кнопка на 100% ширины */
+.btn--full {
+  width: 100%;
+}
+
+.auth-footer a {
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-left: 4px;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================================
+   СТРАНИЦА АВТОРИЗАЦИИ (LOGIN / REGISTER)
+   ========================================= */
+
+.auth-layout {
+  display: flex;
+  min-height: 100vh; /* Занимает весь экран по высоте */
+  width: 100%;
+  background-color: var(--color-bg-alt);
+}
+
+/* === ЛЕВАЯ ЧАСТЬ (КАРТИНКА) === */
+.auth-layout__left {
+  flex: 1; /* Занимает 50% ширины */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: flex-end;
+  padding: 40px;
+  position: relative;
+}
+
+.auth-quote {
+  background: rgba(30, 38, 32, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 32px;
+  color: var(--color-white);
+  max-width: 624px;
+  width: 100%;
+}
+
+.auth-quote__text {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.auth-quote__author {
+  font-weight: 400;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* === ПРАВАЯ ЧАСТЬ (ФОРМА) === */
+.auth-layout__right {
+  flex: 1; /* Занимает 50% ширины */
+  display: flex;
+  flex-direction: column;
+  padding: 40px 80px;
+}
+
+.auth-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-back-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.auth-back-link:hover {
+  color: var(--color-text-dark);
+}
+
+.auth-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* Центрируем форму на правой половине */
+  width: 100%;
+}
+
+.auth-form-wrapper {
+  width: 100%;
+}
+
+.auth-title {
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.2;
+  color: var(--color-text-dark);
+  margin-bottom: 12px;
+}
+
+/* === ФОРМА И ИНПУТЫ === */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-dark);
+}
+
+.form-input-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+
+.form-input::placeholder {
+  color: #A0A0A0;
+}
+
+.form-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+/* Отступ справа, чтобы текст не наезжал на иконку глаза */
+.form-input-inner .form-input {
+  padding-right: 48px;
+}
+
+.form-icon-btn {
+  position: absolute;
+  right: 12px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.form-icon-btn:hover {
+  color: var(--color-text-dark);
+}
+
+/* === ДОП. НАСТРОЙКИ ФОРМЫ (Чекбокс и ссылки) === */
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  margin-top: 8px;
+}
+
+/* Кастомный чекбокс */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-checkbox__input {
+  display: none; /* Прячем системный чекбокс */
+}
+
+.custom-checkbox__box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox__input:checked + .custom-checkbox__box {
+  background-color: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+  color: var(--color-white); /* Показываем галочку */
+}
+
+.custom-checkbox__label {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.auth-forgot-link {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.auth-forgot-link:hover {
+  color: var(--color-text-dark);
+}
+
+/* Кнопка на 100% ширины */
+.btn--full {
+  width: 100%;
+}
+
+.auth-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.auth-footer a {
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-left: 4px;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   БАЗОВЫЕ И ГЛОБАЛЬНЫЕ КЛАССЫ
+   ========================================= */
+
+.page-bg-light {
+  background-color: #FAF8F4;
+}
+
+.container {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 80px;
+}
+
+/* Кнопка "Outline" (с обводкой) */
+.btn--outline {
+  background: var(--color-white);
+  border: 1px solid var(--color-accent-green);
+  color: var(--color-accent-green);
+}
+
+.btn--outline:hover {
+  background: #f0f4f1;
+}
+
+.btn--sm {
+  padding: 10px 16px;
+  font-size: 13px;
+  flex: 1; /* Кнопки в карточках будут занимать равную ширину */
+}
+
+/* =========================================
+   ШАПКА (НАВИГАЦИЯ)
+   ========================================= */
+
+.navbar {
+  background: #F7F5F0;
+  border-bottom: 1px solid var(--color-border-warm);
+  height: 83px;
+  display: flex;
+  align-items: center;
+}
+
+.navbar__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar__nav {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-link {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: var(--color-text-dark);
+}
+
+/* =========================================
+   СТРАНИЦА "МОИ ПУТЕШЕСТВИЯ"
+   ========================================= */
+
+.trips-main {
+  padding-top: 64px;
+  padding-bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  font-weight: 700;
+  font-size: 40px;
+  color: var(--color-text-dark);
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+/* === БОЛЬШАЯ КАРТОЧКА (FEATURED) === */
+
+.featured-trip {
+  display: flex;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  overflow: hidden;
+  height: 348px;
+}
+
+.featured-trip__image {
+  width: 600px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.featured-trip__content {
+  flex: 1;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.featured-trip__badge {
+  background: var(--color-accent-orange);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 99px;
+}
+
+.featured-trip__title {
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--color-text-dark);
+}
+
+.featured-trip__meta {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.featured-trip__day {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text-dark);
+}
+
+.featured-trip__action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.featured-trip__desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  width: 100%; /* Занимает доступное пространство */
+}
+
+/* === ФИЛЬТРЫ === */
+
+.trips-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border-warm);
+}
+
+.filter-btn {
+  padding: 12px 16px;
+  border-radius: 99px;
+  border: 1px solid var(--color-accent-green);
+  background: var(--color-white);
+  color: var(--color-accent-green);
+  font-family: var(--font-main);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background: #f0f4f1;
+}
+
+.filter-btn.active {
+  background: var(--color-accent-green);
+  color: var(--color-white);
+}
+
+/* === СЕТКА КАРТОЧЕК === */
+
+.trips-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.trip-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.trip-card__image {
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.trip-card__location {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: var(--color-white);
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 99px;
+}
+
+.trip-card__body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trip-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trip-card__date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.trip-card__status {
+  background: var(--color-accent-orange);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.trip-card__title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-dark);
+  line-height: 1.3;
+}
+
+/* Прогресс-бар */
+.trip-card__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.progress-label {
+  color: var(--color-text-muted);
+}
+
+.progress-value {
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: #E8EFE5;
+  border-radius: 3px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4A5D4E;
+  border-radius: 3px;
+}
+
+.trip-card__actions {
+  display: flex;
+  gap: 16px;
+  margin-top: auto;
+}
+
+/* =========================================
+   ФУТЕР
+   ========================================= */
+
+.footer {
+  background: #1E2620;
+  padding: 80px 0 48px;
+  color: var(--color-white);
+}
+
+.footer__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 60px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+}
+
+.footer__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: center;
+}
+
+.footer__nav a {
+  color: #BBBDBC;
+  font-size: 15px;
+  transition: color 0.2s;
+}
+
+.footer__nav a:hover {
+  color: var(--color-white);
+}
+
+.footer__desc {
+  width: 240px;
+  font-size: 15px;
+  line-height: 1.47;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: right;
+}
+
+.footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.legal-links {
+  display: flex;
+  gap: 24px;
+}
+
+.legal-links a {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.2s;
+}
+
+.legal-links a:hover {
+  color: var(--color-white);
+}
+
+/* =========================================
+   СТРАНИЦА "СОЗДАТЬ ПУТЕШЕСТВИЕ"
+   ========================================= */
+
+.create-trip-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 24px 100px;
+}
+
+.create-trip-wrapper {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--color-text-dark);
+}
+
+/* === КАРТОЧКА ФОРМЫ === */
+.form-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.05);
+  border-radius: 32px;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.form-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-card__title {
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.3;
+  color: var(--color-text-dark);
+}
+
+.form-card__subtitle {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.create-trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* === ДОПОЛНЕНИЯ ДЛЯ ЭЛЕМЕНТОВ ФОРМЫ === */
+
+.required {
+  color: var(--color-accent-orange);
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.form-hint--top {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+/* Залитый инпут для карточки (в отличие от прозрачного на странице входа) */
+.form-input--filled {
+  background-color: #FAF8F4;
+  border-color: transparent;
+}
+
+.form-input--filled:focus {
+  background-color: var(--color-white);
+  border-color: var(--color-accent-green);
+}
+
+/* Иконка в конце поля ввода (шеврон или календарь) */
+.form-icon-suffix {
+  position: absolute;
+  right: 16px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  pointer-events: none; /* Чтобы не мешало кликать по инпуту */
+}
+
+/* Состояние ошибки */
+.has-error .form-input {
+  border-color: var(--color-accent-orange);
+  background-color: var(--color-white);
+}
+
+.has-error .form-hint {
+  color: var(--color-accent-orange);
+}
+
+/* Разделитель "ИЛИ" */
+.form-divider {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  position: relative;
+}
+
+/* Расширенный чекбокс с заголовком и описанием */
+.custom-checkbox--rich {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.custom-checkbox--rich .custom-checkbox__box {
+  margin-top: 2px; /* Выравнивание галочки по первой строке текста */
+}
+
+.custom-checkbox__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custom-checkbox__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-dark);
+}
+
+.custom-checkbox__desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+/* === КНОПКИ ДЕЙСТВИЙ (ФОРМА СОЗДАНИЯ) === */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.btn--outline-dark {
+  flex: none;
+  padding: 14px 28px;
+  background: transparent;
+  border: 1.5px solid #4A5D4E;
+  border-radius: 99px;
+  color: #4A5D4E;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn--outline-dark:hover {
+  background: #f0f4f1;
+}
+
+.btn--solid-dark {
+  flex: none;
+  padding: 14px 28px;
+  background: #4A5D4E;
+  border: 1.5px solid #4A5D4E;
+  border-radius: 99px;
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn--solid-dark:hover {
+  background: #39483c;
+}
+
+/* =========================================
+   СТРАНИЦА "ОБЗОР ПУТЕШЕСТВИЯ"
+   ========================================= */
+
+/* Утилиты отступов */
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+
+/* Применение логотипа картинкой */
+.logo-image {
+  border-radius: 20px;
+  object-fit: cover;
+}
+
+/* === ОБЛОЖКА ПОЕЗДКИ (HERO) === */
+.trip-hero {
+  width: 100%;
+  height: 307px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+}
+
+.trip-hero__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  padding-bottom: 56px;
+}
+
+.trip-hero__info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--color-white);
+  max-width: 800px;
+}
+
+.trip-hero__badge {
+  align-self: flex-start;
+  background: var(--color-accent-orange);
+  padding: 6px 12px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.trip-hero__title {
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1.2;
+}
+
+.trip-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  align-items: center;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+}
+
+/* Карточка прогресса на обложке */
+.hero-progress-card {
+  width: 428px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero-progress__title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-dark);
+}
+
+.hero-progress__value {
+  font-weight: 700;
+  font-size: 48px;
+  color: var(--color-accent-green);
+  line-height: 1;
+}
+
+/* === НАВИГАЦИЯ ВКЛАДКАМИ === */
+.trip-tabs {
+  background: #FAF8F4;
+  width: 100%;
+}
+
+.trip-tabs__inner {
+  display: flex;
+  gap: 12px;
+  padding: 20px 80px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 12px 16px;
+  border-radius: 99px;
+  border: 1px solid var(--color-accent-green);
+  background: var(--color-white);
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: #f0f4f1;
+}
+
+.tab-btn.active {
+  background: var(--color-accent-green);
+  color: var(--color-white);
+}
+
+/* === ОСНОВНОЙ КОНТЕНТ === */
+.trip-content {
+  padding-top: 28px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.trip-content .section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: start;
+}
+
+.section-title {
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--color-text-dark);
+}
+
+.trip-content .section-subtitle {
+  font-size: 15px;
+  color: var(--color-text-muted);
+  text-transform: none;
+  font-weight: 300;
+}
+
+.trip-map-main .section-subtitle {
+  font-size: 15px;
+  color: var(--color-text-muted);
+  text-transform: none;
+  font-weight: 300;
+}
+
+.section-header .section-subtitle {
+  font-size: 15px;
+  color: var(--color-text-muted);
+  text-transform: none;
+  font-weight: 300;
+}
+
+/* Сетка: Краткий план + Карта */
+.trip-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 551px; /* Левая часть тянется, правая фикс 551px */
+  gap: 32px;
+}
+
+/* Краткий план */
+.short-plan-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.short-plan__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.short-plan__title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-dark);
+}
+
+.short-plan__subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.short-plan__day {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.day-badge {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 12px;
+}
+
+.day-date {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.day-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.stop-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.stop-item {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-warm);
+}
+
+.stop-item:last-child {
+  border-bottom: none;
+}
+
+.stop-time {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-accent-orange);
+  width: 52px; /* Фиксированная ширина для выравнивания */
+}
+
+.stop-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.stop-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text-dark);
+}
+
+.stop-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.empty-day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #F7F5F0;
+  border-radius: 12px;
+  color: var(--color-text-muted);
+}
+
+.empty-day-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.empty-day-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.empty-day-desc {
+  font-size: 12px;
+}
+
+/* Настройки и Карта (Правая колонка) */
+.overview-map-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.overview-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn--icon {
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-widget {
+  position: relative;
+  width: 100%;
+  height: 521px;
+  background-color: #E9E4D9;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-widget__bg {
+  width: 100%;
+  height: 100%;
+  /* Заглушка под карту */
+  background-image: radial-gradient(#d7c6a3 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.5;
+}
+
+.map-stop-popup {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  background: var(--color-white);
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+}
+
+.map-stop-popup__badge {
+  background: var(--color-accent-orange);
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.map-stop-popup__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-stop-popup__title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.map-stop-popup__address {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.map-stop-popup__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* === ТАЙМЛАЙН ПО ДНЯМ === */
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 868px; /* Ширина как на макете */
+}
+
+.day-selector-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.day-selector-btn {
+  background: #E8F0E6;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.day-selector-btn.active {
+  background: var(--color-white);
+  border-color: var(--color-accent-green);
+}
+
+.day-sel-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-accent-green);
+}
+
+.day-sel-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.timeline-day {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.timeline-day__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeline-day__number {
+  background: var(--color-accent-green);
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timeline-day__title {
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--color-text-dark);
+}
+
+.timeline-day__date {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-left: auto; /* Отодвигает дату вправо */
+}
+
+.timeline-points {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.route-point-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.route-point__time {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-accent-orange);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.route-point__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route-point__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.route-point__address {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.route-point__desc {
+  font-size: 14px;
+  color: var(--color-text-dark);
+  opacity: 0.8;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.route-point__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.route-point__image {
+  width: 140px;
+  height: 100px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.overlay-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--color-accent-green);
+  color: var(--color-white);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+/* =========================================
+   СТРАНИЦА "ПЛАН ПО ДНЯМ"
+   ========================================= */
+
+.trip-plan-main {
+  padding-top: 40px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* === КАЛЕНДАРЬ (НАВИГАЦИЯ ПО ДНЯМ) === */
+.days-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+
+
+
+.days-calendar__list {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px; /* Место для скроллбара, чтобы он не перекрывал карточки */
+}
+
+/* Скрываем стандартный скроллбар для эстетики */
+.days-calendar__list::-webkit-scrollbar {
+  height: 4px;
+}
+.days-calendar__list::-webkit-scrollbar-thumb {
+  background: var(--color-border-warm);
+  border-radius: 4px;
+}
+
+.day-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  min-width: 140px;
+  text-align: left;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.day-card:hover {
+  border-color: var(--color-accent-green);
+}
+
+.day-card.active {
+  background: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+}
+
+.day-card__name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-dark);
+  transition: color 0.2s;
+}
+
+.day-card.active .day-card__name {
+  color: var(--color-white);
+}
+
+.day-card__date {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.day-card.active .day-card__date {
+  color: #D9E0D9;
+}
+
+.day-card--add {
+  background: #E8EFE5;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* === СЕТКА "ПЛАН ПО ДНЯМ" (2 КОЛОНКИ) === */
+.trip-plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 352px; /* Левая тянется, правая фикс 352px по макету */
+  gap: 32px;
+  align-items: start;
+}
+
+.trip-plan__main-col {
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+
+
+
+/* Карточка полного расписания */
+.day-itinerary-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.itinerary-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.itinerary-title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-dark);
+}
+
+.itinerary-desc {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.itinerary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.itinerary-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itinerary-block__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn--icon-sm {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%; /* Круглая кнопка с плюсом */
+}
+
+.itinerary-divider {
+  height: 1px;
+  background: var(--color-border-warm);
+  border: none;
+  margin: 24px 0;
+  width: 100%;
+}
+
+/* === ПРАВАЯ КОЛОНКА (ДЕТАЛИ) === */
+.trip-details-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky; /* Чтобы карточка прилипала при скролле (опционально) */
+  top: 24px;
+}
+
+.trip-details__title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-dark);
+}
+
+.trip-details__list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.detail-value {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text-dark);
+}
+
+.detail-divider {
+  height: 1px;
+  background: var(--color-border-light);
+  border: none;
+  width: 100%;
+}
+
+/* =========================================
+   СТРАНИЦА "КАРТА ПОЕЗДКИ" (TRIP-MAP)
+   ========================================= */
+
+.trip-map-main {
+  padding-top: 40px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-header--spaced {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  flex-direction: row;
+}
+
+.section-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: start;
+}
+
+/* === СЕТКА (ЛЕВАЯ КОЛОНКА 396px, ПРАВАЯ - КАРТА) === */
+.trip-map-grid {
+  display: grid;
+  grid-template-columns: 396px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* === ЛЕВАЯ КОЛОНКА: МАРШРУТ === */
+.map-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.map-sidebar__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-sidebar__title {
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--color-text-dark);
+}
+
+.map-sidebar__subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.map-stop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-stop-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.map-stop-card:hover {
+  border-color: var(--color-accent-green);
+}
+
+.map-stop-card.active {
+  background: #E8EFE5;
+  border-color: var(--color-accent-green);
+}
+
+.stop-number-badge {
+  width: 28px;
+  height: 28px;
+  background: var(--color-accent-green);
+  color: var(--color-white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stop-number-badge--active {
+  background: var(--color-accent-orange);
+}
+
+.map-stop-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.map-stop-card__title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.map-stop-card__meta {
+  font-size: 12px;
+  color: var(--color-accent-orange);
+}
+
+.map-stop-card__address {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.map-route-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.map-summary-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-badge {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 99px;
+}
+
+/* === ПРАВАЯ КОЛОНКА: КАРТА === */
+.map-interactive-area {
+  position: relative;
+  background: #E9E4D9;
+  border-radius: 16px;
+  height: 610px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.map-interactive__bg {
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(#d7c6a3 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.8;
+  position: relative;
+}
+
+/* Имитация пути на карте */
+.map-route-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Пины на карте */
+.map-pin-container {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-16px, -16px); /* Центрирование пина по координатам */
+  z-index: 5;
+}
+
+.map-pin-container.active {
+  z-index: 10;
+}
+
+.map-pin-point {
+  width: 32px;
+  height: 32px;
+  background: var(--color-accent-green);
+  border: 3px solid var(--color-white);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-pin-point--active {
+  background: var(--color-accent-orange);
+}
+
+.map-pin-label {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--color-accent-green);
+  white-space: nowrap;
+}
+
+/* Слои карты (переключатели) */
+.map-layer-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+  background: var(--color-white);
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+}
+
+.layer-btn {
+  padding: 7px 14px;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.layer-btn.active {
+  background: var(--color-accent-green);
+  color: var(--color-white);
+}
+
+.layer-btn.inactive {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+}
+
+/* Зум-контроллы */
+
+.map-zoom-controls {
+    position: absolute;
+    z-index: 1000;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.zoom-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #fff;
+    color: #374151;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    transition: background 0.2s, transform 0.2s;
+}
+
+.zoom-btn:hover {
+    background: #f1f5f0;
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+.zoom-btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+
+/* Легенда карты */
+.map-legend-box {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  z-index: 20;
+}
+
+/* Информационный попап места (справа снизу) */
+.map-info-popup {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 300px;
+  background: var(--color-white);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
+}
+
+.map-info-popup__title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.map-info-popup__meta, .map-info-popup__address {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.map-info-popup__actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* =========================================
+   СТРАНИЦА "ИНТЕРАКТИВНАЯ КАРТА"
+   ========================================= */
+
+.interactive-map-main {
+  padding-top: 40px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Область карты */
+.full-map-area {
+  position: relative;
+  width: 100%;
+  height: 800px; /* Высота подстраивается под экраны через медиа-запросы */
+  min-height: 600px;
+  background-color: #E9E4D9;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.05);
+}
+
+/* Точечный маркер на карте (без номера) */
+.map-pin-point--dot {
+  width: 24px;
+  height: 24px;
+  background: var(--color-accent-orange);
+  border: 3px solid var(--color-white);
+  border-radius: 50%;
+  padding: 0;
+  display: block;
+}
+
+/* === ПЛАВАЮЩАЯ ФОРМА "ДОБАВИТЬ МЕСТО" === */
+.map-overlay-form {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 392px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 20;
+  box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.08);
+  /* Чтобы форма скроллилась внутри, если карта маленькая по высоте */
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+}
+
+/* Скрываем скроллбар для формы */
+.map-overlay-form::-webkit-scrollbar {
+  width: 4px;
+}
+.map-overlay-form::-webkit-scrollbar-thumb {
+  background: var(--color-border-warm);
+  border-radius: 4px;
+}
+
+.map-overlay__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-overlay__title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-dark);
+}
+
+.btn-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.btn-close:hover {
+  background: #F7F5F0;
+  color: var(--color-text-dark);
+}
+
+/* Блок предупреждения */
+.draft-status-box {
+  background: #F7F5F0;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.draft-status__title {
+  color: var(--color-accent-orange);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.draft-status__desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+/* Сама форма внутри карточки */
+.map-overlay__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Отключаем нижний отступ, т.к. в этой форме используется свой gap */
+.map-overlay__form .form-group {
+  margin-bottom: 0;
+}
+
+/* Группа кнопок идет в колонку */
+.map-overlay__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-overlay__footer-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* =========================================
+   СТРАНИЦА "КАРТА ПОЕЗДКИ" (ДОБАВЛЕНИЕ МЕСТА)
+   ========================================= */
+
+.mb-40 { margin-bottom: 40px; }
+.text-muted { color: var(--color-text-muted); }
+
+/* === КОМПАКТНАЯ ШАПКА ПОЕЗДКИ === */
+.compact-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.compact-hero__main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compact-hero__title {
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--color-text-dark);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.badge--active {
+  background: var(--color-accent-orange);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+.compact-hero__meta {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.compact-hero__actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* === НАВИГАЦИЯ ПО ДНЯМ И КОНТЕКСТ === */
+.map-context-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+/* === СЕТКА 3 КОЛОНКИ === */
+.trip-map-3col-main {
+  display: grid;
+  grid-template-columns: 320px 1fr 392px; /* 3 колонки по макету */
+  gap: 24px;
+  align-items: start;
+}
+
+/* Левая колонка - карточка дня */
+.map-sidebar-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-sidebar__footer-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* Центральная колонка - Карта */
+.map-interactive-area--3col {
+  height: 672px; /* Высота выравнивается по боковым панелям */
+}
+
+/* Несохраненный маркер (черновик) */
+.map-pin-container.draft {
+  z-index: 15;
+}
+
+.map-pin-draft {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 2px solid var(--color-accent-orange);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-pin-draft__inner {
+  width: 14px;
+  height: 14px;
+  background: var(--color-accent-orange);
+  border-radius: 50%;
+}
+
+.map-pin-label--draft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-white);
+  border: 1px solid var(--color-accent-orange);
+}
+
+.draft-label-title {
+  font-weight: 700;
+  color: var(--color-accent-orange);
+}
+
+.draft-label-coords {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+/* Правая колонка - Контекстная форма */
+.map-side-form {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  /* Форма может быть длинной, делаем скролл внутри при необходимости */
+  max-height: 672px;
+  overflow-y: auto;
+}
+
+/* Кастомизируем скроллбар панели */
+.map-side-form::-webkit-scrollbar {
+  width: 4px;
+}
+.map-side-form::-webkit-scrollbar-thumb {
+  background: var(--color-border-warm);
+  border-radius: 4px;
+}
+
+/* Кнопки в форме рядом */
+.form-actions-row {
+  display: flex;
+  gap: 12px;
+}
+.form-actions-row .btn {
+  flex: 1;
+  padding: 12px 16px;
+}
+
+/* =========================================
+   СТРАНИЦА "ТРАНСПОРТ" (TRIP-TRANSPORT)
+   ========================================= */
+
+.trip-transport-main {
+  padding-top: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === СПИСОК КАРТОЧЕК ТРАНСПОРТА === */
+.transport-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.transport-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Шапка карточки */
+.transport-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.transport-card__title-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.transport-icon {
+  width: 44px;
+  height: 44px;
+  background: #E8EFE5;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-green);
+  flex-shrink: 0;
+}
+
+.transport-card__headings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transport-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.transport-subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Тело карточки (Время и место) */
+.transport-card__body {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.time-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1; /* Растягиваем блоки равномерно */
+}
+
+.time-block__time {
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--color-text-dark);
+}
+
+.time-block__place {
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.time-block__arrow {
+  color: var(--color-accent-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Подвал карточки (Мета-данные и кнопка) */
+.transport-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.transport-card__meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+/* =========================================
+   СТРАНИЦА "ПРОЖИВАНИЕ" (TRIP-ACCOMMODATION)
+   ========================================= */
+
+.trip-accommodation-main {
+  padding-top: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Модификатор для вкладок на белом фоне */
+.trip-tabs--white {
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border-warm);
+}
+
+.accommodation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* === КАРТОЧКА ОТЕЛЯ === */
+.acc-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.acc-card__body {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.acc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.acc-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.acc-title {
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--color-text-dark);
+}
+
+.acc-address {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.acc-badge {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+/* Блоки Заезд / Выезд */
+.check-blocks-row {
+  display: flex;
+  gap: 24px;
+}
+
+.check-block {
+  flex: 1;
+  background: #F7F5F0;
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.check-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.check-date {
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--color-text-dark);
+}
+
+.check-hint {
+  font-size: 13px;
+  color: var(--color-text-dark);
+}
+
+/* Детали номера */
+.acc-details-row {
+  display: flex;
+  gap: 24px;
+}
+
+.acc-details-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.acc-detail-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.acc-detail-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Текстовая подсказка */
+.acc-hint {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Кнопки действий */
+.acc-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.acc-actions .btn {
+  padding: 12px 24px;
+}
+
+/* === КАРТОЧКА ПРОПУЩЕННОЙ НОЧИ === */
+.missing-night-card {
+  background: #F7F5F0;
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.missing-night__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.missing-night__desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.missing-night__btn {
+  padding: 12px 24px;
+}
+
+/* =========================================
+   СТРАНИЦА "СПИСОК ВЕЩЕЙ" (TRIP-PACKING)
+   ========================================= */
+
+.trip-packing-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.mt-24 { margin-top: 24px; }
+.mt-32 { margin-top: 32px; }
+
+/* === ПРОГРЕСС СБОРОВ === */
+.packing-progress-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.packing-progress-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* === ФИЛЬТРЫ ВЕЩЕЙ === */
+.packing-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.packing-filter-btn {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  border: none;
+  border-radius: 99px;
+  padding: 7px 14px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+}
+
+.packing-filter-btn:hover {
+  opacity: 0.8;
+}
+
+.packing-filter-btn.active {
+  background: var(--color-accent-green);
+  color: var(--color-white);
+}
+
+/* === СЕТКА КАТЕГОРИЙ (2 КОЛОНКИ) === */
+.packing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.packing-category-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.packing-category__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.packing-category__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.packing-category__count {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 99px;
+}
+
+/* Списки внутри категории */
+.packing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.packing-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Модификация кастомного чекбокса специально для списка вещей */
+.custom-checkbox--packing .custom-checkbox__box {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border-width: 1.5px;
+}
+
+/* Текстовая группа чекбокса */
+.packing-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.packing-item__name {
+  font-size: 14px;
+  color: var(--color-text-dark);
+  transition: color 0.2s;
+}
+
+.packing-item__note {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Состояние: Отмечено (Собрано) */
+.packing-item--checked .packing-item__name {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+/* =========================================
+   СТРАНИЦА "НАСТРОЙКИ ПУТЕШЕСТВИЯ"
+   ========================================= */
+
+.trip-settings-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.settings-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Утилиты отступов для этой страницы */
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+
+/* Заголовки разделов формы и разделители */
+.form-section-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.form-divider-line {
+  height: 1px;
+  background: var(--color-border-warm);
+  border: none;
+  margin: 24px 0;
+  width: 100%;
+}
+
+/* === ПЕРЕКЛЮЧАТЕЛЬ (TOGGLE) === */
+.settings-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-toggle-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text-dark);
+}
+
+.settings-toggle-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.toggle-switch__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch__slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #D9E0D9;
+  transition: .2s;
+  border-radius: 32px;
+}
+
+.toggle-switch__slider:before {
+  position: absolute;
+  content: "";
+  height: 24px;
+  width: 24px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch__input:checked + .toggle-switch__slider {
+  background-color: var(--color-accent-green);
+}
+
+.toggle-switch__input:checked + .toggle-switch__slider:before {
+  transform: translateX(20px);
+}
+
+/* === БЛОКИ СТАТУСОВ === */
+.status-box {
+  background: #F7F5F0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-box__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-accent-green);
+}
+
+.status-box__title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-box__desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+/* Уведомление об успешном действии (чекмарк) */
+.status-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.status-icon-check {
+  width: 32px;
+  height: 32px;
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-message__text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+.status-message__text strong {
+  color: var(--color-text-dark);
+  font-size: 14px;
+}
+
+/* === DANGER ZONE (УДАЛЕНИЕ) === */
+.danger-zone {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.danger-zone__text {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  max-width: 500px;
+}
+
+.btn--danger-outline {
+  border: 1.5px solid var(--color-accent-orange);
+  color: var(--color-accent-orange);
+  background: transparent;
+  border-radius: 99px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn--danger-outline:hover {
+  background: #fff5f2;
+}
+
+/* =========================================
+   ПУБЛИЧНАЯ СТРАНИЦА МАРШРУТА (PUBLIC-TRIP)
+   ========================================= */
+
+/* Специальная метка для публичного маршрута */
+.trip-hero__badge--public {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-accent-green);
+  display: flex;
+  align-items: center;
+}
+
+.public-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+/* === ЛЕВАЯ КОЛОНКА (ЛЕНТА) === */
+.public-timeline-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.public-day-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.public-day-meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.public-day-title {
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--color-text-dark);
+}
+
+.public-places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.public-place-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+
+.public-place-card:hover {
+  border-color: var(--color-accent-green);
+}
+
+.public-place__time {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-accent-orange);
+  margin-bottom: 4px;
+}
+
+.public-place__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.public-place__address {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.public-place__tags {
+  margin-top: 8px;
+}
+
+.place-tag {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  display: inline-block;
+}
+
+/* === ПРАВАЯ КОЛОНКА (КАРТА И ЛЕГЕНДА) === */
+.public-map-col {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 24px; /* Прилипает при скролле */
+}
+
+.map-legend-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.map-legend__title {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.legend-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.legend-time {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* =========================================
+   СТРАНИЦА "МАРШРУТ НЕДОСТУПЕН" (ОШИБКА 404 / ДОСТУП ЗАКРЫТ)
+   ========================================= */
+
+.error-page-main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Занимает всю высоту экрана минус шапка и футер */
+  min-height: calc(100vh - 83px - 94px);
+  padding: 64px 20px;
+}
+
+.error-card {
+  max-width: 800px;
+  width: 100%;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.error-card__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.badge--light {
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 99px;
+}
+
+.error-card__title {
+  font-weight: 700;
+  font-size: 36px;
+  color: var(--color-text-dark);
+  line-height: 1.2;
+}
+
+.error-card__desc {
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+/* Сетка с подсказками */
+.recommendations {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendations__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.recommendation-card {
+  background: #F7F5F0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendation-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text-dark);
+}
+
+.recommendation-card__header svg {
+  color: var(--color-accent-green);
+}
+
+.recommendation-card__desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Блок с кнопкой */
+.error-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.error-card__actions .btn {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+.error-card__hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* === МИНИМАЛИСТИЧНЫЙ ПОДВАЛ === */
+/* Переиспользуем тёмный цвет, но убираем лишние колонки */
+.footer--minimal {
+  padding: 32px 0;
+  height: auto;
+}
+
+.footer__minimal-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer__minimal-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer__minimal-tag {
+  font-size: 13px;
+  color: #D9E0D9;
+}
+
+.footer__minimal-copyright {
+  font-size: 12px;
+  color: #BFC9BF;
+}
+
+/* =========================================
+   СТРАНИЦА "ПРОФИЛЬ" (PROFILE)
+   ========================================= */
+
+/* Центрирование контейнера профиля и отступы */
+.profile-main {
+  display: flex;
+  flex-direction: column;
+  padding-top: 48px;
+  padding-bottom: 80px;
+}
+
+/* === АВАТАР И ПОЛЬЗОВАТЕЛЬ В ШАПКЕ === */
+.header-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.header-user-btn:hover {
+  opacity: 0.8;
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  background: #E0D1B0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.header-user-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+/* === КАРТОЧКА ПРОФИЛЯ === */
+.profile-card {
+  width: 100%;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 32px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-card__top {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.profile-avatar-large {
+  width: 110px;
+  height: 110px;
+  background: #E0D1B0;
+  border: 3px solid var(--color-accent-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--color-text-dark);
+  flex-shrink: 0;
+}
+
+.profile-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-user-name {
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.3;
+  color: var(--color-text-dark);
+  margin-bottom: 2px;
+}
+
+.profile-user-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.profile-user-date {
+  font-size: 13px;
+  color: #8C9C90;
+}
+
+.profile-divider {
+  height: 1px;
+  background: var(--color-border-warm);
+  border: none;
+  width: 100%;
+  margin: 0;
+}
+
+.profile-card__actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+/* =========================================
+   СТРАНИЦА "РЕДАКТИРОВАТЬ ПРОФИЛЬ" (EDIT PROFILE)
+   ========================================= */
+
+.edit-profile-main {
+  display: flex;
+  justify-content: center;
+}
+
+.edit-profile-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* === РЕДАКТИРОВАНИЕ АВАТАРА === */
+.avatar-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.avatar-edit-circle {
+  width: 110px;
+  height: 110px;
+  background: #E8EFE5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-main);
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--color-accent-green);
+  flex-shrink: 0;
+}
+
+.avatar-edit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.avatar-edit-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.avatar-edit-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* === СТРОКИ ДАННЫХ АККАУНТА (EMAIL / ПАРОЛЬ) === */
+.account-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.account-data-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.account-data-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.account-data-hint {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+/* Выравнивание кнопок формы вправо */
+.form-actions--end {
+  justify-content: flex-end;
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 768px) {
+  .account-data-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .account-data-row .btn {
+    width: 100%; /* Кнопки "Изменить email/пароль" на всю ширину */
+  }
+
+  .avatar-edit-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+/* =========================================
+   АДМИН-ПАНЕЛЬ (ADMIN DASHBOARD)
+   ========================================= */
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-bg-alt);
+  font-family: var(--font-main);
+  color: var(--color-text-dark);
+}
+
+/* === САЙДБАР АДМИНКИ === */
+.admin-sidebar {
+  width: 280px;
+  background: #1E2620;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  flex-shrink: 0;
+  min-height: 100vh;
+}
+
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-brand-name {
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--color-white);
+}
+
+.sidebar-brand-subtitle {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #E8DCC8;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #8C9C90;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-link.active {
+  background: var(--color-accent-green);
+  color: var(--color-white);
+}
+
+.sidebar-spacer {
+  flex: 1;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-user-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-white);
+}
+
+.sidebar-logout {
+  font-size: 11px;
+  color: #8C9C90;
+  transition: color 0.2s;
+}
+
+.sidebar-logout:hover {
+  color: var(--color-white);
+}
+
+/* === ОСНОВНОЙ КОНТЕНТ АДМИНКИ === */
+.admin-main {
+  flex: 1;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 1160px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-title {
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--color-text-dark);
+}
+
+.admin-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* Поиск в шапке */
+.admin-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 30px;
+  padding: 10px 20px;
+  width: 260px;
+  color: var(--color-text-muted);
+}
+
+.admin-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--color-text-dark);
+  width: 100%;
+}
+
+.admin-search-input::placeholder {
+  color: #8C9C90;
+}
+
+/* === СТАТИСТИКА (РЯД КАРТОЧЕК) === */
+.admin-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.admin-stat-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-card__label {
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.stat-card__data {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-card__number {
+  font-weight: 700;
+  font-size: 28px;
+}
+
+.text-green { color: var(--color-accent-green); }
+.text-orange { color: var(--color-accent-orange); }
+
+.stat-card__growth {
+  font-size: 12px;
+  color: #8C9C90;
+}
+
+/* === ГРАФИК РОСТА === */
+.admin-chart-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-chart__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-chart__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.admin-chart__legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-accent-green);
+  border-radius: 50%;
+}
+
+.admin-chart__canvas {
+  background: #F7F5F0;
+  border-radius: 16px;
+  padding: 24px;
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  padding: 0 20px;
+}
+
+.chart-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-bar-item .bar {
+  width: 16px;
+  background: var(--color-accent-green);
+  border-radius: 4px 4px 0 0;
+}
+
+.bar-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* === БЫСТРЫЕ ДЕЙСТВИЯ === */
+.admin-quick-actions {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quick-actions__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.quick-actions__row {
+  display: flex;
+  gap: 12px;
+}
+
+.quick-action-card {
+  flex: 1;
+  background: #F7F5F0;
+  border: 1px solid var(--color-border-warm);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+}
+
+.quick-action-card:hover {
+  opacity: 0.9;
+}
+
+.quick-action-card--primary {
+  background: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+  color: var(--color-white);
+}
+
+.quick-action-card--primary .qa-title,
+.quick-action-card--primary .qa-desc {
+  color: var(--color-white);
+}
+
+.qa-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.qa-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1024px) {
+  .admin-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    width: 80px;
+    padding: 20px 10px;
+  }
+
+  .sidebar-brand span,
+  .sidebar-link span,
+  .sidebar-user-info {
+    display: none; /* Сворачиваем сайдбар на планшетах */
+  }
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .profile-card {
+    padding: 32px 24px;
+  }
+
+  .profile-card__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .profile-card__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .profile-card__actions .btn {
+    width: 100%;
+  }
+
+  /* Скрываем текст "Аккаунт" в шапке на мобилках, оставляем только аватарку */
+  .header-user-name {
+    display: none;
+  }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 768px) {
+  .error-card {
+    padding: 32px 24px;
+  }
+
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer__minimal-inner {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+}
+
+/* Адаптивность для настроек */
+@media (max-width: 768px) {
+  .danger-zone {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .danger-zone .btn--danger-outline {
+    width: 100%;
+  }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 992px) {
+  .packing-grid {
+    grid-template-columns: 1fr; /* На планшетах и мобилках 1 колонка */
+  }
+}
+
+@media (max-width: 768px) {
+  .section-header--spaced {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+/* === АДАПТИВНОСТЬ ДЛЯ ПРОЖИВАНИЯ === */
+@media (max-width: 768px) {
+  .check-blocks-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .acc-details-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .acc-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .acc-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .acc-actions .btn {
+    width: 100%;
+  }
+
+  .missing-night__btn {
+    width: 100%;
+  }
+}
+
+/* === АДАПТИВНОСТЬ ДЛЯ ТРАНСПОРТА === */
+@media (max-width: 768px) {
+  .transport-card {
+    padding: 20px;
+  }
+
+  .transport-card__header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .transport-card__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .transport-card__footer .btn {
+    width: 100%;
+  }
+}
+
+/* === АДАПТИВНОСТЬ ДЛЯ 3-КОЛОНОЧНОГО МАКЕТА === */
+@media (max-width: 1200px) {
+  .trip-map-3col-main {
+    grid-template-columns: 280px 1fr 320px; /* Сужаем боковые панели */
+  }
+}
+
+@media (max-width: 1024px) {
+  .trip-map-3col-main {
+    grid-template-columns: 1fr; /* Колонки друг под другом */
+  }
+
+  .map-interactive-area--3col {
+    height: 500px;
+    order: -1; /* Карта сверху */
+  }
+}
+
+@media (max-width: 768px) {
+  .compact-hero {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .compact-hero__actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1024px) {
+  .full-map-area {
+    height: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .full-map-area {
+    height: 700px; /* Даем больше высоты, чтобы вместить форму и кусок карты */
+  }
+
+  .map-overlay-form {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+}
+
+/* === АДАПТИВНОСТЬ ДЛЯ СТРАНИЦЫ КАРТЫ === */
+@media (max-width: 1024px) {
+  .trip-map-grid {
+    grid-template-columns: 1fr; /* Колонки друг под другом */
+  }
+
+  .map-interactive-area {
+    order: -1; /* Карта сверху, список снизу */
+    height: 400px; /* Уменьшаем высоту карты на мобильных */
+  }
+
+  .map-info-popup {
+    width: calc(100% - 32px); /* Попап на всю ширину на мобилке */
+  }
+}
+
+@media (max-width: 768px) {
+  .section-header--spaced {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1024px) {
+  .trip-plan-grid {
+    grid-template-columns: 1fr; /* Колонки друг под другом на планшетах */
+  }
+
+  .trip-details-card {
+    position: static; /* Отключаем липкость на мобильных */
+  }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1024px) {
+  .trip-hero {
+    height: auto;
+    padding-top: 40px;
+  }
+
+  .trip-hero__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .trip-overview-grid {
+    grid-template-columns: 1fr; /* Колонки друг под другом на планшетах */
+  }
+
+  .overview-map-col {
+    order: -1; /* Карта сверху на мобильных */
+  }
+}
+
+@media (max-width: 768px) {
+  .route-point-card {
+    flex-direction: column;
+  }
+
+  .route-point__time {
+    width: 100%;
+  }
+
+  .route-point__image {
+    width: 100%;
+    height: 180px;
+    margin-top: 12px;
+  }
+
+  .timeline-day__header {
+    flex-wrap: wrap;
+  }
+  .timeline-day__date {
+    margin-left: 0;
+    width: 100%;
+    padding-left: 48px; /* Выравнивание под текстом */
+  }
+}
+
+/* === АДАПТИВНОСТЬ ФОРМЫ === */
+@media (max-width: 768px) {
+  .form-card {
+    padding: 32px 24px;
+    border-radius: 24px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn--outline-dark, .btn--solid-dark {
+    width: 100%;
+  }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1024px) {
+  .trips-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .featured-trip {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .featured-trip__image {
+    width: 100%;
+    height: 250px;
+  }
+
+  .footer__top {
+    flex-direction: column;
+    gap: 40px;
+    text-align: center;
+  }
+
+  .footer__desc {
+    text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 24px;
+  }
+
+  .trips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .navbar__nav {
+    display: none; /* Для мобильных скрываем меню или делаем бургер */
+  }
+}
+
+
+.overview-actions .btn--icon {
+  flex: none;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-user-location {
+    background: transparent;
+    border: none;
+}
+
+.user-loc-dot {
+    width: 14px;
+    height: 14px;
+    background: #3685ff;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    z-index: 2;
+}
+
+.user-loc-pulse {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: rgba(54, 133, 255, 0.25);
+    border-radius: 50%;
+    animation: locationPulse 2s infinite;
+}
+
+@keyframes locationPulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* =========================================
+   ИНТЕРАКТИВНАЯ КАРТА — ФУНКЦИОНАЛЬНАЯ ЧАСТЬ
+   ========================================= */
+
+.full-map-area .leaflet-container {
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-main);
+    background: #E9E4D9;
+}
+
+/* Левая колонка поверх карты: поиск + слои */
+.map-toolbar {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 1000;
+    width: 340px;
+    max-width: calc(100% - 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.map-toolbar .map-layer-toggle {
+    position: static;
+    flex-wrap: wrap;
+    align-self: flex-start;
+}
+
+.map-search__field {
+    position: relative;
+}
+
+.map-search__input {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    border: 1px solid var(--color-border-warm);
+    border-radius: 12px;
+    background: var(--color-white);
+    font-family: var(--font-main);
+    font-size: 14px;
+    color: var(--color-text-dark);
+    outline: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.map-search__input:focus {
+    border-color: var(--color-accent-green);
+}
+
+.map-search__icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+    display: flex;
+    pointer-events: none;
+}
+
+.map-search__results {
+    margin-top: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    max-height: 280px;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.map-search__result {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-border-light);
+    font-family: var(--font-main);
+    cursor: pointer;
+}
+
+.map-search__result:hover {
+    background: var(--color-bg-alt);
+}
+
+.map-search__result-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-text-dark);
+}
+
+.map-search__result-address {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.map-search__empty {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.layer-btn {
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+/* Кнопки масштаба — справа снизу, чтобы не спорить с формой и поиском */
+.full-map-area .map-zoom-controls {
+    top: auto;
+    left: auto;
+    right: 16px;
+    bottom: 32px;
+}
+
+/* Форма добавления места — справа */
+.full-map-area .map-overlay-form {
+    left: auto;
+    right: 16px;
+    z-index: 1000;
+}
+
+.form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 40px;
+    background: var(--color-white);
+}
+
+.form-error {
+    font-size: 12px;
+    color: var(--color-accent-orange);
+}
+
+.form-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.form-hint a {
+    color: var(--color-accent-green);
+    font-weight: 600;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Пины мест (Leaflet divIcon) */
+.place-pin {
+    background: transparent;
+    border: none;
+}
+
+.place-pin__point {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 3px solid var(--color-white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--color-white);
+    background: var(--color-accent-green);
+}
+
+.place-pin--favorite .place-pin__point {
+    background: var(--color-accent-orange);
+}
+
+.place-pin--selected .place-pin__point {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 4px rgba(61, 90, 62, 0.25), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.place-pin__draft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.place-pin--draft .map-pin-draft {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* Попап сохранённого места */
+.place-popup .leaflet-popup-content-wrapper {
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.place-popup .leaflet-popup-content {
+    margin: 16px;
+    width: 260px !important;
+    font-family: var(--font-main);
+}
+
+.place-popup__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.place-popup__category {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-accent-orange);
+}
+
+.place-popup__title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--color-text-dark);
+}
+
+.place-popup__address {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.place-popup__visits {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+}
+
+.place-popup__visit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--color-bg-alt);
+    font-size: 12px;
+    color: var(--color-text-dark);
+}
+
+.place-popup__visit-remove {
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.place-popup__visit-remove:hover {
+    color: var(--color-accent-orange);
+}
+
+.place-popup__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.place-popup__actions .btn {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+.map-empty-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    white-space: nowrap;
+}
+
+/* Всплывающее уведомление */
+.toast {
+    position: fixed;
+    right: 32px;
+    bottom: 32px;
+    max-width: min(420px, calc(100vw - 32px));
+    z-index: 2000;
+    background: var(--color-accent-green);
+    color: var(--color-white);
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    /* Выплывает снизу справа; forwards — после анимации остаётся в конечном положении. */
+    animation: toast-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Перед удалением из страницы уведомление плавно уезжает вправо и тает. */
+.toast--leaving {
+    animation: toast-out 0.3s ease-in forwards;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translate(24px, 24px); }
+    to { opacity: 1; transform: translate(0, 0); }
+}
+
+@keyframes toast-out {
+    from { opacity: 1; transform: translate(0, 0); }
+    to { opacity: 0; transform: translate(32px, 0); }
+}
+
+@media (max-width: 600px) {
+    .toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        max-width: none;
+    }
+}
+
+/* Индикатор загрузки (Components/Loader.jsx) — единый для всех запросов к внешним сервисам. */
+.spinner {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: spinner-turn 0.7s linear infinite;
+}
+
+@keyframes spinner-turn {
+    to { transform: rotate(360deg); }
+}
+
+.loader {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.loader--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loader--inline .spinner,
+.loader__head .spinner {
+    color: var(--color-accent-green);
+}
+
+.loader--block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 0;
+}
+
+.loader__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loader__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    background: var(--color-white);
+}
+
+/* Серая полоска с бегущим бликом — «заготовка» строки, пока нет данных. */
+.loader__line {
+    display: block;
+    width: 40%;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--color-border-light) 25%, var(--color-bg-alt) 50%, var(--color-border-light) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.2s ease-in-out infinite;
+}
+
+.loader__line--wide {
+    width: 65%;
+    height: 12px;
+}
+
+@keyframes skeleton-shine {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+/* Кнопка во время запроса: кружок слева от подписи. */
+.btn .spinner,
+.link-button .spinner {
+    width: 14px;
+    height: 14px;
+}
+
+/* У .btn промежуток задаёт gap, у ссылки-кнопки — отступ. */
+.link-button .spinner {
+    margin-right: 6px;
+    vertical-align: -2px;
+}
+
+/* Тем, кто отключил анимацию в системе, — без движения. */
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .toast--leaving,
+    .spinner,
+    .loader__line {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+    }
+}
+
+/* Шапка: блок пользователя */
+.navbar__user {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.navbar__user-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-text-dark);
+}
+
+.nav-logout {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+@media (max-width: 768px) {
+    .full-map-area .map-overlay-form {
+        left: 16px;
+        right: 16px;
+        width: auto;
+        top: auto;
+        bottom: 16px;
+        max-height: 70%;
+    }
+
+    .map-toolbar {
+        width: auto;
+        right: 16px;
+    }
+
+    .map-empty-hint {
+        white-space: normal;
+        width: calc(100% - 32px);
+        text-align: center;
+    }
+}
+
+/* =========================================
+   МОИ ПУТЕШЕСТВИЯ — ДОПОЛНЕНИЯ
+   ========================================= */
+
+.trip-card__status--current {
+    background: var(--color-accent-green);
+    color: var(--color-white);
+}
+
+.trip-card__status--completed {
+    background: #ECEAE5;
+    color: var(--color-text-muted);
+}
+
+.trip-card__status--draft {
+    background: #F7EDE7;
+    color: var(--color-accent-orange);
+}
+
+.trip-card__actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+    background: transparent;
+}
+
+.trips-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 64px 24px;
+    text-align: center;
+    background: var(--color-white);
+    border: 1px dashed var(--color-border-warm);
+    border-radius: 24px;
+}
+
+.trips-empty__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-dark);
+}
+
+.trips-empty__text {
+    max-width: 420px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.filter-btn {
+    font-family: var(--font-main);
+}
+
+textarea.form-input {
+    resize: vertical;
+    min-height: 88px;
+}
+
+.link-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--color-accent-green);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.form-actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+/* =========================================
+   ЗАКРЕПЛЁННАЯ ШАПКА
+   ========================================= */
+
+/* .header — шапка главной, .navbar — шапка внутренних страниц.
+   z-index выше, чем у элементов карты Leaflet (до 1000), но ниже уведомлений (2000). */
+.header,
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+}
+
+.navbar {
+    box-shadow: 0 1px 0 var(--color-border-warm);
+}
+
+/* Переход по якорям (#features и т. п.): плавно и с отступом под закреплённую шапку */
+html {
+    scroll-behavior: smooth;
+}
+
+section[id] {
+    scroll-margin-top: 100px;
+}
+
+/* === ИЗБРАННОЕ === */
+
+.favorite-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-radius: 24px;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.favorite-card__category {
+    align-self: flex-start;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--color-accent-orange);
+    color: var(--color-white);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.favorite-card__title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-dark);
+}
+
+.favorite-card__address {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.favorite-card__actions {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.favorite-card__actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+/* === СТРАНИЦА ПОЕЗДКИ (каркас с вкладками) === */
+
+/* Компактная обложка: ниже, чем в макете, — на всех вкладках важнее содержимое */
+.trip-hero--compact {
+    height: auto;
+    min-height: 220px;
+    padding-top: 32px;
+}
+
+.trip-hero--compact .trip-hero__inner {
+    padding-bottom: 32px;
+}
+
+.trip-hero--compact .trip-hero__title {
+    font-size: 36px;
+}
+
+.trip-hero__back {
+    color: var(--color-white);
+    font-size: 14px;
+    text-decoration: none;
+    opacity: 0.85;
+}
+
+.trip-hero__back:hover {
+    opacity: 1;
+}
+
+/* Цвет плашки статуса — как на карточках «Моих путешествий» («Запланировано» остаётся оранжевым) */
+.trip-hero__badge--current {
+    background: var(--color-accent-green);
+}
+
+.trip-hero__badge--completed {
+    background: #ECEAE5;
+    color: var(--color-text-muted);
+}
+
+.trip-hero__badge--draft {
+    background: #F7EDE7;
+    color: var(--color-accent-orange);
+}
+
+.overview-map-col .btn {
+    text-align: center;
+}
+
+.trip-overview__description {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--color-text-dark);
+    white-space: pre-line;
+}
+
+/* Кнопка «Открыть» добавилась к остальным на карточках «Моих путешествий» */
+.featured-trip__action {
+    justify-content: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.trip-card__actions {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .trip-hero--compact .trip-hero__title {
+        font-size: 28px;
+    }
+}
+
+/* Вкладка «Транспорт»: кнопки на карточке и отступ под заголовком */
+.transport-grid {
+    margin-top: 24px;
+}
+
+.transport-card__actions {
+    display: flex;
+    gap: 8px;
+    flex: none;
+}
+
+.transport-card__actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+/* ==================================
+   ВКЛАДКА «ПРОЖИВАНИЕ»: ДОПОЛНЕНИЯ К МАКЕТУ
+   ========================================= */
+
+/* Переносы строк из данных брони и заметки сохраняем как ввёл пользователь */
+.acc-text {
+    white-space: pre-line;
+}
+
+.acc-divider {
+    margin: 0;
+}
+
+.acc-actions {
+    flex-wrap: wrap;
+}
+
+.acc-actions .btn {
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.acc-actions__delete {
+    margin-left: auto;
+}
+
+.acc-form {
+    padding: 32px;
+    gap: 24px;
+}
+
+.acc-form__search {
+    align-self: flex-start;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .check-blocks-row {
+        flex-direction: column;
+    }
+
+    .acc-actions__delete {
+        margin-left: 0;
+    }
+}
+
+/* Список вещей: кнопки удаления, переименование по клику и формы быстрого добавления */
+.packing-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.packing-item__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.packing-category__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.packing-rename-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    font-family: var(--font-main);
+    cursor: text;
+}
+
+.packing-rename-btn:hover {
+    text-decoration: underline dotted;
+}
+
+.packing-inline-input {
+    padding: 6px 10px;
+}
+
+.packing-delete-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.packing-delete-btn:hover {
+    opacity: 1;
+    color: var(--color-accent-orange);
+}
+
+.packing-add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 20px;
+}
+
+.packing-add-form__row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.packing-add-form__row .form-input {
+    padding: 8px 12px;
+}
+
+.packing-add-form__note {
+    max-width: 140px;
+}
+
+/* === ФОТО И ИНФОРМАЦИЯ О МЕСТЕ (OpenStreetMap + Википедия) === */
+
+.place-photo {
+    display: block;
+    width: 100%;
+    object-fit: cover;
+    background: var(--color-bg-alt);
+    border-radius: 16px;
+}
+
+/* Заглушка без фото: иконка категории на тёплом фоне */
+.place-photo--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--color-bg-alt), var(--color-border-warm));
+    font-size: 40px;
+}
+
+.place-photo--cover {
+    height: 160px;
+}
+
+.place-photo--popup {
+    height: 120px;
+    border-radius: 12px;
+}
+
+.place-photo--thumb {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    font-size: 24px;
+}
+
+.place-credit {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.place-credit a,
+.place-contacts a {
+    color: var(--color-accent-green);
+    text-decoration: underline;
+}
+
+.place-contacts {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-dark);
+}
+
+.place-contacts__label {
+    color: var(--color-text-muted);
+}
+
+.place-form-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.place-form-info .btn {
+    align-self: flex-start;
+    cursor: pointer;
+}
+
+/* Пока ждём Википедию — индикатор загрузки с заготовкой строки (Components/Loader.jsx). */
+.map-overlay__form .loader--block {
+    margin-bottom: 16px;
+}
+
+.map-overlay__form .place-contacts,
+.map-overlay__form .place-credit {
+    margin-bottom: 12px;
+}
+
+/* =========================================
+   ВКЛАДКА «ПЛАН ПО ДНЯМ» (Pages/Trips/Plan.jsx)
+   ========================================= */
+
+/* Карточки дней — ссылки, а не кнопки, поэтому убираем подчёркивание */
+.days-calendar .day-card {
+    text-decoration: none;
+}
+
+
+.plan-stop {
+    align-items: flex-start;
+}
+
+.plan-stop__time {
+    width: auto;
+    font-size: 14px;
+}
+
+.plan-stop__note {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-text-dark);
+    background: #F7F5F0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    white-space: pre-line;
+}
+
+/* Мягкая подсказка о времени: не ошибка, а предупреждение */
+.plan-stop__warning {
+    font-size: 12px;
+    color: var(--color-accent-orange);
+}
+
+.plan-stop__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.plan-stop__actions .btn {
+    cursor: pointer;
+}
+
+/* Фото места слева вместо номера: узкое, по высоте всей карточки */
+.plan-stop__photo {
+    position: relative;
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 76px;
+    min-height: 76px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F7F5F0;
+}
+
+/* Пока фото не загрузилось, прячем его: иначе браузер показывает текст из alt поверх плашки */
+.plan-stop__photo img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.plan-stop__photo img.is-loaded {
+    opacity: 1;
+}
+
+/* Фото грузится — бегущий блик, как у .loader__line */
+.plan-stop__photo--loading {
+    background: linear-gradient(90deg, var(--color-border-light) 25%, var(--color-bg-alt) 50%, var(--color-border-light) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.2s ease-in-out infinite;
+}
+
+/* Фото нет — та же плашка, номер по центру */
+.plan-stop__photo--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plan-stop__photo-number {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+}
+
+/* Правая колонка карточки: «выше» сверху, меню «⋮» посередине, «ниже» снизу */
+.plan-stop__side {
+    flex-shrink: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* Пустое место вместо стрелки у первого/последнего места — размером с кнопку */
+.plan-stop__side-gap {
+    width: 34px;
+    height: 34px;
+}
+
+.plan-stop__side .btn {
+    cursor: pointer;
+}
+
+.plan-stop__menu {
+    position: relative;
+}
+
+/* Окна «Изменить» и «Убрать» лежат внутри карточки — не наследуем от неё курсор-руку */
+.plan-stop .modal-backdrop {
+    cursor: default;
+}
+
+.plan-stop__menu-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(30, 38, 32, 0.12);
+}
+
+.plan-stop__menu-item {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font-size: 14px;
+    color: var(--color-text-dark);
+    cursor: pointer;
+}
+
+.plan-stop__menu-item:hover {
+    background: #F7F5F0;
+}
+
+.plan-stop__menu-item--danger {
+    color: var(--color-accent-orange);
+}
+
+.plan-place-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.plan-place-form__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.plan-place-form__check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* Расписание дня: начало дня и кнопка «Рассчитать время» */
+.plan-schedule-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--color-border-warm);
+}
+
+.plan-schedule-form__start {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-schedule-form .form-label {
+    margin: 0;
+}
+
+.plan-schedule-form__time {
+    width: auto;
+    padding: 6px 10px;
+}
+
+.plan-schedule-form .form-error {
+    width: 100%;
+}
+
+/* Время на месте — между текстом и стрелками, по центру по высоте. «2 ч 35 мин» переносится в две строки. */
+.plan-stop__stay {
+    flex-shrink: 0;
+    align-self: center;
+    max-width: 64px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--color-accent-green);
+    margin-left: auto;
+}
+
+/* Подпись под крупной цифрой, чтобы было ясно, что это время на месте, а не в пути */
+.plan-stop__stay-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+/* Время уже оттолкнуло всё вправо — колонке стрелок отступ не нужен */
+.plan-stop__stay + .plan-stop__side {
+    margin-left: 0;
+}
+
+.plan-stop__free {
+    font-size: 12px;
+    color: var(--color-accent-green);
+}
+
+/* Отрезок пути между местами: «🚶 12 мин» — с отступом под номером места */
+.plan-segment {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0 6px 12px;
+    margin-left: 16px; /* под левым краем фото места (поле карточки 12px) */
+    border-left: 2px dashed var(--color-border-warm);
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.plan-segment__link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+.plan-day-total {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-border-warm);
+    font-size: 14px;
+}
+
+.plan-day-total__return {
+    color: var(--color-text-muted);
+}
+
+.plan-day-total__summary {
+    font-weight: 600;
+    color: var(--color-text-dark);
+}
+
+/* Карточка «Добавить место» во всю ширину списка: зелёная плашка со светлым текстом */
+.plan-add-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 12px 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--color-accent-green);
+    color: #FDFBF7;
+}
+
+.plan-add-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.plan-add-card__text {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.plan-add-card__title {
+    font-weight: 600;
+    font-size: 15px;
+    color: #FDFBF7;
+}
+
+.plan-add-card__hint {
+    font-size: 13px;
+    color: rgba(253, 251, 247, 0.75);
+}
+
+/* Кнопка «★ Избранное»: светлая обводка вместо тёмной — тёмная на зелёном не видна */
+.plan-add-card .btn--outline-dark {
+    border-color: rgba(253, 251, 247, 0.7);
+    color: #FDFBF7;
+}
+
+.plan-add-card .btn--outline-dark:hover {
+    background: rgba(253, 251, 247, 0.12);
+}
+
+/* Избранное плавно выезжает вниз. Высота строки сетки анимируется от 0fr до 1fr —
+   так не нужно знать высоту списка заранее (у max-height анимация была бы рваной). */
+.plan-add-card__drawer {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-top: -12px; /* свёрнутый список не должен добавлять отступ (gap) карточки */
+    transition: grid-template-rows 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+}
+
+.plan-add-card__drawer.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    margin-top: 0;
+}
+
+/* Длинный список прокручивается внутри; min-height: 0 даёт строке сетки сжаться до нуля */
+.plan-add-card__favorites {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 280px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(253, 251, 247, 0.25);
+}
+
+/* Кто отключил анимации в системе — список просто появляется */
+@media (prefers-reduced-motion: reduce) {
+    .plan-add-card__drawer {
+        transition: none;
+    }
+}
+
+.plan-add-card__favorite {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(253, 251, 247, 0.25);
+}
+
+.plan-add-card__favorite:last-child {
+    border-bottom: none;
+}
+
+.plan-add-card__favorite .stop-name {
+    color: #FDFBF7;
+}
+
+.plan-add-card__favorite .stop-desc {
+    color: rgba(253, 251, 247, 0.7);
+}
+
+/* «Добавить» у места из избранного — светлая кнопка с зелёным текстом */
+.plan-add-card__favorite .btn {
+    background-color: #FDFBF7;
+    border-color: #FDFBF7;
+    color: var(--color-accent-green);
+}
+
+.plan-add-card__favorite .btn:hover {
+    background-color: var(--color-border-warm);
+    border-color: var(--color-border-warm);
+}
+
+.plan-add-card__favorite .btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* «Весь маршрут дня в Яндекс.Картах»: подпись и три кнопки способа */
+.plan-full-route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border-warm);
+}
+
+.plan-full-route__title {
+    font-weight: 600;
+    color: var(--color-text-dark);
+}
+
+.plan-full-route__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Окно «Из избранного» поверх страницы */
+.plan-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(30, 38, 32, 0.45);
+}
+
+.plan-dialog {
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--color-white);
+    border-radius: 24px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-dialog__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-dialog__title {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-text-dark);
+}
+
+.plan-dialog__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.plan-dialog__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-border-warm);
+}
+
+.plan-dialog__item:last-child {
+    border-bottom: none;
+}
+
+/* =========================================
+   МОДАЛЬНОЕ ОКНО (Components/Modal.jsx): формы транспорта и жилья
+   ========================================= */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1500; /* выше шапки .navbar (1100), ниже уведомления .toast (2000) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(30, 38, 32, 0.45);
+}
+
+.modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: var(--color-white);
+    border-radius: 24px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal--wide {
+    max-width: 680px;
+}
+
+.modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal__title {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--color-text-dark);
+}
+
+.modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Поле станции с кнопкой «Найти вокзал» справа */
+.station-input {
+    display: flex;
+    gap: 8px;
+}
+
+.station-input .form-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.station-input__button {
+    flex-shrink: 0;
+    min-width: 140px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.station-input__status {
+    color: var(--color-text-muted);
+}
+
+/* Крутящийся кружок «ищем…» */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spinnerRotate 0.7s linear infinite;
+}
+
+@keyframes spinnerRotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Жильё, к которому перешли по «Показать на карте», — оранжевое и крупнее остальных значков */
+.place-pin--lodging.place-pin--active .place-pin__point {
+    background: var(--color-accent-orange);
+    transform: scale(1.25);
+}
+
+.map-stop-card.map-stop-card--focused {
+    border-color: var(--color-accent-orange);
+}
+
+@media (max-width: 768px) {
+    .modal {
+        padding: 20px;
+    }
+
+    .station-input {
+        flex-direction: column;
+    }
+}
+
+/* =========================================
+   КАРТОЧКА ПОЕЗДКИ ЦЕЛИКОМ КЛИКАБЕЛЬНА («Мои путешествия»)
+   ========================================= */
+
+/* Карточка поездки и большая карточка сверху — сами ссылки (<Link>), поэтому клик в любом месте открывает поездку.
+   Цвет и подчёркивание ссылки убираем, чтобы карточка выглядела как раньше. */
+.trip-card,
+.featured-trip {
+    position: relative;
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.trip-card:hover,
+.featured-trip:hover {
+    box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Отметки «Билет куплен» / «Забронировано» на вкладках «Транспорт» и «Проживание». */
+.booking-status {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    white-space: nowrap;
+}
+
+.booking-status--done {
+    background: #E8EFE5;
+    color: var(--color-accent-green);
+}
+
+.booking-status--todo {
+    background: #F7E6DF;
+    color: var(--color-accent-orange);
+}
+
+.booking-status--none {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+}
+
+.transport-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.acc-card__statuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+/* Блок «Возможно, пригодится» на вкладке «Список вещей» */
+.packing-hint-card {
+    border-style: dashed;
+}
+
+.packing-hint-card__add {
+    align-self: flex-start;
+    margin-top: 20px;
+}
+
+/* Вкладка «Подготовка»: шаги, готовность и подсказки «чего не хватает» */
+.prep-steps,
+.prep-hints {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.prep-step {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 16px;
+}
+
+.prep-step__icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    background: #F6E7E1;
+    color: var(--color-accent-orange);
+}
+
+.prep-step--ready .prep-step__icon {
+    background: #E8EFE5;
+    color: var(--color-accent-green);
+}
+
+.prep-step__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.prep-step__title {
+    font-weight: 700;
+    color: var(--color-text-dark);
+}
+
+.prep-step__summary {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.prep-step__status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #F6E7E1;
+    color: var(--color-accent-orange);
+    white-space: nowrap;
+}
+
+.prep-step__status--ready {
+    background: #E8EFE5;
+    color: var(--color-accent-green);
+}
+
+.prep-hint {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding-left: 14px;
+    border-left: 3px solid var(--color-accent-orange);
+    font-size: 14px;
+    color: var(--color-text-dark);
+}
+
+.prep-hint--warning {
+    border-left-color: var(--color-border-warm);
+    color: var(--color-text-muted);
+}
+
+.prep-hint__link {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+.prep-empty {
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+    .prep-step {
+        flex-wrap: wrap;
+    }
+}
+
+/* ==================================
+   ВКЛАДКА «ЗАРАНЕЕ» и отметки брони в плане дня
+   ========================================= */
+
+.advance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.advance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.advance-task .packing-item__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 2px;
+}
+
+.advance-task__due {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+/* Просроченное дело выделяем оранжевым */
+.advance-task__due--overdue {
+    color: var(--color-accent-orange);
+    font-weight: 600;
+}
+
+.advance-task--overdue .packing-item__name {
+    color: var(--color-accent-orange);
+}
+
+.advance-task-form,
+.packing-edit-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.advance-task-form__date {
+    max-width: 170px;
+}
+
+/* Поле срока в форме своего дела: видимая подпись «Срок» слева от даты. */
+.advance-due-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.advance-due-field__label {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.plan-stop__booking {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    margin-top: 4px;
+}
+
+.plan-stop__booking-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+/* Цепочка поездок: ссылки на соседние города в шапке, строка в карточке, предложение на «Транспорте» */
+.trip-chain-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.trip-chain-nav a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.trip-card__chain {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.chain-offer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-left: 4px solid var(--color-accent-green);
+    border-radius: 16px;
+}
+
+.chain-offer__text {
+    font-weight: 600;
+    color: var(--color-text-dark);
+}
+
+/* =========================================
+   ВКЛАДКА «КАРТА» (Pages/Trips/Map.jsx)
+   ========================================= */
+
+.place-pin--active .place-pin__point {
+    background: var(--color-accent-orange);
+    transform: scale(1.15);
+}
+
+.place-pin--lodging .place-pin__point {
+    border-radius: 8px;
+    background: var(--color-text-dark);
+    font-size: 16px;
+}
+
+/* Карточки дней и остановки — ссылки и кнопки, без подчёркивания и с выравниванием как у div */
+.trip-map-main .day-card {
+    text-decoration: none;
+}
+
+.map-stop-card {
+    width: 100%;
+    font: inherit;
+    text-align: left;
+}
+
+.map-stop-card--lodging {
+    cursor: default;
+    background: transparent;
+    border-style: dashed;
+}
+
+.map-stop-card--lodging:hover {
+    border-color: var(--color-border-light);
+}
+
+.stop-number-badge--lodging {
+    background: var(--color-text-dark);
+    border-radius: 8px;
+}
+
+/* Сама карта Leaflet занимает всю правую колонку */
+.map-interactive-area .leaflet-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Подпись OpenStreetMap: оставляем (требование лицензии), но делаем почти незаметной */
+.leaflet-container .leaflet-control-attribution {
+    background: transparent;
+    font-size: 9px;
+    line-height: 1.2;
+    padding: 0 4px;
+    opacity: 0.5;
+}
+
+.leaflet-container .leaflet-control-attribution,
+.leaflet-container .leaflet-control-attribution a {
+    color: var(--color-text-muted);
+}
+
+.map-route-note {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 500;
+    background: var(--color-white);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.map-add-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.map-add-popup__name {
+    padding: 6px 10px;
+    font-weight: 600;
+}
+
+.map-add-popup__loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.map-add-popup__address {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.map-stop-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+}
+
+.map-stop-popup-body h4 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.map-stop-popup-body p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+/* Подсказки Overpass: «Пора пообедать?», «Что по пути?», «Что рядом с жильём?» */
+.plan-hint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 4px 0 4px 4px;
+    padding: 8px 12px;
+    border-left: 4px solid var(--color-accent-green);
+    border-radius: 8px;
+    background: var(--color-white);
+    font-size: 13px;
+    color: var(--color-text-dark);
+}
+
+.plan-hint__button {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+.found-place {
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.found-place__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.acc-nearby {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border-warm);
+}
+
+.acc-nearby__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* =========================================
+   ЭТАПЫ ПОЕЗДКИ: «только просмотр» и вкладка «Сегодня»
+   ========================================= */
+
+.trip-readonly-banner {
+    margin-top: 24px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: #f3efe6;
+    color: var(--color-text-dark);
+    font-weight: 600;
+}
+
+/* Вкладка «только просмотр»: страницы сами не показывают кнопки изменения (canEditTab в TripLayout.jsx),
+   а галочки делают disabled — у таких галочек обычный курсор, они не нажимаются. */
+.custom-checkbox:has(.custom-checkbox__input:disabled),
+.plan-place-form__check:has(input:disabled) {
+    cursor: default;
+}
+
+.today-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.today-next {
+    border: 2px solid var(--color-accent-orange);
+}
+
+.today-next__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent-orange);
+    text-transform: uppercase;
+}
+
+.today-next__name {
+    margin: 4px 0;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.today-places {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.today-place {
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+}
+
+.today-place--past {
+    opacity: 0.5;
+}
+
+.today-place--next .today-place__name {
+    color: var(--color-accent-orange);
+}
+
+.today-place__time {
+    min-width: 92px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.today-place__name {
+    font-weight: 600;
+}
+
+.today-place__desc {
+}
+
+/* Выбор дня, в план которого добавлять найденное рядом с жильём. */
+.acc-nearby__day {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.today-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-danger-zone {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border-warm);
+}
+
+@media (max-width: 900px) {
+    .today-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.acc-nearby__day .form-input {
+    width: auto;
+    min-width: 180px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+/* Ошибка загрузки подсказок и кнопка «Повторить». */
+.found-places__error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+/* Шапка: пункты меню и имя пользователя не переносятся на две строки */
+.navbar__inner {
+    gap: 24px;
+}
+
+.nav-link,
+.navbar__user-name,
+.brand-name {
+    white-space: nowrap;
+}
+
+/* На средних экранах имя пользователя не показываем — остаётся кнопка «Выйти» */
+@media (max-width: 1200px) {
+    .navbar__user-name {
+        display: none;
+    }
+}
+
+/* =========================================
+   ВКЛАДКА «ПЛАН»: СПИСОК МЕСТ + КАРТА ДНЯ
+   ========================================= */
+
+/* Справа вместо карточки деталей — карта дня, ей нужно больше места. */
+.trip-plan-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 44%);
+}
+
+/* «Липкая» карта: при прокрутке длинного списка остаётся на экране, под закреплённой шапкой (83px). */
+.trip-plan__map-col {
+    position: sticky;
+    top: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.trip-plan__map-col .day-map {
+    height: calc(100vh - 140px);
+    min-height: 420px;
+}
+
+.day-map--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    background: #E9E4D9;
+    border-radius: 16px;
+}
+
+/* Место в списке можно выбрать кликом — его маркер подсветится на карте. */
+.plan-stop {
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+/* Полоса слева — у самого края, фото начинается после поля карточки и её не закрывает */
+.plan-stop--selected {
+    background: #FBF3EA;
+    box-shadow: inset 3px 0 0 var(--color-accent-orange);
+    border-radius: 4px 12px 12px 4px;
+}
+
+/* Узкий экран: колонки друг под другом, карта сверху (над списком) и уже не липкая. */
+@media (max-width: 1024px) {
+    .trip-plan-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .trip-plan__map-col {
+        position: static;
+        order: -1;
+    }
+
+    .trip-plan__map-col .day-map {
+        order: 0;
+        height: 360px;
+        min-height: 0;
+    }
+}
+
+/* === ПЕРЕКЛЮЧАТЕЛЬ ДНЕЙ «‹ День 2 из 4 ▾ ›» ===
+   В сетке: слева сверху — переключатель, под ним список; карта справа на обе строки. */
+.day-switcher {
+    grid-column: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: -12px; /* Сетка даёт 32px между строками — переключатель ближе к своему списку */
+}
+
+.trip-plan-grid > .trip-plan__main-col {
+    grid-column: 1;
+}
+
+.trip-plan-grid > .trip-plan__map-col {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+}
+
+.day-switcher__arrow--off {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Название дня — кнопка, открывающая список; занимает всё место между стрелками. */
+.day-switcher__current {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.day-switcher__current:hover {
+    background: #F7F5F0;
+}
+
+.day-switcher__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.3;
+    color: var(--color-text-dark);
+}
+
+.day-switcher__caret {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    transition: transform 0.2s;
+}
+
+.day-switcher__caret.is-open {
+    transform: rotate(180deg);
+}
+
+.day-switcher__meta {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+/* Выпадающий список дней — в стиле меню «⋮» у места (.plan-stop__menu-list). */
+.day-switcher__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    width: min(400px, 100%);
+    max-height: 420px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(30, 38, 32, 0.12);
+}
+
+.day-switcher__menu-head {
+    padding: 6px 12px 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.day-switcher__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--color-text-dark);
+}
+
+.day-switcher__item:hover {
+    background: #F7F5F0;
+}
+
+.day-switcher__item.is-active {
+    background: #E8EFE5;
+}
+
+/* Номер дня в кружке; у выбранного — зелёный, как была активная карточка дня. */
+.day-switcher__item-number {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border-light);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.day-switcher__item.is-active .day-switcher__item-number {
+    background: var(--color-accent-green);
+    border-color: var(--color-accent-green);
+    color: var(--color-white);
+}
+
+.day-switcher__item-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.day-switcher__item-date {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Названия мест — в одну строку с многоточием, чтобы список не разъезжался. */
+.day-switcher__item-places {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.day-switcher__item-count {
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.day-switcher__edit {
+    margin-top: 4px;
+    padding: 10px 12px 6px;
+    border-top: 1px solid var(--color-border-light);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+}
+
+/* Узкий экран: одна колонка — переключатель, под ним карта, под ней список. */
+@media (max-width: 1024px) {
+    .day-switcher {
+        order: -2;
+        margin-bottom: -16px;
+    }
+
+    .trip-plan-grid > .trip-plan__main-col,
+    .trip-plan-grid > .trip-plan__map-col {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .day-switcher__title {
+        font-size: 18px;
+    }
+}
+
+/* =========================================
+   ПРОФИЛЬ: статистика, ближайшая поездка, аватар-картинка
+   ========================================= */
+
+/* Картинка-аватар заполняет круг (.profile-avatar-large / .avatar-edit-circle). */
+.profile-avatar {
+    overflow: hidden;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+}
+
+.profile-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 24px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-warm);
+    border-radius: 20px;
+}
+
+.profile-stat__label {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.profile-stat__value {
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--color-accent-green);
+}
+
+.profile-stat__hint {
+    font-size: 13px;
+    color: #8C9C90;
+}
+
+.profile-stat__hint a {
+    color: var(--color-accent-orange);
+}
+
+.profile-section-title {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--color-text-dark);
+}
+
+.profile-muted {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.profile-next-trip__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.profile-next-trip__title {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-text-dark);
+}
+
+.profile-next-trip__when {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-accent-orange);
+}
+
+/* Редактирование: кнопки «Загрузить фото / Удалить» и форма смены пароля. */
+.avatar-edit-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.profile-password-dots {
+    letter-spacing: 2px;
+    font-size: 16px;
+    color: var(--color-text-dark);
+}
+
+.profile-password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Имя в шапке — ссылка на профиль. */
+a.navbar__user-name {
+    text-decoration: none;
+}
+
+a.navbar__user-name:hover {
+    color: var(--color-accent-green);
+}
+
+@media (max-width: 768px) {
+    .profile-next-trip__row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* =========================================
+   ПУБЛИЧНАЯ ССЫЛКА НА ПОЕЗДКУ (/t/{token}, Pages/Trips/Public.jsx)
+   ========================================= */
+
+/* Дни в ленте идут друг за другом; при прокрутке к дню он не прячется под закреплённой шапкой. */
+.public-day + .public-day {
+    margin-top: 32px;
+}
+
+.public-day {
+    scroll-margin-top: 100px;
+}
+
+/* Карта прилипает под шапкой (83px), высота — как в макете. */
+.public-map-col {
+    top: 100px;
+}
+
+.public-map-col .day-map {
+    height: 380px;
+}
+
+.public-map-title {
+    font-size: 20px;
+}
+
+.public-map-subtitle {
+    font-size: 13px;
+}
+
+/* Транспорт и жильё — две колонки под планом. */
+.public-logistics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Блок «Доступ по ссылке» в «Настройках». */
+.share-link-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.share-link-box__row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.share-link-box__row .form-input {
+    flex: 1;
+    min-width: 220px;
+}
+
+@media (max-width: 1024px) {
+    .public-map-col {
+        position: static;
+        order: -1;
+    }
+
+    .public-logistics {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================
+   АДМИН-ПАНЕЛЬ: ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ
+   ========================================= */
+
+/* «Выйти» в сайдбаре — кнопка (Link method="post"), убираем у неё вид кнопки. */
+.admin-logout {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-main);
+}
+
+.admin-alert {
+  background: #fff5f2;
+  border: 1px solid var(--color-accent-orange);
+  color: var(--color-accent-orange);
+  border-radius: 16px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-table-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: 24px;
+  padding: 8px 24px;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--color-border-warm);
+}
+
+.admin-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-border-light);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table__row--blocked td {
+  background: #FBF7F2;
+}
+
+.admin-table__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.admin-table__email {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.admin-table__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-select {
+  border: 1px solid var(--color-border-warm);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: var(--color-white);
+  font-family: var(--font-main);
+  font-size: 13px;
+}
+
+.admin-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: #E8EFE5;
+  color: var(--color-accent-green);
+  white-space: nowrap;
+}
+
+.admin-status--blocked {
+  background: #FBEDE7;
+  color: var(--color-accent-orange);
+}
+
+.admin-action {
+  border: 1px solid var(--color-border-warm);
+  background: var(--color-white);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-action:hover {
+  background: var(--color-bg-alt);
+}
+
+.admin-action--danger {
+  border-color: var(--color-accent-orange);
+  color: var(--color-accent-orange);
+}
+
+.admin-action--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.admin-pagination__info {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.admin-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Быстрые действия на главной админки — ссылки, а не кнопки: выравниваем текст как у кнопок макета. */
+a.quick-action-card {
+  text-align: center;
+}
+
+.leaflet-control-attribution {
+    display: none;
+}
+
+/* Иконка способа передвижения в плане дня (вместо смайлика) */
+.plan-segment__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.travel-mode-icon {
+    flex: none;
+}

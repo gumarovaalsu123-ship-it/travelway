@@ -4401,7 +4401,8 @@
     gap: 12px;
   }
 
-  .btn--outline-dark, .btn--solid-dark {
+  /* Только кнопки внизу формы — иначе на телефоне растягивались все тёмные кнопки (стрелки дней, «↑ ↓») */
+  .form-actions .btn--outline-dark, .form-actions .btn--solid-dark {
     width: 100%;
   }
 }
@@ -7201,4 +7202,651 @@ a.quick-action-card {
 
 .travel-mode-icon {
     flex: none;
+}
+
+/* =========================================
+   АДАПТИВ: ПЛАНШЕТЫ И ТЕЛЕФОНЫ
+   Общий блок для всех страниц. Точки перелома:
+   до 1024px — планшет (меню под бургером, колонки друг под другом),
+   до 768px — большой телефон, до 480px — обычный телефон.
+   Стоит в конце файла, чтобы перекрывать правила выше.
+   ========================================= */
+
+/* --- Кнопка-бургер (Header.jsx и шапка лендинга Home.jsx) --- */
+.burger-btn {
+    display: none;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.burger-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-text-dark);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Открытое меню: три полоски складываются в крестик */
+.burger-btn.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.burger-btn.is-open span:nth-child(2) { opacity: 0; }
+.burger-btn.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* На компьютере обёртка меню не влияет на раскладку шапки — её дети стоят прямо в строке */
+.navbar__menu,
+.header__menu {
+    display: contents;
+}
+
+/* Картинки не шире своего блока (фото мест, аватары, логотипы) */
+img {
+    max-width: 100%;
+}
+
+/* ===== ПЛАНШЕТ: до 1024px ===== */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 32px;
+    }
+
+    /* Шапки: меню прячется за бургер */
+    .burger-btn {
+        display: flex;
+    }
+
+    .header {
+        padding: 16px 32px;
+        height: 76px;
+    }
+
+    .navbar {
+        height: 76px;
+    }
+
+    /* Выпадающая панель меню — под шапкой (шапка sticky, она и есть опора для absolute) */
+    .navbar__menu,
+    .header__menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+        padding: 16px 32px 24px;
+        background: var(--color-bg-alt);
+        border-bottom: 1px solid var(--color-border-warm);
+        box-shadow: 0 12px 24px rgba(30, 38, 32, 0.08);
+    }
+
+    .navbar__menu.is-open,
+    .header__menu.is-open {
+        display: flex;
+    }
+
+    .navbar__menu .navbar__nav,
+    .header__menu .navigation-links {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+    }
+
+    .navbar__menu .navbar__nav .nav-link,
+    .header__menu .navigation-links a {
+        padding: 14px 0;
+        font-size: 16px;
+        border-bottom: 1px solid var(--color-border-warm);
+    }
+
+    .navbar__menu .navbar__user {
+        justify-content: space-between;
+    }
+
+    /* Имя (ссылка на профиль) выше 1200px скрывалось — в меню показываем снова */
+    .navbar__menu .navbar__user-name {
+        display: inline;
+        font-size: 15px;
+    }
+
+    .navbar__menu .nav-logout {
+        padding: 8px 0;
+    }
+
+    .navbar__menu .auth-actions,
+    .header__menu .auth-actions {
+        flex-wrap: wrap;
+    }
+
+    .navbar__menu .auth-actions .btn,
+    .header__menu .auth-actions .btn {
+        flex: 1 1 140px;
+    }
+
+    /* --- Лендинг --- */
+    .hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 40px;
+        height: auto;
+        padding: 64px 32px;
+    }
+
+    .hero-info {
+        width: 100%;
+    }
+
+    .hero-title {
+        font-size: 44px;
+    }
+
+    .floating-card-wrapper {
+        width: 100%;
+        max-width: 340px;
+    }
+
+    .features-section,
+    .how-it-works,
+    .personal-routes {
+        padding: 72px 32px;
+        gap: 40px;
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .route-row {
+        flex-wrap: wrap;
+    }
+
+    .route-card {
+        flex: 1 1 280px;
+    }
+
+    .statistics {
+        padding: 48px 32px;
+    }
+
+    .cta-section {
+        padding: 80px 32px;
+    }
+
+    .section-title {
+        font-size: 30px;
+        line-height: 1.3;
+    }
+
+    /* --- Футер --- */
+    .footer {
+        padding: 56px 0 32px;
+    }
+
+    .footer__desc {
+        width: auto;
+        max-width: 420px;
+    }
+
+    /* --- Шапка страницы поездки и вкладки --- */
+    .trip-tabs__inner {
+        padding: 16px 32px;
+    }
+
+    .trip-hero--compact .trip-hero__title {
+        font-size: 32px;
+    }
+
+    /* --- «План»: одна колонка, карта над списком ---
+       Правило «.trip-plan-grid > .trip-plan__map-col { grid-column: 2 }» выше стоит после своего медиазапроса
+       и выигрывает у него, создавая лишнюю колонку справа — сбрасываем здесь. */
+    .trip-plan-grid > .trip-plan__map-col,
+    .trip-plan-grid > .trip-plan__main-col,
+    .day-switcher {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .trip-plan-grid > .trip-plan__map-col {
+        order: -1;
+    }
+
+    .page-title {
+        font-size: 34px;
+    }
+}
+
+/* ===== БОЛЬШОЙ ТЕЛЕФОН: до 768px ===== */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 20px;
+    }
+
+    .header {
+        padding: 12px 20px;
+        height: 68px;
+    }
+
+    .navbar {
+        height: 68px;
+    }
+
+    .navbar__menu,
+    .header__menu {
+        padding: 12px 20px 20px;
+    }
+
+    .logo-image,
+    .logo-symbol {
+        width: 42px;
+        height: 42px;
+    }
+
+    .brand-name {
+        font-size: 20px;
+        line-height: 26px;
+    }
+
+    section[id] {
+        scroll-margin-top: 80px;
+    }
+
+    /* Заголовок страницы + кнопка справа → кнопка под заголовком */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .page-title {
+        font-size: 28px;
+        line-height: 1.2;
+    }
+
+    .trips-main {
+        padding-top: 32px;
+        padding-bottom: 64px;
+        gap: 28px;
+    }
+
+    /* Длинные подписи на кнопках переносятся, а не растягивают страницу */
+    .btn {
+        white-space: normal;
+        text-align: center;
+    }
+
+    /* --- Лендинг --- */
+    .hero {
+        padding: 48px 20px;
+    }
+
+    .hero-title {
+        font-size: 34px;
+    }
+
+    .hero-desc {
+        font-size: 16px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .features-section,
+    .how-it-works,
+    .personal-routes {
+        padding: 56px 20px;
+        gap: 32px;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .steps-container {
+        flex-direction: column;
+        gap: 32px;
+    }
+
+    .route-card {
+        flex-basis: 100%;
+    }
+
+    .statistics {
+        flex-direction: column;
+        padding: 40px 20px;
+        gap: 24px;
+    }
+
+    .cta-section {
+        padding: 64px 20px;
+    }
+
+    .cta-title {
+        font-size: 28px;
+        line-height: 1.3;
+    }
+
+    .section-title {
+        font-size: 26px;
+    }
+
+    /* --- Футер --- */
+    .footer__bottom {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+
+    .legal-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px 20px;
+    }
+
+    /* --- Страница поездки: обложка и вкладки --- */
+    .trip-hero--compact {
+        min-height: 0;
+        padding-top: 24px;
+    }
+
+    .trip-hero--compact .trip-hero__inner {
+        padding-bottom: 24px;
+    }
+
+    .trip-hero--compact .trip-hero__title {
+        font-size: 24px;
+    }
+
+    .trip-hero__meta {
+        gap: 8px 16px;
+    }
+
+    .meta-item {
+        font-size: 14px;
+    }
+
+    /* Вкладки в одну строку с горизонтальной прокруткой пальцем — не занимают пол-экрана */
+    .trip-tabs__inner {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 12px 20px;
+        gap: 8px;
+        scrollbar-width: none;
+    }
+
+    .trip-tabs__inner::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tab-btn {
+        flex: none;
+        white-space: nowrap;
+        padding: 10px 14px;
+    }
+
+    .trip-content {
+        padding-top: 20px;
+        padding-bottom: 56px;
+    }
+}
+
+/* ===== ТЕЛЕФОН: до 480px ===== */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .header {
+        padding: 12px 16px;
+    }
+
+    .navbar__menu,
+    .header__menu {
+        padding: 8px 16px 20px;
+    }
+
+    .hero {
+        padding: 40px 16px;
+    }
+
+    .hero-title {
+        font-size: 30px;
+    }
+
+    .features-section,
+    .how-it-works,
+    .personal-routes,
+    .statistics,
+    .cta-section {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .trip-tabs__inner {
+        padding: 12px 16px;
+    }
+
+    .page-title {
+        font-size: 26px;
+    }
+}
+
+/* --- Админ-панель на планшете и телефоне ---
+   Тёмный сайдбар превращается в полосу сверху: название, ссылки в ряд (с прокруткой), «Выйти».
+   Раньше на планшете сайдбар сворачивался до иконок и пропадала кнопка «Выйти». */
+@media (max-width: 1024px) {
+    .admin-layout {
+        flex-direction: column;
+    }
+
+    .admin-sidebar {
+        width: 100%;
+        min-height: 0;
+        padding: 16px 24px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 24px;
+    }
+
+    .sidebar-brand span,
+    .sidebar-link span,
+    .sidebar-user-info {
+        display: flex; /* отменяем «только иконки» из старого правила для планшета */
+    }
+
+    .sidebar-brand {
+        gap: 2px;
+    }
+
+    .sidebar-spacer {
+        display: none;
+    }
+
+    .sidebar-user {
+        width: auto;
+        margin-left: auto;
+        padding-top: 0;
+        border-top: none;
+    }
+
+    .sidebar-user-info {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sidebar-logout {
+        font-size: 13px;
+    }
+
+    /* Ссылки — отдельной строкой во всю ширину, листаются пальцем */
+    .sidebar-nav {
+        order: 3;
+        flex-direction: row;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .sidebar-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .sidebar-link {
+        flex: none;
+        white-space: nowrap;
+        padding: 10px 14px;
+    }
+
+    .admin-main {
+        padding: 32px 24px;
+        max-width: none;
+        gap: 24px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-sidebar {
+        padding: 12px 16px;
+    }
+
+    .admin-main {
+        padding: 24px 16px;
+    }
+
+    .admin-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .admin-title {
+        font-size: 24px;
+    }
+
+    .admin-search-wrapper {
+        width: 100%;
+    }
+
+    .admin-table-card {
+        padding: 4px 12px;
+    }
+}
+
+/* --- Отдельные страницы на узком экране --- */
+@media (max-width: 1024px) {
+    /* «План»: колонка не шире экрана, даже если внутри длинное название дня */
+    .trip-plan-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .day-switcher__current {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .day-switcher {
+        gap: 8px;
+    }
+
+    .day-switcher__title {
+        font-size: 18px;
+    }
+
+    .day-switcher__meta {
+        font-size: 13px;
+        text-align: center;
+    }
+
+    /* Транспорт и проживание: кнопки карточки переносятся на новую строку */
+    .transport-card__actions,
+    .acc-actions {
+        flex-wrap: wrap;
+        flex: 1 1 auto;
+    }
+
+    /* Профиль: кнопки «Загрузить фото» / «Удалить» под аватаром во всю ширину */
+    .avatar-edit-info {
+        width: 100%;
+    }
+
+    .avatar-edit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
+/* --- Вход и регистрация (Auth/AuthLayout.jsx) ---
+   На планшете картинка с цитатой уходит, форма занимает весь экран. */
+@media (max-width: 1024px) {
+    .auth-layout__left {
+        display: none;
+    }
+
+    .auth-layout__right {
+        padding: 32px 40px;
+    }
+
+    .auth-form-wrapper {
+        max-width: 480px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .auth-layout__right {
+        padding: 20px;
+    }
+
+    .auth-header {
+        gap: 12px;
+    }
+
+    .auth-content {
+        justify-content: flex-start;
+        padding-top: 32px;
+    }
+
+    .auth-title {
+        font-size: 26px;
+    }
+
+    .form-options {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+
+/* «План» на телефоне: карточка места помещается в ширину — фото меньше, длинные названия переносятся */
+@media (max-width: 480px) {
+    .plan-stop {
+        gap: 10px;
+        padding: 10px 8px;
+    }
+
+    .plan-stop .stop-info {
+        min-width: 0;
+    }
+
+    .plan-stop .stop-name,
+    .plan-stop .stop-desc {
+        overflow-wrap: anywhere;
+    }
+
+    .plan-stop__photo {
+        width: 56px;
+        min-height: 56px;
+    }
 }

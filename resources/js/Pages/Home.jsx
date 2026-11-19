@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import Footer from '../Components/Footer';
 import { plural } from '../utils/format';
@@ -48,7 +48,14 @@ const EXAMPLE_ROUTES = [
     { image: '/images/card3.png', tag: 'История', status: 'Завершено', statusClass: 'status-done', dates: '12 мая - 15 мая', places: 6, title: 'Выборгские легенды и парки' },
 ];
 
+/**
+ * Шапка лендинга. Как и в Header.jsx, на планшете и телефоне ссылки и кнопки уходят под бургер.
+ * Ссылки-якоря (#features) не перезагружают страницу, поэтому после клика меню закрываем сами.
+ */
 function LandingHeader({ user }) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const closeMenu = () => setIsMenuOpen(false);
+
     return (
         <header className="header">
             <Link href="/" className="logo-group">
@@ -58,23 +65,36 @@ function LandingHeader({ user }) {
                     <span className="brand-tagline">планировщик</span>
                 </div>
             </Link>
-            <nav className="navigation-links">
-                <a href="#features">Возможности</a>
-                <a href="#how-it-works">Как это работает</a>
-                <a href="#examples">Примеры</a>
-            </nav>
-            <div className="auth-actions">
-                {user ? (
-                    <>
-                        <Link href="/interactive-map" className="btn btn--outline">Карта</Link>
-                        <Link href="/my-trips" className="btn btn--solid">Мои путешествия</Link>
-                    </>
-                ) : (
-                    <>
-                        <Link href="/login" className="btn btn--outline">Войти</Link>
-                        <Link href="/register" className="btn btn--solid">Создать аккаунт</Link>
-                    </>
-                )}
+            <button
+                type="button"
+                className={`burger-btn ${isMenuOpen ? 'is-open' : ''}`}
+                aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+                aria-expanded={isMenuOpen}
+                onClick={() => setIsMenuOpen((open) => !open)}
+            >
+                <span />
+                <span />
+                <span />
+            </button>
+            <div className={`header__menu ${isMenuOpen ? 'is-open' : ''}`}>
+                <nav className="navigation-links">
+                    <a href="#features" onClick={closeMenu}>Возможности</a>
+                    <a href="#how-it-works" onClick={closeMenu}>Как это работает</a>
+                    <a href="#examples" onClick={closeMenu}>Примеры</a>
+                </nav>
+                <div className="auth-actions">
+                    {user ? (
+                        <>
+                            <Link href="/interactive-map" className="btn btn--outline">Карта</Link>
+                            <Link href="/my-trips" className="btn btn--solid">Мои путешествия</Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link href="/login" className="btn btn--outline">Войти</Link>
+                            <Link href="/register" className="btn btn--solid">Создать аккаунт</Link>
+                        </>
+                    )}
+                </div>
             </div>
         </header>
     );

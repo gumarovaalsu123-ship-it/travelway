@@ -114,6 +114,53 @@ class InteractiveMapTest extends TestCase
         $this->assertSame(0, $place->tripPlaces()->count());
     }
 
+    public function test_same_place_marked_a_few_meters_away_is_not_saved_twice(): void
+    {
+        $this->actingAs($this->user)->post('/interactive-map/places', $this->placePayload(['destination' => 'favorite']));
+        // Тот же объект: точка сдвинута примерно на 20 м, название в другом регистре.
+        $this->actingAs($this->user)
+            ->post('/interactive-map/places', $this->placePayload([
+                'destination' => 'favorite',
+                'name' => 'смотровая площадка',
+                'latitude' => 55.7988,
+                'longitude' => 49.1061,
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Place::count());
+        $this->assertSame(1, $this->user->favoritePlaces()->count());
+    }
+
+    public function test_place_with_the_same_name_far_away_is_a_different_place(): void
+    {
+        $this->actingAs($this->user)->post('/interactive-map/places', $this->placePayload(['destination' => 'favorite']));
+        // Около 1 км севернее — уже другое место.
+        $this->actingAs($this->user)->post('/interactive-map/places', $this->placePayload(['destination' => 'favorite', 'latitude' => 55.8076]));
+
+        $this->assertSame(2, $this->user->favoritePlaces()->count());
+    }
+
+    public function test_other_users_place_nearby_is_not_reused(): void
+    {
+        Place::factory()->create(['user_id' => User::factory()->create()->id, ...collect($this->placePayload())->only(['name', 'latitude', 'longitude'])]);
+
+        $this->actingAs($this->user)->post('/interactive-map/places', $this->placePayload(['destination' => 'favorite']));
+
+        $this->assertSame(2, Place::count());
+        $this->assertSame($this->user->id, $this->user->favoritePlaces()->first()->user_id);
+    }
+
+    public function test_same_place_is_not_added_twice_to_one_day(): void
+    {
+        $day = $this->trip->days()->first();
+        $payload = $this->placePayload(['destination' => 'trip', 'trip_day_id' => $day->id]);
+
+        $this->actingAs($this->user)->post('/interactive-map/places', $payload);
+        $this->actingAs($this->user)->post('/interactive-map/places', [...$payload, 'latitude' => 55.7987]);
+
+        $this->assertSame(1, $day->tripPlaces()->count());
+    }
+
     public function test_place_validation(): void
     {
         $this->actingAs($this->user)

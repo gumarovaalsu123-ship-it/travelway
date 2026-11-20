@@ -236,10 +236,12 @@ class TripPlanController extends Controller
     {
         Gate::authorize('update', $trip);
 
-        $place = Place::create([
-            ...$request->safe()->only(['name', 'category_id', 'address', 'latitude', 'longitude']),
-            'user_id' => $request->user()->id,
-        ]);
+        $userId = $request->user()->id;
+        $place = Place::findNearbyOfUser($userId, $request->validated('name'), $request->validated('latitude'), $request->validated('longitude'))
+            ?? Place::create([
+                ...$request->safe()->only(['name', 'category_id', 'address', 'latitude', 'longitude']),
+                'user_id' => $userId,
+            ]);
 
         $after = $request->validated('after_trip_place_id')
             ? $day->tripPlaces()->findOrFail($request->validated('after_trip_place_id'))

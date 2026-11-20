@@ -80,6 +80,50 @@ class Place extends Model
     }
 
     /**
+     * Одно и то же место, отмеченное на карте дважды, почти никогда не попадает в те же координаты:
+     * клик ставит точку на пару метров дальше. Поэтому «то же место» — это место пользователя
+     * с тем же названием (без учёта регистра) не дальше NearbyMeters от новой точки.
+     */
+    public const NearbyMeters = 100;
+
+    /**
+     * Ищет уже сохранённое место пользователя с тем же названием рядом с точкой.
+     * Сначала грубо отбираем базой по квадрату ±0.001° (около 100 м), потом точно меряем расстояние.
+     */
+    public static function findNearbyOfUser(int $userId, string $name, float $latitude, float $longitude): ?self
+    {
+        // Градус долготы короче к северу, поэтому квадрат по долготе шире.
+        $latitudeDelta = 0.001;
+        $longitudeDelta = $latitudeDelta / max(cos(deg2rad($latitude)), 0.01);
+        $sameName = mb_strtolower(trim($name));
+
+        return self::query()
+            ->where('user_id', $userId)
+            ->whereBetween('latitude', [$latitude - $latitudeDelta, $latitude + $latitudeDelta])
+            ->whereBetween('longitude', [$longitude - $longitudeDelta, $longitude + $longitudeDelta])
+            ->get()
+            ->filter(fn (self $place) => mb_strtolower(trim($place->name)) === $sameName)
+            ->filter(fn (self $place) => self::distanceInMeters($latitude, $longitude, $place->latitude, $place->longitude) <= self::NearbyMeters)
+            ->sortBy(fn (self $place) => self::distanceInMeters($latitude, $longitude, $place->latitude, $place->longitude))
+            ->first();
+    }
+
+    /**
+     * Расстояние между двумя точками по поверхности Земли (формула гаверсинусов).
+     */
+    public static function distanceInMeters(float $fromLatitude, float $fromLongitude, float $toLatitude, float $toLongitude): float
+    {
+        $earthRadius = 6371000;
+        $latitudeDifference = deg2rad($toLatitude - $fromLatitude);
+        $longitudeDifference = deg2rad($toLongitude - $fromLongitude);
+
+        $haversine = sin($latitudeDifference / 2) ** 2
+            + cos(deg2rad($fromLatitude)) * cos(deg2rad($toLatitude)) * sin($longitudeDifference / 2) ** 2;
+
+        return 2 * $earthRadius * asin(min(1, sqrt($haversine)));
+    }
+
+    /**
      * Remove the place once it is neither planned in a trip nor favorited by anyone.
      */
     public function deleteIfUnused(): void

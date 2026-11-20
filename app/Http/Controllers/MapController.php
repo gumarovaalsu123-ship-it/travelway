@@ -57,18 +57,28 @@ class MapController extends Controller
             Gate::authorize('update', $day->trip);
         }
 
-        $place = Place::create([
-            ...$request->safe()->only([
-                'name', 'category_id', 'address', 'latitude', 'longitude',
-                'image', 'opening_hours', 'website', 'phone', 'wiki_url',
-            ]),
-            'user_id' => $user->id,
-        ]);
+        // То же место, отмеченное ещё раз на пару метров дальше, — берём уже сохранённое, а не создаём копию.
+        $place = Place::findNearbyOfUser($user->id, $request->validated('name'), $request->validated('latitude'), $request->validated('longitude'))
+            ?? Place::create([
+                ...$request->safe()->only([
+                    'name', 'category_id', 'address', 'latitude', 'longitude',
+                    'image', 'opening_hours', 'website', 'phone', 'wiki_url',
+                ]),
+                'user_id' => $user->id,
+            ]);
 
         if ($request->validated('destination') === 'favorite') {
+            if ($user->favoritePlaces()->whereKey($place->id)->exists()) {
+                Inertia::flash('toast', 'Это место уже в списке «Хочу посетить».');
+
+                return back();
+            }
+
             $user->favoritePlaces()->attach($place->id, ['created_at' => now()]);
 
             Inertia::flash('toast', 'Место добавлено в список «Хочу посетить».');
+        } elseif ($day->tripPlaces()->where('place_id', $place->id)->exists()) {
+            Inertia::flash('toast', "Это место уже есть в плане дня {$day->day_number}.");
         } else {
             $day->addPlace($place, $request->validated('start_time'));
 

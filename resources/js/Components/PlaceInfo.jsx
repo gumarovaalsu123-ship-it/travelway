@@ -1,21 +1,12 @@
 import React from 'react';
+import { categorySvg } from '../utils/mapIcons';
 
-/** Значок-заглушка вместо фото: у большинства мест (кафе, дома) статьи в Википедии нет. */
-const CATEGORY_ICONS = {
-    cafe: '☕',
-    restaurant: '🍽️',
-    museum: '🏛️',
-    attraction: '🏰',
-    viewpoint: '🔭',
-    park: '🌳',
-    hotel: '🏨',
-    shop: '🛍️',
-    transport: '🚉',
-    other: '📍',
-};
+/** Размер иконки-заглушки в пикселях для каждого вида фото. */
+const ICON_SIZES = { cover: 44, popup: 36, thumb: 22 };
 
 /**
- * Фото места из Википедии или цветная заглушка с иконкой категории.
+ * Фото места из Википедии или заглушка с иконкой категории: у большинства мест (кафе, дома) статьи в Википедии нет.
+ * Иконки те же, что у маркеров на карте (utils/mapIcons.js): контурные SVG выглядят одинаково в любой системе, в отличие от эмодзи.
  * size: 'cover' — обложка карточки, 'popup' — попап на карте, 'thumb' — миниатюра в списке.
  */
 export function PlacePhoto({ image, categorySlug, alt = '', size = 'cover' }) {
@@ -24,9 +15,12 @@ export function PlacePhoto({ image, categorySlug, alt = '', size = 'cover' }) {
     }
 
     return (
-        <div className={`place-photo place-photo--${size} place-photo--empty`} aria-hidden="true">
-            {CATEGORY_ICONS[categorySlug] ?? CATEGORY_ICONS.other}
-        </div>
+        <div
+            className={`place-photo place-photo--${size} place-photo--empty`}
+            aria-hidden="true"
+            // SVG собран из наших же констант, пользовательского текста в нём нет.
+            dangerouslySetInnerHTML={{ __html: categorySvg(categorySlug, ICON_SIZES[size] ?? ICON_SIZES.cover) }}
+        />
     );
 }
 

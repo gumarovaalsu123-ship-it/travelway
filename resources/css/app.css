@@ -5569,7 +5569,8 @@ section[id] {
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, var(--color-bg-alt), var(--color-border-warm));
-    font-size: 40px;
+    /* Иконка рисуется цветом текста (stroke="currentColor"). */
+    color: var(--color-accent-green);
 }
 
 .place-photo--cover {
@@ -5586,7 +5587,6 @@ section[id] {
     width: 56px;
     height: 56px;
     border-radius: 12px;
-    font-size: 24px;
 }
 
 .place-credit {

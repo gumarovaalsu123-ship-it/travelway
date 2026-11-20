@@ -4700,9 +4700,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    line-height: 1;
     color: var(--color-accent-green);
+}
+
+/* Маленькая иконка в строке текста (домик перед названием жилья в подписи на карте) */
+.inline-icon {
+    display: inline-flex;
+    vertical-align: -2px;
+    margin-right: 6px;
 }
 
 .place-pin--found.place-pin--active .place-pin__found {

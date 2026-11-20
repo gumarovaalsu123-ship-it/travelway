@@ -10,7 +10,7 @@ import Loader from '../Loader';
 import MapSearch from '../Map/UI/MapSearch';
 import useCategorySearch from '../Map/Logic/useCategorySearch';
 import useRouteLines from '../Map/Logic/useRouteLines';
-import { foundIcon, lodgingIcon, stopIcon } from '../../utils/mapIcons';
+import { categorySvg, foundIcon, lodgingIcon, stopIcon } from '../../utils/mapIcons';
 import { dayLodgings, dayRoute } from '../../utils/dayRoute';
 import { findArea } from '../../utils/geocoding';
 import { timeLabel } from '../../utils/travel';
@@ -143,7 +143,11 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
                     >
                         <Popup>
                             <div className="map-stop-popup-body">
-                                <h4>⌂ {lodging.name}</h4>
+                                <h4>
+                                    {/* Иконка — наша же строка-константа из mapIcons, не данные пользователя. */}
+                                    <span className="inline-icon" dangerouslySetInnerHTML={{ __html: categorySvg('hotel', 14) }} />
+                                    {lodging.name}
+                                </h4>
                                 {lodging.address && <p>{lodging.address}</p>}
                                 {/* На публичной странице (Trips/Public.jsx) tripId нет — ссылки во вкладки владельца не нужны. */}
                                 {tripId && <Link href={`/my-trips/${tripId}/accommodation`}>Открыть жильё</Link>}

@@ -4,7 +4,7 @@ import { Marker, Popup } from 'react-leaflet';
 
 import MapClickHandler from '../Map/Logic/MapClickHandler';
 import { Spinner } from '../Loader';
-import { draftIcon } from '../../utils/mapIcons';
+import { categorySvg, draftIcon } from '../../utils/mapIcons';
 import { reverseGeocode } from '../../utils/geocoding';
 import { showToast } from '../../utils/toast';
 
@@ -123,42 +123,68 @@ export default function AddPlaceOnMap({ tripId, day, categories, pickedPlace = n
 
             {draft && (
                 <>
-                    <Marker position={[draft.lat, draft.lng]} icon={draftIcon(draft.lat, draft.lng)} interactive={false} />
+                    <Marker position={[draft.lat, draft.lng]} icon={draftIcon(draft.lat, draft.lng, false)} interactive={false} />
                     {/* Плашка без маркера-«хозяина»: открывается сама; закрыли крестиком или кликом мимо — точку убираем. */}
                     <Popup
                         key={draft.key}
                         position={[draft.lat, draft.lng]}
                         offset={[0, -14]}
+                        className="map-add-popup-wrap"
                         eventHandlers={{ remove: () => closeIfCurrent(draft.key) }}
                     >
                         <div className="map-add-popup">
+                            <div className="map-add-popup__head">
+                                {/* Иконка — наша строка-константа из mapIcons, не данные пользователя. */}
+                                <span
+                                    className="map-add-popup__icon"
+                                    dangerouslySetInnerHTML={{ __html: categorySvg(draft.categorySlug ?? 'other', 16) }}
+                                />
+                                <span className="map-add-popup__eyebrow">
+                                    {draft.kindLabel ? `Новое место · ${draft.kindLabel}` : 'Новое место'}
+                                </span>
+                            </div>
+
                             {draft.isLoading ? (
                                 <span className="map-add-popup__loading"><Spinner /> Определяем место…</span>
                             ) : (
+                                // Название можно поправить: поле выглядит как заголовок, рамка появляется при наведении.
                                 <input
-                                    className="form-input form-input--filled map-add-popup__name"
+                                    className="map-add-popup__name"
                                     value={draft.name}
                                     maxLength={255}
                                     placeholder="Название места"
                                     aria-label="Название места"
+                                    title="Название можно изменить"
                                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                                 />
                             )}
-                            {draft.address && draft.address !== draft.name && <p className="map-add-popup__address">{draft.address}</p>}
-                            <button
-                                type="button"
-                                className="btn btn--solid-dark btn--sm"
-                                disabled={!canSave}
-                                onClick={add}
-                            >
-                                {isSaving ? 'Добавляем…' : `+ Добавить в день ${day.number}`}
-                            </button>
-                            {/* Отель может быть и местом для посещения, и жильём — для жилья отдельная кнопка. */}
-                            {isLodging && (
-                                <button type="button" className="btn btn--outline-dark btn--sm" disabled={!canSave} onClick={addAsStay}>
-                                    Здесь живу
-                                </button>
+
+                            {draft.address && draft.address !== draft.name && (
+                                <p className="map-add-popup__address">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                        <circle cx="12" cy="10" r="3" />
+                                    </svg>
+                                    {draft.address}
+                                </p>
                             )}
+
+                            <div className="map-add-popup__actions">
+                                <button
+                                    type="button"
+                                    className="btn btn--solid-dark map-add-popup__button"
+                                    disabled={!canSave}
+                                    onClick={add}
+                                >
+                                    {isSaving ? 'Добавляем…' : `+ Добавить в день ${day.number}`}
+                                </button>
+                                {/* Отель может быть и местом для посещения, и жильём — для жилья отдельная кнопка. */}
+                                {isLodging && (
+                                    <button type="button" className="btn btn--outline-dark map-add-popup__button" disabled={!canSave} onClick={addAsStay}>
+                                        Здесь живу
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </Popup>
                 </>

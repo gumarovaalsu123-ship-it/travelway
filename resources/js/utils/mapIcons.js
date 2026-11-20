@@ -30,15 +30,20 @@ export function placeIcon(place, isSelected = false) {
 /**
  * Временный (несохранённый) маркер выбранной точки.
  */
-export function draftIcon(lat, lng) {
+export function draftIcon(lat, lng, withLabel = true) {
+    // Подпись «Не сохранено» не нужна, когда над точкой и так открыта плашка добавления (карта дня).
+    const label = withLabel
+        ? `<div class="map-pin-label map-pin-label--draft">
+                <div class="draft-label-title">Не сохранено</div>
+                <div class="draft-label-coords">${escapeHtml(lat.toFixed(4))}, ${escapeHtml(lng.toFixed(4))}</div>
+            </div>`
+        : '';
+
     return L.divIcon({
         className: 'place-pin place-pin--draft',
         html: `<div class="place-pin__draft">
             <div class="map-pin-draft"><div class="map-pin-draft__inner"></div></div>
-            <div class="map-pin-label map-pin-label--draft">
-                <div class="draft-label-title">Не сохранено</div>
-                <div class="draft-label-coords">${escapeHtml(lat.toFixed(4))}, ${escapeHtml(lng.toFixed(4))}</div>
-            </div>
+            ${label}
         </div>`,
         iconSize: [40, 40],
         iconAnchor: [20, 20],

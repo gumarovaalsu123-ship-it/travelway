@@ -11,6 +11,7 @@ import { dayRoute } from '../../utils/dayRoute';
 import { findArea, isInsideArea } from '../../utils/geocoding';
 import { TRAVEL_MODES, formatMinutes, timeLabel, yandexRouteUrl } from '../../utils/travel';
 import PhotoPicker from '../../Components/PhotoPicker';
+import { categorySvg } from '../../utils/mapIcons';
 
 const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
@@ -993,7 +994,13 @@ export default function Plan({ trip, days, selectedDay, favorites, categories, f
                     {/* Карта «липкая»: при прокрутке длинного списка остаётся на экране (см. .trip-plan__map-col в app.css).
                         key: при смене дня карта создаётся заново и вписывается в места нового дня. */}
                     <div className="trip-plan__map-col">
-                        {focusLodging && <p className="form-hint">⌂ На карте отмечено жильё «{focusLodging.name}».</p>}
+                        {focusLodging && (
+                            <p className="form-hint">
+                                {/* Иконка — наша строка-константа из mapIcons, не данные пользователя. */}
+                                <span className="inline-icon" dangerouslySetInnerHTML={{ __html: categorySvg('hotel', 14) }} />
+                                На карте отмечено жильё «{focusLodging.name}».
+                            </p>
+                        )}
                         <DayMap
                             key={selectedDay.id}
                             tripId={trip.id}

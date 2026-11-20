@@ -41,7 +41,7 @@ const navItems = [
         ),
     },
     {
-        href: '/interactive-map',
+        href: '/my-trips',
         label: 'На сайт',
         isActive: () => false,
         icon: <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />,

@@ -33,4 +33,26 @@ class HomePageTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->component('Home'));
     }
+
+    public function test_header_receives_avatar_url_and_initials_of_current_user(): void
+    {
+        $user = User::factory()->create(['name' => 'Анна Петрова', 'avatar' => 'avatars/anna.jpg']);
+
+        $this->actingAs($user)
+            ->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('auth.user.name', 'Анна Петрова')
+                ->where('auth.user.initials', 'АП')
+                ->where('auth.user.avatarUrl', $user->avatarUrl())
+                ->missing('auth.user.password')
+                ->where('auth.isAdmin', false));
+    }
+
+    public function test_header_shows_initials_when_user_has_no_avatar(): void
+    {
+        $this->actingAs(User::factory()->create(['avatar' => null]))
+            ->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('auth.user.avatarUrl', null));
+    }
 }

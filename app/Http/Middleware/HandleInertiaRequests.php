@@ -38,7 +38,14 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => fn () => $request->user()?->only(['id', 'name', 'email', 'avatar']),
+                // Шапка показывает аватар, поэтому отдаём готовый адрес картинки и инициалы для заглушки.
+                'user' => fn () => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'avatarUrl' => $request->user()->avatarUrl(),
+                    'initials' => $request->user()->initials(),
+                ] : null,
                 'isAdmin' => fn () => (bool) $request->user()?->isAdmin(),
             ],
         ];

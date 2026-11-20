@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import Footer from '../Components/Footer';
+import Header from '../Components/Header';
 import { formatDateRange, plural } from '../utils/format';
 import { STATUS_LABELS, coverFor } from '../utils/trips';
 
@@ -83,10 +84,11 @@ function toRouteCard(trip) {
 }
 
 /**
- * Шапка лендинга. Как и в Header.jsx, на планшете и телефоне ссылки и кнопки уходят под бургер.
+ * Шапка лендинга для гостя. Вошедший пользователь видит вместо неё обычную шапку сервиса (Header.jsx).
+ * Как и в Header.jsx, на планшете и телефоне ссылки и кнопки уходят под бургер.
  * Ссылки-якоря (#features) не перезагружают страницу, поэтому после клика меню закрываем сами.
  */
-function LandingHeader({ user }) {
+function LandingHeader() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const closeMenu = () => setIsMenuOpen(false);
 
@@ -117,17 +119,8 @@ function LandingHeader({ user }) {
                     <a href="#examples" onClick={closeMenu}>Примеры</a>
                 </nav>
                 <div className="auth-actions">
-                    {user ? (
-                        <>
-                            <Link href="/interactive-map" className="btn btn--outline">Карта</Link>
-                            <Link href="/my-trips" className="btn btn--solid">Мои путешествия</Link>
-                        </>
-                    ) : (
-                        <>
-                            <Link href="/login" className="btn btn--outline">Войти</Link>
-                            <Link href="/register" className="btn btn--solid">Создать аккаунт</Link>
-                        </>
-                    )}
+                    <Link href="/login" className="btn btn--outline">Войти</Link>
+                    <Link href="/register" className="btn btn--solid">Создать аккаунт</Link>
                 </div>
             </div>
         </header>
@@ -146,7 +139,7 @@ export default function Home({ stats, examples = [] }) {
         <div className="page-wrapper">
             <Head title="Тревелвей — планировщик путешествий" />
 
-            <LandingHeader user={user} />
+            {user ? <Header /> : <LandingHeader />}
 
             <section className="hero">
                 <div className="hero-info">

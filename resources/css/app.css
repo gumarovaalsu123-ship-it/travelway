@@ -8080,8 +8080,124 @@ img {
         width: 100%;
     }
 
+    /* --- Таблицы «Пользователи» и «Публичные маршруты»: каждая строка — карточка ---
+       Раньше таблица листалась вбок, и кнопки «Заблокировать» / «Закрыть доступ» были за краем экрана.
+       Подпись столбца берётся из атрибута data-label у ячейки (Admin/Users.jsx, Admin/PublicTrips.jsx). */
     .admin-table-card {
-        padding: 4px 12px;
+        padding: 4px 16px;
+        overflow-x: visible;
+    }
+
+    .admin-table thead {
+        display: none;
+    }
+
+    .admin-table,
+    .admin-table tbody,
+    .admin-table tr {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-table tr {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .admin-table tr:last-child {
+        border-bottom: none;
+    }
+
+    .admin-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 5px 0;
+        border-bottom: none;
+        text-align: right;
+    }
+
+    /* Первая ячейка — заголовок карточки: имя (название) и почта (город) */
+    .admin-table td:first-child {
+        display: block;
+        padding-bottom: 8px;
+        text-align: left;
+    }
+
+    .admin-table td[data-label]::before {
+        content: attr(data-label);
+        flex: none;
+        font-size: 13px;
+        color: var(--color-text-muted);
+    }
+
+    /* У своей строки кнопок нет — пустую ячейку не показываем */
+    .admin-table td:empty {
+        display: none;
+    }
+
+    /* Заблокированный — подсветка всей карточки, а не отдельных ячеек */
+    .admin-table__row--blocked {
+        background: #FBF7F2;
+        margin: 0 -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+        width: auto;
+    }
+
+    .admin-table__row--blocked td {
+        background: none;
+    }
+
+    .admin-table__actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+        padding-top: 6px;
+    }
+
+    .admin-table__actions .admin-action {
+        flex: 1 1 auto;
+        padding: 9px 14px;
+        text-align: center;
+    }
+
+    /* --- Главная админки --- */
+    .admin-stats-row {
+        gap: 12px;
+    }
+
+    .admin-stat-card {
+        padding: 16px 18px;
+        gap: 6px;
+    }
+
+    .admin-chart-card,
+    .admin-quick-actions {
+        padding: 18px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Быстрые действия — друг под другом: рядом им не хватало ширины, вторая карточка вылезала */
+    .quick-actions__row {
+        flex-direction: column;
+    }
+
+    /* Меню админки: ссылки переносятся на вторую строку, а не прячутся за правым краем */
+    .sidebar-nav {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        gap: 6px;
+    }
+
+    .sidebar-link {
+        padding: 8px 12px;
+    }
+
+    .admin-title {
+        font-size: 22px;
     }
 }
 

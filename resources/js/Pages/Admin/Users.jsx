@@ -41,7 +41,7 @@ function UserRow({ user }) {
                 </div>
                 <div className="admin-table__email">{user.email}</div>
             </td>
-            <td>
+            <td data-label="Роль">
                 {/* Свою роль не меняем: сервер всё равно не даст, поэтому и выбор отключён. */}
                 <select
                     className="admin-select"
@@ -54,9 +54,9 @@ function UserRow({ user }) {
                     <option value={ROLE_ADMIN}>Администратор</option>
                 </select>
             </td>
-            <td>{formatDate(user.registeredAt)}</td>
-            <td>{user.tripsCount}</td>
-            <td>
+            <td data-label="Регистрация">{formatDate(user.registeredAt)}</td>
+            <td data-label="Поездок">{user.tripsCount}</td>
+            <td data-label="Статус">
                 <span className={`admin-status ${user.isBlocked ? 'admin-status--blocked' : ''}`}>
                     {user.isBlocked ? 'Заблокирован' : 'Активен'}
                 </span>

@@ -33,9 +33,9 @@ function TripRow({ trip, canFeatureMore }) {
                 </div>
                 <div className="admin-table__email">{trip.destination}</div>
             </td>
-            <td>{trip.author}</td>
-            <td>{trip.startDate ? formatDateRange(trip.startDate, trip.endDate) : `${trip.daysCount} ${plural(trip.daysCount, ['день', 'дня', 'дней'])}`}</td>
-            <td>{trip.placesCount}</td>
+            <td data-label="Автор">{trip.author}</td>
+            <td data-label="Даты">{trip.startDate ? formatDateRange(trip.startDate, trip.endDate) : `${trip.daysCount} ${plural(trip.daysCount, ['день', 'дня', 'дней'])}`}</td>
+            <td data-label="Мест">{trip.placesCount}</td>
             <td>
                 <div className="admin-table__actions">
                     <a href={trip.publicUrl} target="_blank" rel="noreferrer" className="admin-action">Открыть</a>

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useMap } from 'react-leaflet';
+import { showToast } from '../../../utils/toast';
 
 export default function CustomZoomControl() {
     const map = useMap();
@@ -8,7 +9,7 @@ export default function CustomZoomControl() {
 
     const handleLocate = () => {
         if (!navigator.geolocation) {
-            alert('Ваш браузер не поддерживает геолокацию');
+            showToast('Ваш браузер не умеет определять местоположение');
             return;
         }
 
@@ -25,7 +26,7 @@ export default function CustomZoomControl() {
             },
             (error) => {
                 console.error('Ошибка геолокации:', error);
-                alert('Не удалось определить местоположение');
+                showToast('Не удалось определить местоположение — проверьте, разрешён ли доступ к геолокации');
                 setLoading(false);
             },
             {

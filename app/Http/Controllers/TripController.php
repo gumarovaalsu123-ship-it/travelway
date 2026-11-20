@@ -9,6 +9,7 @@ use App\Models\Trip;
 use App\Models\TripDay;
 use App\Models\TripPlace;
 use App\Services\DaySchedule;
+use App\Services\PhotoStorage;
 use App\Services\TripReadiness;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -150,8 +151,8 @@ class TripController extends Controller
             $this->deleteUnusedPlaces($placeIds->all());
         });
 
-        // Город поменялся — нужна и новая обложка.
-        if ($trip->destination !== $oldDestination) {
+        // Город поменялся — нужна и новая обложка. Свою загруженную обложку не трогаем: её пользователь выбрал сам.
+        if ($trip->destination !== $oldDestination && ! app(PhotoStorage::class)->isUploaded($trip->cover_image)) {
             $trip->refreshCover();
         }
 
@@ -172,6 +173,9 @@ class TripController extends Controller
 
             $this->deleteUnusedPlaces($placeIds->all());
         });
+
+        // Файл удаляем уже после транзакции: если бы она откатилась, обложка осталась бы без файла.
+        app(PhotoStorage::class)->delete($trip->cover_image);
 
         Inertia::flash('toast', "Путешествие «{$trip->title}» удалено.");
 

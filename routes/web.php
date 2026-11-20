@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\PublicTripController as AdminPublicTripController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -15,7 +16,9 @@ use App\Http\Controllers\PublicTripController;
 use App\Http\Controllers\TripAccommodationController;
 use App\Http\Controllers\TripAdvanceController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripCoverController;
 use App\Http\Controllers\TripPlaceController;
+use App\Http\Controllers\TripPlacePhotoController;
 use App\Http\Controllers\TripPlanController;
 use App\Http\Controllers\TripShareController;
 use App\Http\Controllers\TripTransportController;
@@ -60,6 +63,11 @@ Route::middleware('auth')->group(function () {
         Route::patch('/trip-places/{tripPlace}', 'update')->name('trip-places.update');
         Route::patch('/trip-places/{tripPlace}/move', 'move')->name('trip-places.move');
     });
+    // Своё фото места из окна «Изменить» в плане.
+    Route::scopeBindings()->prefix('/my-trips/{trip}')->name('trips.')->controller(TripPlacePhotoController::class)->group(function () {
+        Route::post('/trip-places/{tripPlace}/photo', 'store')->name('trip-places.photo.store');
+        Route::delete('/trip-places/{tripPlace}/photo', 'destroy')->name('trip-places.photo.destroy');
+    });
 
     // Отдельной вкладки «Карта» больше нет: карта дня теперь на вкладке «План». Старый адрес оставили,
     // чтобы не сломались сохранённые ссылки, — он ведёт на план с тем же днём (?day=N) и жильём (?lodging=id).
@@ -71,6 +79,8 @@ Route::middleware('auth')->group(function () {
     // «Настройки»: открыть и закрыть доступ по ссылке.
     Route::post('/my-trips/{trip}/share', [TripShareController::class, 'store'])->name('trips.share.store');
     Route::delete('/my-trips/{trip}/share', [TripShareController::class, 'destroy'])->name('trips.share.destroy');
+    Route::post('/my-trips/{trip}/cover', [TripCoverController::class, 'store'])->name('trips.cover.store');
+    Route::delete('/my-trips/{trip}/cover', [TripCoverController::class, 'destroy'])->name('trips.cover.destroy');
 
     Route::get('/my-trips/{trip}/transport', [TripTransportController::class, 'index'])->name('trips.transport');
     // scopeBindings: {transport} ищется только среди записей этой поездки ($trip->transports()), иначе 404.
@@ -145,5 +155,13 @@ Route::middleware(['auth', 'admin'])->prefix('/admin')->name('admin.')->group(fu
         Route::patch('/{user}/unblock', 'unblock')->name('unblock');
         Route::patch('/{user}/role', 'updateRole')->name('role');
         Route::delete('/{user}', 'destroy')->name('destroy');
+    });
+
+    // Публичные маршруты: модерация ссылок и выбор «Примеров маршрутов» для главной.
+    Route::controller(AdminPublicTripController::class)->prefix('/trips')->name('trips.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::patch('/{trip}/feature', 'feature')->name('feature');
+        Route::patch('/{trip}/unfeature', 'unfeature')->name('unfeature');
+        Route::delete('/{trip}/share', 'close')->name('close');
     });
 });

@@ -4,6 +4,7 @@ import Checkbox from '../../Components/Checkbox';
 import Modal from '../../Components/Modal';
 import StationInput from '../../Components/StationInput';
 import TripLayout, { canEditTab } from '../../Components/TripLayout';
+import { confirmDialog } from '../../utils/confirm';
 
 /**
  * Подписи и иконки видов транспорта. Ключи совпадают с Transport::Types на сервере.
@@ -409,8 +410,8 @@ export default function TripTransport({ trip, transports, types, directions, typ
     // Только просмотр (завершённая поездка): ни добавить, ни изменить запись нельзя.
     const canEdit = canEditTab(trip, 'transport');
 
-    const destroy = (transport) => {
-        if (window.confirm(`Удалить запись «${transport.departurePlace} → ${transport.arrivalPlace}»?`)) {
+    const destroy = async (transport) => {
+        if (await confirmDialog({ title: 'Удалить транспорт?', message: `Запись «${transport.departurePlace} → ${transport.arrivalPlace}» удалится из поездки.`, confirmLabel: 'Удалить', danger: true })) {
             router.delete(`/my-trips/${trip.id}/transport/${transport.id}`, { preserveScroll: true });
         }
     };

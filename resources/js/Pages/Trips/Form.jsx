@@ -3,6 +3,10 @@ import { Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import TripLayout from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
+import { confirmDialog } from '../../utils/confirm';
+import { showToast } from '../../utils/toast';
+import PhotoPicker from '../../Components/PhotoPicker';
+import { coverFor } from '../../utils/trips';
 
 const MAX_DAYS = 60;
 const DAY_OPTIONS = Array.from({ length: MAX_DAYS }, (_, index) => index + 1);
@@ -76,10 +80,16 @@ function ShareLink({ trip }) {
         }
 
         setIsCopied(true);
+        showToast('Ссылка скопирована');
     };
 
-    const closeAccess = () => {
-        if (window.confirm('Закрыть доступ? Старая ссылка перестанет открываться у всех, кому вы её отправили.')) {
+    const closeAccess = async () => {
+        if (await confirmDialog({
+            title: 'Закрыть доступ по ссылке?',
+            message: 'Старая ссылка перестанет открываться у всех, кому вы её отправили.',
+            confirmLabel: 'Закрыть доступ',
+            danger: true,
+        })) {
             router.delete(`/my-trips/${trip.id}/share`, options);
         }
     };
@@ -147,13 +157,16 @@ export default function TripForm({ trip, previousTrip = null }) {
     const resultingDays = hasDates ? daysFromDates : Number(data.days_count);
     const removesPlannedDays = isEditing && resultingDays && resultingDays < trip.lastPlannedDay;
 
-    const submit = (event) => {
+    const submit = async (event) => {
         event.preventDefault();
 
-        if (removesPlannedDays && !window.confirm(
-            `В поездке станет ${resultingDays} ${plural(resultingDays, ['день', 'дня', 'дней'])}. `
-            + 'Места, запланированные на последующие дни, будут удалены из плана. Продолжить?',
-        )) {
+        if (removesPlannedDays && !await confirmDialog({
+            title: 'Сократить поездку?',
+            message: `В поездке станет ${resultingDays} ${plural(resultingDays, ['день', 'дня', 'дней'])}. `
+                + 'Места, запланированные на последующие дни, будут удалены из плана.',
+            confirmLabel: 'Сократить',
+            danger: true,
+        })) {
             return;
         }
 
@@ -167,12 +180,17 @@ export default function TripForm({ trip, previousTrip = null }) {
     /**
      * Удалить поездку. Кнопка здесь, в «Настройках», — карточка в «Моих путешествиях» целиком ведёт на поездку.
      */
-    const removeTrip = () => {
+    const removeTrip = async () => {
         const warning = trip.placesCount > 0
             ? ` Вместе с ним из плана удалятся ${trip.placesCount} ${plural(trip.placesCount, ['место', 'места', 'мест'])}.`
             : '';
 
-        if (window.confirm(`Удалить путешествие «${trip.title}»?${warning}`)) {
+        if (await confirmDialog({
+            title: 'Удалить путешествие?',
+            message: `«${trip.title}» удалится насовсем.${warning}`,
+            confirmLabel: 'Удалить',
+            danger: true,
+        })) {
             router.delete(`/my-trips/${trip.id}`);
         }
     };
@@ -353,6 +371,17 @@ export default function TripForm({ trip, previousTrip = null }) {
                             </button>
                         </div>
                     </form>
+
+                    {isEditing && (
+                        <PhotoPicker
+                            label="Обложка"
+                            imageUrl={trip.coverImage}
+                            fallbackUrl={coverFor(trip)}
+                            uploadUrl={`/my-trips/${trip.id}/cover`}
+                            resetLabel="Вернуть обложку по городу"
+                            resetQuestion="Вернуть обложку по городу? Ваше фото удалится."
+                        />
+                    )}
 
                     {isEditing && <ShareLink trip={trip} />}
 

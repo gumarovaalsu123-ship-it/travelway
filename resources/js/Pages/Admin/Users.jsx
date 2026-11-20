@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '../../Components/AdminLayout';
+import AdminPagination from '../../Components/AdminPagination';
 import { plural } from '../../utils/format';
+import { confirmDialog } from '../../utils/confirm';
 
 const ROLE_USER = 1;
 const ROLE_ADMIN = 2;
@@ -23,8 +25,8 @@ function UserRow({ user }) {
         router.patch(`/admin/users/${user.id}/${action}`, {}, requestOptions);
     };
 
-    const remove = () => {
-        if (window.confirm(`Удалить пользователя ${user.name}? Его поездки удалятся вместе с ним. Отменить это нельзя.`)) {
+    const remove = async () => {
+        if (await confirmDialog({ title: `Удалить пользователя ${user.name}?`, message: 'Его поездки удалятся вместе с ним. Отменить это нельзя.', confirmLabel: 'Удалить', danger: true })) {
             router.delete(`/admin/users/${user.id}`, requestOptions);
         }
     };
@@ -71,28 +73,6 @@ function UserRow({ user }) {
                 )}
             </td>
         </tr>
-    );
-}
-
-/**
- * Переключатель страниц. users — то, что отдаёт Laravel-пагинатор: current_page, last_page,
- * prev_page_url, next_page_url. Адреса уже содержат ?search=..., потому что на сервере withQueryString().
- */
-function Pagination({ users }) {
-    if (users.last_page <= 1) {
-        return null;
-    }
-
-    return (
-        <nav className="admin-pagination">
-            {users.prev_page_url
-                ? <Link href={users.prev_page_url} className="admin-action" preserveScroll>← Назад</Link>
-                : <span className="admin-action admin-action--disabled">← Назад</span>}
-            <span className="admin-pagination__info">Страница {users.current_page} из {users.last_page}</span>
-            {users.next_page_url
-                ? <Link href={users.next_page_url} className="admin-action" preserveScroll>Вперёд →</Link>
-                : <span className="admin-action admin-action--disabled">Вперёд →</span>}
-        </nav>
     );
 }
 
@@ -155,7 +135,7 @@ export default function AdminUsers({ users, search }) {
                 )}
             </section>
 
-            <Pagination users={users} />
+            <AdminPagination paginator={users} />
         </AdminLayout>
     );
 }

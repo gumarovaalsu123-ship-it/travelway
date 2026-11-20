@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Services\CityCover;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -41,6 +43,11 @@ class Trip extends Model
     public const StageCompleted = 'completed';
 
     /**
+     * Сколько поездок помещается в «Примеры маршрутов» на главной.
+     */
+    public const LandingExamplesLimit = 3;
+
+    /**
      * When the dates are known, the number of days always follows from them.
      */
     protected static function booted(): void
@@ -62,6 +69,7 @@ class Trip extends Model
             'end_date' => 'date',
             'days_count' => 'integer',
             'is_public' => 'boolean',
+            'featured_at' => 'datetime',
         ];
     }
 
@@ -187,7 +195,20 @@ class Trip extends Model
     {
         $this->public_token = null;
         $this->is_public = false;
+        // Без ссылки показывать поездку на главной нельзя — снимаем её и оттуда.
+        $this->featured_at = null;
         $this->save();
+    }
+
+    /**
+     * Поездки для «Примеров маршрутов» на главной: публичные, выбранные администратором, последние выбранные первыми.
+     *
+     * @param  Builder<Trip>  $query
+     */
+    #[Scope]
+    protected function featured(Builder $query): void
+    {
+        $query->where('is_public', true)->whereNotNull('featured_at')->latest('featured_at');
     }
 
     public function hasDates(): bool

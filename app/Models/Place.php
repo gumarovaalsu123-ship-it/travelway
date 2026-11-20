@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PhotoStorage;
 use Database\Factories\PlaceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -85,6 +86,8 @@ class Place extends Model
     {
         if ($this->tripPlaces()->doesntExist() && $this->favoritedBy()->doesntExist()) {
             $this->delete();
+            // Своё загруженное фото больше никому не нужно — удаляем и файл (фото из Википедии просто пропускается).
+            app(PhotoStorage::class)->delete($this->image);
         }
     }
 }

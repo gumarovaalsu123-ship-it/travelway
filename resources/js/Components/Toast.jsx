@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usePage } from '@inertiajs/react';
+import { TOAST_EVENT } from '../utils/toast';
 
 // Сколько уведомление висит на экране и сколько длится анимация ухода (как у .toast--leaving в app.css).
 const SHOW_MS = 3500;
@@ -24,6 +25,18 @@ export default function Toast() {
             setLeaving(false);
         }
     }, [flash]);
+
+    // Уведомления из браузера: showToast() из utils/toast.js.
+    useEffect(() => {
+        const showFromEvent = (event) => {
+            setMessage({ text: event.detail, id: Date.now() });
+            setLeaving(false);
+        };
+
+        window.addEventListener(TOAST_EVENT, showFromEvent);
+
+        return () => window.removeEventListener(TOAST_EVENT, showFromEvent);
+    }, []);
 
     useEffect(() => {
         if (!message) {

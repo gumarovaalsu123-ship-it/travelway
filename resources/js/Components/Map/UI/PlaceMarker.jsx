@@ -4,6 +4,7 @@ import { Marker, Popup } from 'react-leaflet';
 import { placeIcon } from '../../../utils/mapIcons';
 import { formatDayLabel } from '../../../utils/format';
 import { PlaceContacts, PlacePhoto, WikipediaCredit } from '../../PlaceInfo';
+import { confirmDialog } from '../../../utils/confirm';
 
 const requestOptions = { preserveScroll: true, preserveState: true };
 
@@ -26,8 +27,8 @@ export default function PlaceMarker({ place, isSelected, isFocused = false, onAd
         }
     };
 
-    const removeVisit = (visit) => {
-        if (window.confirm(`Убрать «${place.name}» из плана «${visit.tripTitle}»?`)) {
+    const removeVisit = async (visit) => {
+        if (await confirmDialog({ title: 'Убрать из плана?', message: `«${place.name}» пропадёт из плана «${visit.tripTitle}».`, confirmLabel: 'Убрать', danger: true })) {
             router.delete(`/trip-places/${visit.id}`, requestOptions);
         }
     };

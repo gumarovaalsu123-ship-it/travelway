@@ -7,6 +7,7 @@ import TripLayout, { canEditTab } from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
 import { searchPlaces } from '../../utils/geocoding';
 import { PLACE_SETS, findNearby } from '../../utils/overpass';
+import { confirmDialog } from '../../utils/confirm';
 
 /**
  * Подписи типов жилья. Ключи совпадают с Accommodation::Types на сервере.
@@ -483,8 +484,8 @@ export default function TripAccommodation({ trip, accommodations, nights, types,
     // Только просмотр (завершённая поездка): ни добавить, ни изменить жильё нельзя.
     const canEdit = canEditTab(trip, 'accommodation');
 
-    const destroy = (accommodation) => {
-        if (window.confirm(`Удалить проживание «${accommodation.name}»?`)) {
+    const destroy = async (accommodation) => {
+        if (await confirmDialog({ title: 'Удалить проживание?', message: `«${accommodation.name}» удалится из поездки.`, confirmLabel: 'Удалить', danger: true })) {
             router.delete(`/my-trips/${trip.id}/accommodation/${accommodation.id}`, { preserveScroll: true });
         }
     };

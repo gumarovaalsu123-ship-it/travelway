@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import TripLayout, { canEditTab } from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
+import { confirmDialog } from '../../utils/confirm';
 
 const FILTERS = [
     { value: 'all', label: 'Все вещи' },
@@ -203,12 +204,12 @@ function PackingGroup({ tripId, list, visibleItems, canEdit }) {
         setEditing(false);
     }
 
-    function remove() {
-        const question = list.items.length > 0
-            ? `Удалить группу «${list.title}» вместе с ${list.items.length} ${plural(list.items.length, ['вещью', 'вещами', 'вещами'])}?`
-            : `Удалить группу «${list.title}»?`;
+    async function remove() {
+        const message = list.items.length > 0
+            ? `Группа «${list.title}» удалится вместе с ${list.items.length} ${plural(list.items.length, ['вещью', 'вещами', 'вещами'])}.`
+            : `Группа «${list.title}» удалится.`;
 
-        if (confirm(question)) {
+        if (await confirmDialog({ title: 'Удалить группу?', message, confirmLabel: 'Удалить', danger: true })) {
             router.delete(url, keepScroll);
         }
     }

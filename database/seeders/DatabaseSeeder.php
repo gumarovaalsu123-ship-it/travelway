@@ -7,15 +7,13 @@ use App\Models\PlaceCategory;
 use App\Models\Role;
 use App\Models\Trip;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
+     * События моделей не отключаем: число дней поездки по датам считает событие saving в Trip.
      */
     public function run(): void
     {
@@ -91,5 +89,8 @@ class DatabaseSeeder extends Seeder
             'start_date' => now()->subMonth()->toDateString(),
             'end_date' => now()->subMonth()->addDays(3)->toDateString(),
         ]);
+
+        // Три полных публичных маршрута для «Примеров маршрутов» на главной.
+        $this->call(DemoTripsSeeder::class);
     }
 }

@@ -7850,3 +7850,111 @@ img {
         min-height: 56px;
     }
 }
+
+/* =========================================
+   ОКНО ПОДТВЕРЖДЕНИЯ (Components/ConfirmDialog.jsx) — вместо window.confirm
+   ========================================= */
+
+.confirm-dialog__message {
+    color: var(--color-text-muted);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn--danger-solid {
+    flex: none;
+    padding: 14px 28px;
+    background: var(--color-accent-orange);
+    border: 1.5px solid var(--color-accent-orange);
+    border-radius: 99px;
+    color: var(--color-white);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn--danger-solid:hover {
+    filter: brightness(0.92);
+}
+
+@media (max-width: 480px) {
+    .confirm-dialog__actions {
+        flex-direction: column-reverse;
+    }
+}
+
+/* =========================================
+   СВОЁ ФОТО (Components/PhotoPicker.jsx): обложка в «Настройках» и фото места в окне «Изменить»
+   ========================================= */
+
+.photo-picker__row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.photo-picker__preview {
+    flex-shrink: 0;
+    width: 120px;
+    height: 80px;
+    border-radius: 12px;
+    background-color: #eef2ef;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Фото нет совсем — серый прямоугольник со значком картинки */
+.photo-picker__preview--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.photo-picker__preview--empty::after {
+    content: '🖼';
+    font-size: 28px;
+    opacity: 0.4;
+}
+
+.photo-picker__info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.photo-picker__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.photo-picker__actions .btn--sm {
+    flex: none;
+}
+
+@media (max-width: 480px) {
+    .photo-picker__row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Настоящая поездка в «Примерах маршрутов» на главной — карточка-ссылка */
+.route-card--link {
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.route-card--link:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}

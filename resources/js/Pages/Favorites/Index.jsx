@@ -3,12 +3,13 @@ import { Link, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { plural } from '../../utils/format';
 import { PlacePhoto, WikipediaCredit } from '../../Components/PlaceInfo';
+import { confirmDialog } from '../../utils/confirm';
 
 const WITHOUT_CATEGORY = 'none';
 
 function FavoriteCard({ place }) {
-    const remove = () => {
-        if (window.confirm(`Убрать «${place.name}» из избранного?`)) {
+    const remove = async () => {
+        if (await confirmDialog({ title: 'Убрать из избранного?', message: `«${place.name}» пропадёт из списка избранного.`, confirmLabel: 'Убрать', danger: true })) {
             router.delete(`/places/${place.id}/favorite`, { preserveScroll: true });
         }
     };

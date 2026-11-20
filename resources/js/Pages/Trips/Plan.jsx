@@ -10,6 +10,7 @@ import { PLACE_SETS, findAlongSegment, findNearby } from '../../utils/overpass';
 import { dayRoute } from '../../utils/dayRoute';
 import { findArea, isInsideArea } from '../../utils/geocoding';
 import { TRAVEL_MODES, formatMinutes, timeLabel, yandexRouteUrl } from '../../utils/travel';
+import PhotoPicker from '../../Components/PhotoPicker';
 
 const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
@@ -425,6 +426,13 @@ function EditPlaceModal({ tripId, place, otherDays, onClose }) {
 
     return (
         <Modal title={`Изменить «${place.name}»`} onClose={onClose}>
+            <PhotoPicker
+                label="Фото места"
+                imageUrl={place.image}
+                uploadUrl={`/my-trips/${tripId}/trip-places/${place.id}/photo`}
+                resetLabel="Убрать своё фото"
+                resetQuestion="Убрать своё фото? Вместо него снова подберём фото из Википедии."
+            />
             <form className="plan-place-form" onSubmit={submit} noValidate>
                 {otherDays.length > 0 && (
                     <div className={`form-group ${form.errors.trip_day_id ? 'has-error' : ''}`}>

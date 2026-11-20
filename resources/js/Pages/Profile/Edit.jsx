@@ -3,6 +3,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import FormField from '../../Components/Auth/FormField';
 import Avatar from '../../Components/Profile/Avatar';
+import { confirmDialog } from '../../utils/confirm';
 
 /**
  * Аватар: файл отправляется сразу после выбора, отдельно от формы с именем и почтой.
@@ -31,8 +32,8 @@ function AvatarEditor({ profile }) {
         });
     };
 
-    const remove = () => {
-        if (window.confirm('Удалить аватар?')) {
+    const remove = async () => {
+        if (await confirmDialog({ title: 'Удалить аватар?', message: 'Вместо фото снова будет буква имени.', confirmLabel: 'Удалить', danger: true })) {
             router.delete('/profile/avatar', { preserveScroll: true });
         }
     };

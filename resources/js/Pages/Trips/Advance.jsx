@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import TripLayout, { TRIP_TABS, canEditTab } from '../../Components/TripLayout';
 import { plural } from '../../utils/format';
+import { confirmDialog } from '../../utils/confirm';
 
 /**
  * Все запросы на этой вкладке меняют только списки дел — прокрутку страницы сохраняем.
@@ -112,8 +113,8 @@ function OwnTaskRow({ tripId, task, canEdit }) {
         setEditing(false);
     }
 
-    function remove() {
-        if (window.confirm(`Удалить дело «${task.title}»?`)) {
+    async function remove() {
+        if (await confirmDialog({ title: 'Удалить дело?', message: `«${task.title}» пропадёт из списка.`, confirmLabel: 'Удалить', danger: true })) {
             router.delete(url, keepScroll);
         }
     }

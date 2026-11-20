@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import Footer from '../Components/Footer';
-import { plural } from '../utils/format';
+import { formatDateRange, plural } from '../utils/format';
+import { STATUS_LABELS, coverFor } from '../utils/trips';
 
 const FEATURES = [
     {
@@ -42,11 +43,31 @@ const STEPS = [
     { title: 'Поделитесь маршрутом', text: 'Распространите готовый маршрут публичной ссылкой и покажите его другим без лишних действий.' },
 ];
 
+// Карточки-иллюстрации — только пока администратор не выбрал ни одной настоящей поездки (раздел «Публичные маршруты»).
 const EXAMPLE_ROUTES = [
     { image: '/images/card1.png', tag: 'Город', status: 'Запланировано', statusClass: 'status-active', dates: '15 июня - 20 июня', places: 12, title: 'Солнечный Лиссабон и Синтра' },
     { image: '/images/card2.png', tag: 'Горы', status: 'В процессе', statusClass: 'status-process', dates: '1 июля - 10 июля', places: 8, title: 'Дикий Алтай без гидов' },
     { image: '/images/card3.png', tag: 'История', status: 'Завершено', statusClass: 'status-done', dates: '12 мая - 15 мая', places: 6, title: 'Выборгские легенды и парки' },
 ];
+
+// Цвет плашки статуса на карточке примера.
+const STATUS_CLASSES = { planned: 'status-active', draft: 'status-active', current: 'status-process', completed: 'status-done' };
+
+/**
+ * Настоящая поездка с главной → данные для той же карточки, что и у иллюстраций. Клик открывает её публичную ссылку.
+ */
+function toRouteCard(trip) {
+    return {
+        href: trip.publicUrl,
+        image: coverFor(trip),
+        tag: trip.destination.split(',')[0],
+        status: STATUS_LABELS[trip.status],
+        statusClass: STATUS_CLASSES[trip.status],
+        dates: trip.startDate ? formatDateRange(trip.startDate, trip.endDate) : `${trip.daysCount} ${plural(trip.daysCount, ['день', 'дня', 'дней'])}`,
+        places: trip.placesCount,
+        title: trip.title,
+    };
+}
 
 /**
  * Шапка лендинга. Как и в Header.jsx, на планшете и телефоне ссылки и кнопки уходят под бургер.
@@ -100,11 +121,13 @@ function LandingHeader({ user }) {
     );
 }
 
-export default function Home({ stats }) {
+export default function Home({ stats, examples = [] }) {
     const { auth } = usePage().props;
     const user = auth?.user;
     // Гостя кнопки ведут на регистрацию; после входа — сразу к созданию поездки.
     const startHref = user ? '/my-trips/create' : '/register';
+    const hasRealExamples = examples.length > 0;
+    const routeCards = hasRealExamples ? examples.map(toRouteCard) : EXAMPLE_ROUTES;
 
     return (
         <div className="page-wrapper">
@@ -200,26 +223,37 @@ export default function Home({ stats }) {
                 <div className="section-header">
                     <span className="section-subtitle">Примеры маршрутов</span>
                     <h2 className="section-title">Примеры планирования</h2>
-                    <p className="section-desc">Иллюстрации того, как можно собрать места и даты в личный маршрут. Это не каталог чужих путешествий.</p>
+                    <p className="section-desc">
+                        {hasRealExamples
+                            ? 'Настоящие маршруты наших пользователей, открытые по ссылке. Нажмите, чтобы посмотреть план целиком.'
+                            : 'Иллюстрации того, как можно собрать места и даты в личный маршрут. Это не каталог чужих путешествий.'}
+                    </p>
                 </div>
                 <div className="route-row">
-                    {EXAMPLE_ROUTES.map((route) => (
-                        <div key={route.title} className="route-card">
-                            <div className="route-image-wrapper" style={{ backgroundImage: `url('${route.image}')` }}>
-                                <div className="route-tag">{route.tag}</div>
-                                <div className={`route-status ${route.statusClass}`}>{route.status}</div>
-                            </div>
-                            <div className="route-content">
-                                <div className="route-meta">
-                                    <span className="route-duration">🕒 {route.dates}</span>
-                                    <span className="route-places-count">{route.places} мест</span>
+                    {routeCards.map((route) => {
+                        const content = (
+                            <>
+                                <div className="route-image-wrapper" style={{ backgroundImage: `url('${route.image}')` }}>
+                                    <div className="route-tag">{route.tag}</div>
+                                    <div className={`route-status ${route.statusClass}`}>{route.status}</div>
                                 </div>
-                                <h3 className="route-title">{route.title}</h3>
-                                <div className="route-divider" />
-                                <div className="route-action">Пример планирования <span>→</span></div>
-                            </div>
-                        </div>
-                    ))}
+                                <div className="route-content">
+                                    <div className="route-meta">
+                                        <span className="route-duration">🕒 {route.dates}</span>
+                                        <span className="route-places-count">{route.places} {plural(route.places, ['место', 'места', 'мест'])}</span>
+                                    </div>
+                                    <h3 className="route-title">{route.title}</h3>
+                                    <div className="route-divider" />
+                                    <div className="route-action">{route.href ? 'Открыть маршрут' : 'Пример планирования'} <span>→</span></div>
+                                </div>
+                            </>
+                        );
+
+                        // Публичная ссылка — обычная страница без входа, поэтому простой <a>, а не Inertia Link.
+                        return route.href
+                            ? <a key={route.title + route.href} href={route.href} className="route-card route-card--link">{content}</a>
+                            : <div key={route.title} className="route-card">{content}</div>;
+                    })}
                 </div>
             </section>
 

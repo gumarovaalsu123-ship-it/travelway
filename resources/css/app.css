@@ -4618,7 +4618,7 @@
 
 .map-search__input {
     width: 100%;
-    padding: 12px 16px 12px 42px;
+    padding: 12px 40px 12px 42px; /* справа — место под крестик очистки */
     border: 1px solid var(--color-border-warm);
     border-radius: 12px;
     background: var(--color-white);
@@ -4631,6 +4631,34 @@
 
 .map-search__input:focus {
     border-color: var(--color-accent-green);
+}
+
+/* Встроенный крестик браузера у type="search" прячем — вместо него свой (.map-search__clear) */
+.map-search__input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.map-search__clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.map-search__clear:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text-dark);
 }
 
 .map-search__icon {

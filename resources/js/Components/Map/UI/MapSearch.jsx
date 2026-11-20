@@ -23,6 +23,17 @@ export default function MapSearch({ map, onSelect, category, onCategoryChange, c
     // Сворачивается сам после выбора места; разворачивается кнопкой в заголовке, новым поиском или кликом в строку.
     const [isListOpen, setIsListOpen] = useState(true);
     const abortController = useRef(null);
+    const inputRef = useRef(null);
+
+    /** Крестик в строке поиска: стираем текст, убираем найденное с карты и возвращаем курсор в строку. */
+    const clear = () => {
+        abortController.current?.abort();
+        setQuery('');
+        setResults(null);
+        setStatus('idle');
+        onCategoryChange(null);
+        inputRef.current?.focus();
+    };
 
     const startCategory = (nextCategory) => {
         abortController.current?.abort();
@@ -124,7 +135,17 @@ export default function MapSearch({ map, onSelect, category, onCategoryChange, c
                             }
                         }}
                         aria-label="Поиск места"
+                        ref={inputRef}
                     />
+                    {/* Свой крестик вместо встроенного в браузер (он синий и в каждом браузере свой). */}
+                    {query && (
+                        <button type="button" className="map-search__clear" onClick={clear} aria-label="Очистить поиск" title="Очистить">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
                 <MapMenuButton
                     className="map-search__categories"

@@ -23,6 +23,7 @@ const layerFilters = {
     all: () => true,
     trips: (place) => place.visits.length > 0,
     favorites: (place) => place.isFavorite,
+    hidden: () => false,
 };
 
 export default function InteractiveMap({ categories, trips, places, focusPlaceId = null, focusDayId = null }) {
@@ -137,8 +138,8 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
                             category={searchCategory}
                             onCategoryChange={setSearchCategory}
                             categoryResult={categoryResult}
+                            aside={<MapLayerToggle value={layer} onChange={setLayer} />}
                         />
-                        <MapLayerToggle value={layer} onChange={setLayer} />
                     </div>
 
                     {places.length === 0 && !draft && (

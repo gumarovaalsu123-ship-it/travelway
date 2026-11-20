@@ -2199,38 +2199,6 @@
   white-space: nowrap;
 }
 
-/* Слои карты (переключатели) */
-.map-layer-toggle {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: flex;
-  gap: 8px;
-  background: var(--color-white);
-  padding: 10px;
-  border-radius: 12px;
-  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
-  z-index: 20;
-}
-
-.layer-btn {
-  padding: 7px 14px;
-  border-radius: 99px;
-  font-weight: 600;
-  font-size: 12px;
-  transition: all 0.2s ease;
-}
-
-.layer-btn.active {
-  background: var(--color-accent-green);
-  color: var(--color-white);
-}
-
-.layer-btn.inactive {
-  background: #E8EFE5;
-  color: var(--color-accent-green);
-}
-
 /* Зум-контроллы */
 
 .map-zoom-controls {
@@ -4536,14 +4504,102 @@
     gap: 8px;
 }
 
-.map-toolbar .map-layer-toggle {
-    position: static;
-    flex-wrap: wrap;
-    align-self: flex-start;
+/* Строка поиска и кнопка фильтра «Мои места» справа от неё */
+.map-search__row {
+    display: flex;
+    gap: 8px;
 }
 
 .map-search__field {
     position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Фильтр «Мои места на карте»: квадратная кнопка-воронка и выпадающий список */
+.map-layer-menu {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.map-layer-menu__toggle {
+    position: relative;
+    width: 44px;
+    height: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border-warm);
+    border-radius: 12px;
+    background: var(--color-white);
+    color: var(--color-accent-green);
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.map-layer-menu__toggle:hover,
+.map-layer-menu__toggle[aria-expanded="true"] {
+    border-color: var(--color-accent-green);
+}
+
+/* Точка на кнопке: показаны не все места */
+.map-layer-menu__toggle--filtered::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent-orange);
+}
+
+.map-layer-menu__dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 10;
+    min-width: 200px;
+    padding: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.map-layer-menu__title {
+    padding: 6px 10px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
+
+.map-layer-menu__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 10px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    font-family: var(--font-main);
+    font-size: 13px;
+    color: var(--color-text-dark);
+    text-align: left;
+    cursor: pointer;
+}
+
+.map-layer-menu__item:hover {
+    background: var(--color-bg-alt);
+}
+
+.map-layer-menu__item.is-active {
+    font-weight: 600;
+    color: var(--color-accent-green);
 }
 
 .map-search__input {
@@ -4668,12 +4724,6 @@
 .place-pin--found.place-pin--active .place-pin__found {
     border-color: var(--color-accent-orange);
     transform: scale(1.25);
-}
-
-.layer-btn {
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-main);
 }
 
 /* Кнопки масштаба — справа снизу, чтобы не спорить с формой и поиском */

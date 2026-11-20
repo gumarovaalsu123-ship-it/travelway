@@ -11,8 +11,9 @@ const CATEGORY_LIST_SIZE = 8;
  * - по названию или адресу («Казанский кремль», «Баумана 5») — Nominatim, по кнопке или Enter;
  * - по категории («отели», кнопка «Жильё») — родитель ищет места в видимой части карты (useCategorySearch)
  *   и передаёт сюда categoryResult, а сам рисует маркеры.
+ * aside — что показать справа от строки поиска (на интерактивной карте — кнопка фильтра «Мои места»).
  */
-export default function MapSearch({ map, onSelect, category, onCategoryChange, categoryResult }) {
+export default function MapSearch({ map, onSelect, category, onCategoryChange, categoryResult, aside = null }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
     // idle — ждём ввода или показываем результаты, loading — идёт запрос, error / timeout — запрос не удался.
@@ -83,31 +84,34 @@ export default function MapSearch({ map, onSelect, category, onCategoryChange, c
 
     return (
         <form className="map-search" onSubmit={submit} role="search">
-            <div className="map-search__field">
-                <span className="map-search__icon">
-                    {/* Пока идёт запрос, вместо лупы крутится индикатор. */}
-                    {status === 'loading' || categoryResult.status === 'loading' ? <Spinner /> : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="7" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    )}
-                </span>
-                <input
-                    type="search"
-                    className="map-search__input"
-                    placeholder="Место, адрес или «отели», «кафе»"
-                    value={query}
-                    onFocus={() => setIsCategoryListOpen(true)}
-                    onChange={(event) => {
-                        setQuery(event.target.value);
-                        if (!event.target.value) {
-                            setResults(null);
-                            onCategoryChange(null);
-                        }
-                    }}
-                    aria-label="Поиск места"
-                />
+            <div className="map-search__row">
+                <div className="map-search__field">
+                    <span className="map-search__icon">
+                        {/* Пока идёт запрос, вместо лупы крутится индикатор. */}
+                        {status === 'loading' || categoryResult.status === 'loading' ? <Spinner /> : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="7" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        )}
+                    </span>
+                    <input
+                        type="search"
+                        className="map-search__input"
+                        placeholder="Место, адрес или «отели», «кафе»"
+                        value={query}
+                        onFocus={() => setIsCategoryListOpen(true)}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            if (!event.target.value) {
+                                setResults(null);
+                                onCategoryChange(null);
+                            }
+                        }}
+                        aria-label="Поиск места"
+                    />
+                </div>
+                {aside}
             </div>
 
             <div className="map-search__chips">

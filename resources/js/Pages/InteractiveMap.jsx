@@ -138,8 +138,12 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
                             category={searchCategory}
                             onCategoryChange={setSearchCategory}
                             categoryResult={categoryResult}
-                            aside={<MapLayerToggle value={layer} onChange={setLayer} />}
                         />
+                    </div>
+
+                    {/* Какие из сохранённых мест показывать — в правом верхнем углу; открытая форма места его перекрывает. */}
+                    <div className="map-corner-controls">
+                        <MapLayerToggle value={layer} onChange={setLayer} />
                     </div>
 
                     {places.length === 0 && !draft && (

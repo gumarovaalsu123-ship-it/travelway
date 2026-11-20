@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { formatDistance, isTimeoutError, searchPlaces } from '../../../utils/geocoding';
 import { SEARCH_CATEGORIES, categoryForQuery } from '../../../utils/searchCategories';
 import Loader, { Spinner } from '../../Loader';
+import MapMenuButton from './MapMenuButton';
 
 // В списке под строкой поиска — только ближайшие; остальные видны маркерами на карте.
 const CATEGORY_LIST_SIZE = 8;
@@ -9,11 +10,10 @@ const CATEGORY_LIST_SIZE = 8;
 /**
  * Строка поиска на карте. Два режима:
  * - по названию или адресу («Казанский кремль», «Баумана 5») — Nominatim, по кнопке или Enter;
- * - по категории («отели», кнопка «Жильё») — родитель ищет места в видимой части карты (useCategorySearch)
+ * - по категории («отели» или пункт «Жильё» в меню-воронке справа от строки) — родитель ищет места в видимой части карты (useCategorySearch)
  *   и передаёт сюда categoryResult, а сам рисует маркеры.
- * aside — что показать справа от строки поиска (на интерактивной карте — кнопка фильтра «Мои места»).
  */
-export default function MapSearch({ map, onSelect, category, onCategoryChange, categoryResult, aside = null }) {
+export default function MapSearch({ map, onSelect, category, onCategoryChange, categoryResult }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
     // idle — ждём ввода или показываем результаты, loading — идёт запрос, error / timeout — запрос не удался.
@@ -61,8 +61,10 @@ export default function MapSearch({ map, onSelect, category, onCategoryChange, c
         }
     };
 
-    /** Кнопка категории: включает её, а повторное нажатие на активную — выключает. */
-    const toggleCategory = (chip) => {
+    /** Пункт меню-воронки: включает категорию, а повторное нажатие на активную — выключает. */
+    const toggleCategory = (set) => {
+        const chip = SEARCH_CATEGORIES.find((item) => item.set === set);
+
         if (category?.set === chip.set) {
             setQuery('');
             onCategoryChange(null);
@@ -111,21 +113,20 @@ export default function MapSearch({ map, onSelect, category, onCategoryChange, c
                         aria-label="Поиск места"
                     />
                 </div>
-                {aside}
-            </div>
-
-            <div className="map-search__chips">
-                {SEARCH_CATEGORIES.map((chip) => (
-                    <button
-                        key={chip.set}
-                        type="button"
-                        className={`map-search__chip ${category?.set === chip.set ? 'map-search__chip--active' : ''}`}
-                        onClick={() => toggleCategory(chip)}
-                        aria-pressed={category?.set === chip.set}
-                    >
-                        {chip.label}
-                    </button>
-                ))}
+                <MapMenuButton
+                    className="map-search__categories"
+                    label={category ? `Категория: ${category.label}` : 'Искать по категории'}
+                    title="Что искать рядом"
+                    isMarked={Boolean(category)}
+                    items={SEARCH_CATEGORIES.map((item) => ({ value: item.set, label: item.label }))}
+                    selected={category?.set ?? null}
+                    onSelect={toggleCategory}
+                    icon={(
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                        </svg>
+                    )}
+                />
             </div>
 
             {status === 'loading' && (

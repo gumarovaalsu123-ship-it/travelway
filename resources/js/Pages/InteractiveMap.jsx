@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { AttributionControl, MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, TileLayer, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import AppLayout from '../Components/AppLayout';
@@ -12,8 +12,9 @@ import PlaceMarker from '../Components/Map/UI/PlaceMarker';
 import FitToPlaces from '../Components/Map/Logic/FitToPlaces';
 import MapClickHandler from '../Components/Map/Logic/MapClickHandler';
 import UserLocation from '../Components/Map/Logic/UserLocation';
+import useCategorySearch from '../Components/Map/Logic/useCategorySearch';
 import { reverseGeocode } from '../utils/geocoding';
-import { draftIcon } from '../utils/mapIcons';
+import { draftIcon, foundIcon } from '../utils/mapIcons';
 import { flyToPointBesideForm, revealPointBesideForm } from '../utils/mapView';
 
 const DEFAULT_CENTER = [55.7963, 49.1089]; // Казань
@@ -30,6 +31,9 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
     const [draft, setDraft] = useState(null);
     const [layer, setLayer] = useState('all');
     const geocodeRequest = useRef(null);
+    // Поиск по категории («отели»): места подгружаются сами при сдвиге карты.
+    const [searchCategory, setSearchCategory] = useState(null);
+    const categoryResult = useCategorySearch(map, searchCategory);
 
     const visiblePlaces = useMemo(() => places.filter(layerFilters[layer]), [places, layer]);
 
@@ -110,13 +114,30 @@ export default function InteractiveMap({ categories, trips, places, focusPlaceId
                             />
                         ))}
 
+                        {categoryResult.places.map((place) => (
+                            <Marker
+                                key={place.id}
+                                position={[place.lat, place.lng]}
+                                icon={foundIcon(place.categorySlug, draft?.key === `search:${place.id}`)}
+                                eventHandlers={{ click: () => selectSearchResult(place) }}
+                            >
+                                <Tooltip direction="top" offset={[0, -10]}>{place.name}</Tooltip>
+                            </Marker>
+                        ))}
+
                         {draft && !draft.place && (
                             <Marker position={[draft.lat, draft.lng]} icon={draftIcon(draft.lat, draft.lng)} interactive={false} />
                         )}
                     </MapContainer>
 
                     <div className="map-toolbar">
-                        <MapSearch map={map} onSelect={selectSearchResult} />
+                        <MapSearch
+                            map={map}
+                            onSelect={selectSearchResult}
+                            category={searchCategory}
+                            onCategoryChange={setSearchCategory}
+                            categoryResult={categoryResult}
+                        />
                         <MapLayerToggle value={layer} onChange={setLayer} />
                     </div>
 

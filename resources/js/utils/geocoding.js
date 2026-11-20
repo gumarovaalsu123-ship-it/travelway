@@ -49,6 +49,9 @@ const OSM_TYPE_TO_LODGING = {
     apartment: 'apartment',
 };
 
+/** Тип жилья по значению тега tourism (hostel → hostel), для всего остального — гостиница. */
+export const lodgingTypeFor = (osmType) => OSM_TYPE_TO_LODGING[osmType] ?? 'hotel';
+
 function categorySlugFor(result) {
     return OSM_TYPE_TO_CATEGORY[result.type]
         ?? OSM_CLASS_TO_CATEGORY[result.class ?? result.category]
@@ -97,7 +100,7 @@ function parseWikipediaTag(tag) {
  * Полезные теги объекта OSM (запрос с extratags=1): часы работы, сайт, телефон, статья в Википедии.
  * Остальные теги не берём — их редко заполняют.
  */
-function detailsFrom(extratags = {}) {
+export function detailsFrom(extratags = {}) {
     const article = parseWikipediaTag(extratags.wikipedia);
     const wikiUrl = article ? `https://${article.lang}.wikipedia.org/wiki/${encodeURIComponent(article.title)}` : null;
 
@@ -119,7 +122,7 @@ function toPlace(result) {
         name: result.name || address || result.display_name?.split(',')[0] || '',
         address: address ?? result.display_name ?? null,
         categorySlug: categorySlugFor(result),
-        lodgingType: OSM_TYPE_TO_LODGING[result.type] ?? 'hotel',
+        lodgingType: lodgingTypeFor(result.type),
         ...detailsFrom(result.extratags ?? {}),
     };
 }

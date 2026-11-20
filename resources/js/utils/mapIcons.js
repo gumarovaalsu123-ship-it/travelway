@@ -71,3 +71,35 @@ export function lodgingIcon(isActive = false) {
         popupAnchor: [0, -16],
     });
 }
+
+/** Значок на маркере найденного места — по категории, чтобы отель отличался от кафе. */
+const FOUND_SYMBOLS = {
+    hotel: '⌂',
+    cafe: '☕',
+    restaurant: '🍴',
+    museum: '🏛',
+    park: '🌳',
+    shop: '🛒',
+};
+
+// Одинаковые значки создаём один раз: на карте бывает до 150 найденных мест.
+const foundIcons = new Map();
+
+/**
+ * Место, найденное поиском по категории («отели»): маленький белый кружок со значком.
+ * Меньше и светлее сохранённых мест — это пока только варианты. isSelected — по нему открыта форма.
+ */
+export function foundIcon(categorySlug, isSelected = false) {
+    const key = `${categorySlug}:${isSelected}`;
+
+    if (!foundIcons.has(key)) {
+        foundIcons.set(key, L.divIcon({
+            className: `place-pin place-pin--found ${isSelected ? 'place-pin--active' : ''}`,
+            html: `<div class="place-pin__found">${FOUND_SYMBOLS[categorySlug] ?? '•'}</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+        }));
+    }
+
+    return foundIcons.get(key);
+}

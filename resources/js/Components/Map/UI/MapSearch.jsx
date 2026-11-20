@@ -1,13 +1,33 @@
 import React, { useRef, useState } from 'react';
 import { formatDistance, isTimeoutError, searchPlaces } from '../../../utils/geocoding';
+import { SEARCH_CATEGORIES, categoryForQuery } from '../../../utils/searchCategories';
 import Loader, { Spinner } from '../../Loader';
 
-export default function MapSearch({ map, onSelect }) {
+// В списке под строкой поиска — только ближайшие; остальные видны маркерами на карте.
+const CATEGORY_LIST_SIZE = 8;
+
+/**
+ * Строка поиска на карте. Два режима:
+ * - по названию или адресу («Казанский кремль», «Баумана 5») — Nominatim, по кнопке или Enter;
+ * - по категории («отели», кнопка «Жильё») — родитель ищет места в видимой части карты (useCategorySearch)
+ *   и передаёт сюда categoryResult, а сам рисует маркеры.
+ */
+export default function MapSearch({ map, onSelect, category, onCategoryChange, categoryResult }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
     // idle — ждём ввода или показываем результаты, loading — идёт запрос, error / timeout — запрос не удался.
     const [status, setStatus] = useState('idle');
+    // Список категории прячем после выбора места, маркеры остаются; снова открывается по клику в строку поиска.
+    const [isCategoryListOpen, setIsCategoryListOpen] = useState(true);
     const abortController = useRef(null);
+
+    const startCategory = (nextCategory) => {
+        abortController.current?.abort();
+        setResults(null);
+        setStatus('idle');
+        setIsCategoryListOpen(true);
+        onCategoryChange(nextCategory);
+    };
 
     const submit = async (event) => {
         event.preventDefault();
@@ -17,6 +37,14 @@ export default function MapSearch({ map, onSelect }) {
             return;
         }
 
+        const queryCategory = categoryForQuery(text);
+        if (queryCategory) {
+            startCategory(queryCategory);
+
+            return;
+        }
+
+        onCategoryChange(null);
         abortController.current?.abort();
         abortController.current = new AbortController();
         setStatus('loading');
@@ -32,17 +60,33 @@ export default function MapSearch({ map, onSelect }) {
         }
     };
 
+    /** Кнопка категории: включает её, а повторное нажатие на активную — выключает. */
+    const toggleCategory = (chip) => {
+        if (category?.set === chip.set) {
+            setQuery('');
+            onCategoryChange(null);
+
+            return;
+        }
+
+        setQuery(chip.label);
+        startCategory(chip);
+    };
+
     const choose = (result) => {
         setResults(null);
+        setIsCategoryListOpen(false);
         onSelect(result);
     };
+
+    const nearestCategoryPlaces = categoryResult.places.slice(0, CATEGORY_LIST_SIZE);
 
     return (
         <form className="map-search" onSubmit={submit} role="search">
             <div className="map-search__field">
                 <span className="map-search__icon">
                     {/* Пока идёт запрос, вместо лупы крутится индикатор. */}
-                    {status === 'loading' ? <Spinner /> : (
+                    {status === 'loading' || categoryResult.status === 'loading' ? <Spinner /> : (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="11" cy="11" r="7" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -52,16 +96,32 @@ export default function MapSearch({ map, onSelect }) {
                 <input
                     type="search"
                     className="map-search__input"
-                    placeholder="Найти место или адрес"
+                    placeholder="Место, адрес или «отели», «кафе»"
                     value={query}
+                    onFocus={() => setIsCategoryListOpen(true)}
                     onChange={(event) => {
                         setQuery(event.target.value);
                         if (!event.target.value) {
                             setResults(null);
+                            onCategoryChange(null);
                         }
                     }}
                     aria-label="Поиск места"
                 />
+            </div>
+
+            <div className="map-search__chips">
+                {SEARCH_CATEGORIES.map((chip) => (
+                    <button
+                        key={chip.set}
+                        type="button"
+                        className={`map-search__chip ${category?.set === chip.set ? 'map-search__chip--active' : ''}`}
+                        onClick={() => toggleCategory(chip)}
+                        aria-pressed={category?.set === chip.set}
+                    >
+                        {chip.label}
+                    </button>
+                ))}
             </div>
 
             {status === 'loading' && (
@@ -94,6 +154,37 @@ export default function MapSearch({ map, onSelect }) {
                             </button>
                         </li>
                     ))}
+                </ul>
+            )}
+
+            {category && isCategoryListOpen && (
+                <ul className="map-search__results">
+                    {categoryResult.status === 'loading' && nearestCategoryPlaces.length === 0 && (
+                        <li className="map-search__empty"><Loader text="Ищем на карте…" /></li>
+                    )}
+                    {categoryResult.status === 'zoomIn' && (
+                        <li className="map-search__empty">Приблизьте карту — так места покажутся на ней.</li>
+                    )}
+                    {categoryResult.status === 'error' && (
+                        <li className="map-search__empty">{categoryResult.message}</li>
+                    )}
+                    {categoryResult.status === 'ready' && nearestCategoryPlaces.length === 0 && (
+                        <li className="map-search__empty">Здесь ничего не нашлось — сдвиньте карту.</li>
+                    )}
+                    {nearestCategoryPlaces.map((place) => (
+                        <li key={place.id}>
+                            <button type="button" className="map-search__result" onClick={() => choose(place)}>
+                                <span className="map-search__result-name">{place.name}</span>
+                                <span className="map-search__result-address">
+                                    <strong>{formatDistance(place.distanceKm)} · </strong>
+                                    {[place.kindLabel, place.address].filter(Boolean).join(', ')}
+                                </span>
+                            </button>
+                        </li>
+                    ))}
+                    {categoryResult.places.length > CATEGORY_LIST_SIZE && (
+                        <li className="map-search__empty">Ещё {categoryResult.places.length - CATEGORY_LIST_SIZE} — на карте</li>
+                    )}
                 </ul>
             )}
         </form>

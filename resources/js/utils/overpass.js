@@ -1,11 +1,13 @@
 /**
- * Подсказки «Пора пообедать?», «Что по пути?», «Что рядом с жильём?».
+ * Подсказки «Пора пообедать?», «Что по пути?», «Что рядом с жильём?» и поиск по категории на карте («отели»).
  *
  * Источник — Overpass API: бесплатный поиск по данным OpenStreetMap, без ключа.
  * Запасной источник — Nominatim (тот же OpenStreetMap): если Overpass долго молчит, ищем через него (см. searchNominatim).
  * Запросы идут прямо из браузера, результаты нигде не храним: если человек захочет сохранить место,
  * оно уходит на сервер обычной формой (новое место в план или в избранное) и проходит валидацию.
  */
+
+import { detailsFrom, lodgingTypeFor } from './geocoding';
 
 // Несколько независимых серверов Overpass (зеркала с одними и теми же данными OSM).
 // Бесплатные серверы часто перегружены: один и тот же запрос то отвечает за 2 секунды, то висит полминуты,
@@ -85,6 +87,9 @@ export const PLACE_SETS = {
     },
     groceries: { shop: ['supermarket', 'convenience', 'grocery', 'greengrocer'] },
     pharmacies: { amenity: ['pharmacy'] },
+    hotels: { tourism: ['hotel', 'hostel', 'guest_house', 'motel', 'apartment'] },
+    museums: { tourism: ['museum', 'gallery'] },
+    parks: { leisure: ['park', 'garden'] },
 };
 
 /**
@@ -105,6 +110,14 @@ const TAG_INFO = {
     'shop=convenience': { slug: 'shop', label: 'Магазин у дома' },
     'shop=grocery': { slug: 'shop', label: 'Продукты' },
     'shop=greengrocer': { slug: 'shop', label: 'Овощи и фрукты' },
+    'tourism=hotel': { slug: 'hotel', label: 'Отель' },
+    'tourism=hostel': { slug: 'hotel', label: 'Хостел' },
+    'tourism=guest_house': { slug: 'hotel', label: 'Гостевой дом' },
+    'tourism=motel': { slug: 'hotel', label: 'Мотель' },
+    'tourism=apartment': { slug: 'hotel', label: 'Апартаменты' },
+    'tourism=gallery': { slug: 'museum', label: 'Галерея' },
+    'leisure=park': { slug: 'park', label: 'Парк' },
+    'leisure=garden': { slug: 'park', label: 'Сад' },
 };
 
 /** Понятная ошибка для человека: сервис не ответил или ответил ошибкой. */
@@ -158,14 +171,16 @@ export function formatDistance(meters) {
  * Текст запроса на языке Overpass QL. Для каждого тега — строка вида
  *   nwr["amenity"~"^(cafe|restaurant)$"]["name"](around:500,55.79,49.10);
  * nwr — точки, линии и области (кафе бывает отмечено и точкой, и контуром здания); ["name"] — только с названием.
+ * В скобках — фильтр области: круг «around:…» или прямоугольник «юг,запад,север,восток».
  * out center — для контуров Overpass сам посчитает центр, чтобы у каждого места были координаты.
+ * limit — сколько мест вернуть, не больше.
  */
-function buildQuery(placeSet, around) {
+function buildQuery(placeSet, areaFilter, limit = 60) {
     const parts = Object.entries(placeSet).map(
-        ([key, values]) => `nwr["${key}"~"^(${values.join('|')})$"]["name"](${around});`,
+        ([key, values]) => `nwr["${key}"~"^(${values.join('|')})$"]["name"](${areaFilter});`,
     );
 
-    return `[out:json][timeout:25];(${parts.join('')});out center 60;`;
+    return `[out:json][timeout:25];(${parts.join('')});out center ${limit};`;
 }
 
 /**
@@ -278,7 +293,7 @@ async function searchNominatim(placeSet, box, signal) {
  * отменяем все оставшиеся запросы, чтобы не нагружать серверы зря.
  */
 async function runQuery(placeSet, area, signal) {
-    const query = buildQuery(placeSet, area.around);
+    const query = buildQuery(placeSet, area.around, area.limit);
 
     if (cache.has(query)) {
         return cache.get(query);
@@ -353,6 +368,10 @@ function toPlace(element, placeSet) {
         categorySlug: info.slug,
         kindLabel: info.label,
         address: street ? street.slice(0, 255) : null,
+        // Если человек решит здесь жить (отель с карты): хостел, апартаменты или просто гостиница.
+        lodgingType: lodgingTypeFor(tags.tourism),
+        // Overpass отдаёт все теги объекта: часы работы, сайт, телефон, статья в Википедии — как у Nominatim с extratags.
+        ...detailsFrom(tags),
     };
 }
 
@@ -391,6 +410,16 @@ export async function findNearby(point, placeSet, radius = 500, signal = undefin
         // Прямоугольник Nominatim шире круга: углы отбрасываем, чтобы было ровно «в радиусе».
         .filter((place) => place.distance <= radius)
         .sort((a, b) => a.distance - b.distance);
+}
+
+/**
+ * Все места набора placeSet внутри прямоугольника box ({ south, west, north, east }) — поиск по категории на карте.
+ * Фильтр Overpass «(юг,запад,север,восток)» — объекты внутри рамки; до 150 мест, чтобы не завалить карту маркерами.
+ */
+export async function findInBox(box, placeSet, signal = undefined) {
+    const area = { around: `${box.south},${box.west},${box.north},${box.east}`, box, limit: 150 };
+
+    return placesFrom(await runQuery(placeSet, area, signal), placeSet);
 }
 
 /**

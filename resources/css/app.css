@@ -4619,6 +4619,57 @@
     color: var(--color-text-muted);
 }
 
+/* Кнопки категорий под строкой поиска: «Жильё», «Еда»… */
+.map-search__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.map-search__chip {
+    padding: 6px 12px;
+    border: 1px solid var(--color-border-warm);
+    border-radius: 999px;
+    background: var(--color-white);
+    font-family: var(--font-main);
+    font-size: 13px;
+    color: var(--color-text-dark);
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.map-search__chip:hover {
+    border-color: var(--color-accent-green);
+}
+
+.map-search__chip--active {
+    background: var(--color-accent-green);
+    border-color: var(--color-accent-green);
+    color: var(--color-white);
+}
+
+/* Маркер места, найденного поиском по категории: пока только вариант, поэтому меньше и светлее сохранённых */
+.place-pin__found {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--color-accent-green);
+    background: var(--color-white);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--color-accent-green);
+}
+
+.place-pin--found.place-pin--active .place-pin__found {
+    border-color: var(--color-accent-orange);
+    transform: scale(1.25);
+}
+
 .layer-btn {
     border: none;
     cursor: pointer;

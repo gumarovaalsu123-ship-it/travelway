@@ -6401,7 +6401,7 @@ section[id] {
 
 .advance-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); /* min(): на экране уже 320px колонка не вылезает */
     gap: 24px;
     align-items: start;
 }
@@ -7586,8 +7586,11 @@ img {
 
 /* ===== ПЛАНШЕТ: до 1024px ===== */
 @media (max-width: 1024px) {
+    /* Только боковые поля: короткая запись «padding: 0 32px» обнуляла верхний отступ страниц
+       (.trips-main, .trip-content — это тоже .container), и заголовок прилипал к шапке. */
     .container {
-        padding: 0 32px;
+        padding-left: 32px;
+        padding-right: 32px;
     }
 
     /* Шапки: меню прячется за бургер */
@@ -7760,7 +7763,8 @@ img {
 /* ===== БОЛЬШОЙ ТЕЛЕФОН: до 768px ===== */
 @media (max-width: 768px) {
     .container {
-        padding: 0 20px;
+        padding-left: 20px;
+        padding-right: 20px;
     }
 
     .header {
@@ -7937,7 +7941,8 @@ img {
 /* ===== ТЕЛЕФОН: до 480px ===== */
 @media (max-width: 480px) {
     .container {
-        padding: 0 16px;
+        padding-left: 16px;
+        padding-right: 16px;
     }
 
     .header {
@@ -8166,25 +8171,178 @@ img {
     }
 }
 
-/* «План» на телефоне: карточка места помещается в ширину — фото меньше, длинные названия переносятся */
+/* =========================================
+   ТЕЛЕФОН (до 480px, проверено на 360px): страницы поездки, профиль
+   Главная беда была в ширине: карточка с полями 32px внутри страницы с полями 16px
+   оставляла под содержимое ~260px, а в карточке места ещё фото, «1 ч на месте» и стрелки —
+   на название оставалось 80px, и слова рвались по буквам.
+   ========================================= */
 @media (max-width: 480px) {
+    /* --- Карточки: поля поменьше, чтобы содержимому хватало ширины --- */
+    .short-plan-card,
+    .day-itinerary-card,
+    .acc-card__body,
+    .acc-form,
+    .form-card,
+    .profile-card,
+    .featured-trip__content {
+        padding: 20px 16px;
+        border-radius: 20px;
+    }
+
+    .transport-card,
+    .missing-night-card,
+    .packing-category-card,
+    .favorite-card,
+    .trip-card__body,
+    .trip-details-card,
+    .modal {
+        padding: 16px;
+    }
+
+    .short-plan-card {
+        gap: 16px;
+    }
+
+    /* Заголовок вкладки поездки: подпись слева, как и заголовок (по центру она смотрелась отдельно) */
+    .trip-content .section-subtitle,
+    .section-header--spaced,
+    .section-header__text {
+        text-align: left;
+    }
+
+    .section-title {
+        font-size: 24px;
+    }
+
+    .form-card .page-title {
+        font-size: 24px;
+    }
+
+    /* --- «Подготовка»: значок и название в строку, «Готово» и «Открыть» — строкой ниже --- */
+    .prep-step {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        column-gap: 12px;
+        row-gap: 10px;
+        padding: 14px;
+    }
+
+    .prep-step > :nth-child(n + 3) {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .prep-step > .btn {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+    }
+
+    .prep-hint {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* --- «План»: карточка места в три колонки —
+       фото | название и «1 ч на месте» под ним | стрелки и меню --- */
     .plan-stop {
-        gap: 10px;
-        padding: 10px 8px;
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        column-gap: 10px;
+        row-gap: 4px;
+        padding: 10px 6px;
+    }
+
+    .plan-stop__photo {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 44px;
+        min-height: 44px;
+        align-self: start;
+        aspect-ratio: 1;
     }
 
     .plan-stop .stop-info {
+        grid-column: 2;
+        grid-row: 1;
         min-width: 0;
     }
 
     .plan-stop .stop-name,
     .plan-stop .stop-desc {
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
+        hyphens: auto;
     }
 
-    .plan-stop__photo {
-        width: 56px;
-        min-height: 56px;
+    .plan-stop__stay {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: start;
+        max-width: none;
+        margin-left: 0;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .plan-stop__stay-label {
+        display: inline;
+        margin-left: 4px;
+    }
+
+    .plan-stop__side {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        margin-left: 0;
+    }
+
+    /* --- Формы «Добавить вещь» и «Своё дело»: название во всю ширину, остальное строкой ниже --- */
+    .packing-add-form__row {
+        flex-wrap: wrap;
+    }
+
+    .packing-add-form__row > .form-input:first-child {
+        flex: 1 1 100%;
+    }
+
+    .packing-add-form__note,
+    .advance-due-field {
+        flex: 1 1 0;
+        max-width: none;
+        min-width: 0;
+    }
+
+    .packing-add-form__row > .btn {
+        flex: none;
+        width: 44px;
+    }
+
+    .advance-due-field .form-input {
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+    }
+
+    /* --- Транспорт: «Изменить» и «Удалить» во всю ширину карточки --- */
+    .transport-card__actions {
+        width: 100%;
+    }
+
+    .transport-card__actions .btn {
+        flex: 1 1 100%;
+    }
+
+    /* --- Профиль: цифры по две в ряд, а не пять высоких карточек друг под другом --- */
+    .profile-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .profile-stat {
+        padding: 16px;
+    }
+
+    .profile-stat__value {
+        font-size: 26px;
     }
 }
 

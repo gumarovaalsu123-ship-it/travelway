@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Marker, Popup } from 'react-leaflet';
 
 import MapClickHandler from '../Map/Logic/MapClickHandler';
 import { Spinner } from '../Loader';
 import { draftIcon } from '../../utils/mapIcons';
 import { reverseGeocode } from '../../utils/geocoding';
+import { showToast } from '../../utils/toast';
 
 /**
  * Быстрое добавление места прямо на карте дня (вкладка «План»), без перехода на интерактивную карту.
@@ -24,6 +25,10 @@ export default function AddPlaceOnMap({ tripId, day, categories, pickedPlace = n
     const [draft, setDraft] = useState(null);
     const [isSaving, setSaving] = useState(false);
     const geocodeRequest = useRef(null);
+    // Последний день поездки — для даты выезда, если отель добавляют как жильё.
+    const tripEndDate = usePage().props.trip?.endDate ?? null;
+    const isLodging = draft?.categorySlug === 'hotel';
+    const canSave = draft && !draft.isLoading && !isSaving && draft.name.trim() !== '';
 
     // Ушли со страницы или сменили день — недоделанный запрос к Nominatim не нужен.
     useEffect(() => () => geocodeRequest.current?.abort(), []);
@@ -65,6 +70,31 @@ export default function AddPlaceOnMap({ tripId, day, categories, pickedPlace = n
      */
     function closeIfCurrent(key) {
         setDraft((current) => (current?.key === key ? null : current));
+    }
+
+    /**
+     * «Здесь живу» — отель сохраняется не в план дня, а как проживание поездки.
+     * Заезд — в этот день в 14:00, выезд — в последний день поездки в 12:00 (если он позже).
+     * Сервер откроет вкладку «Проживание»: там можно поправить даты и добавить бронь.
+     */
+    function addAsStay() {
+        const checkIn = day.date ? `${day.date}T14:00` : null;
+        const checkOut = day.date && tripEndDate > day.date ? `${tripEndDate}T12:00` : null;
+
+        setSaving(true);
+        router.post(`/my-trips/${tripId}/accommodation`, {
+            type: draft.lodgingType ?? 'hotel',
+            name: draft.name.trim(),
+            address: draft.address,
+            latitude: draft.lat,
+            longitude: draft.lng,
+            check_in: checkIn,
+            check_out: checkOut,
+        }, {
+            // В маленькой плашке негде показать ошибку под полем — показываем первую всплывашкой.
+            onError: (errors) => showToast(Object.values(errors)[0]),
+            onFinish: () => setSaving(false),
+        });
     }
 
     function add() {
@@ -118,11 +148,17 @@ export default function AddPlaceOnMap({ tripId, day, categories, pickedPlace = n
                             <button
                                 type="button"
                                 className="btn btn--solid-dark btn--sm"
-                                disabled={draft.isLoading || isSaving || draft.name.trim() === ''}
+                                disabled={!canSave}
                                 onClick={add}
                             >
                                 {isSaving ? 'Добавляем…' : `+ Добавить в день ${day.number}`}
                             </button>
+                            {/* Отель может быть и местом для посещения, и жильём — для жилья отдельная кнопка. */}
+                            {isLodging && (
+                                <button type="button" className="btn btn--outline-dark btn--sm" disabled={!canSave} onClick={addAsStay}>
+                                    Здесь живу
+                                </button>
+                            )}
                         </div>
                     </Popup>
                 </>

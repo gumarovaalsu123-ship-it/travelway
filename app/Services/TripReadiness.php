@@ -7,6 +7,7 @@ use App\Models\PackingItem;
 use App\Models\Transport;
 use App\Models\Trip;
 use App\Models\TripDay;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 
 /**
@@ -239,8 +240,44 @@ class TripReadiness
         }
 
         $coveredCount = $nightsCount - count($uncoveredNights);
+        $warnings = array_map(fn (string $text) => $this->hint($text, 'accommodation'), $this->overlappingStaysWarnings());
 
-        return $this->makeStep('accommodation', "Ночей с жильём: {$coveredCount} из {$nightsCount}", $hints);
+        return $this->makeStep('accommodation', "Ночей с жильём: {$coveredCount} из {$nightsCount}", $hints, $warnings);
+    }
+
+    /**
+     * Мягкие предупреждения: два жилья на одни и те же ночи. Сохранять так форма не мешает
+     * (вдруг человек выбирает из двух вариантов), но маршрут дня берёт утром одно жильё, а вечером
+     * другое — поэтому подсказываем, какие записи поправить или удалить.
+     * Ночи пересекаются, если каждое жильё заезжает раньше, чем выезжает другое; день переезда
+     * (выезд из одного и заезд в другое в один день) — не пересечение.
+     *
+     * @return array<int, string>
+     */
+    protected function overlappingStaysWarnings(): array
+    {
+        $stays = $this->trip->accommodations
+            ->filter(fn (Accommodation $stay) => $stay->check_in && $stay->check_out)
+            ->sortBy(fn (Accommodation $stay) => $stay->check_in->toDateString())
+            ->values();
+
+        $warnings = [];
+
+        foreach ($stays as $index => $first) {
+            foreach ($stays->slice($index + 1) as $second) {
+                $overlapStart = max($first->check_in->toDateString(), $second->check_in->toDateString());
+                $overlapEnd = min($first->check_out->toDateString(), $second->check_out->toDateString());
+
+                if ($overlapStart >= $overlapEnd) {
+                    continue;
+                }
+
+                $dates = $this->formatDateRange(CarbonImmutable::parse($overlapStart), CarbonImmutable::parse($overlapEnd));
+                $warnings[] = "«{$first->name}» и «{$second->name}» на одни и те же ночи ({$dates}) — оставьте одно жильё, иначе маршрут дня запутается";
+            }
+        }
+
+        return $warnings;
     }
 
     /**

@@ -208,6 +208,31 @@ class TripReadinessTest extends TestCase
         $this->assertSame([1], $this->readiness($trip)->uncoveredNights());
     }
 
+    public function test_warning_when_two_stays_share_the_same_nights(): void
+    {
+        $trip = $this->makeTrip();
+        $this->addStay($trip, '2026-06-15 15:00', '2026-06-17 12:00');
+        $this->addStay($trip, '2026-06-16 14:00', '2026-06-17 11:00', ['name' => 'Хостел «Кремль»']);
+
+        $step = $this->readiness($trip)->step('accommodation');
+
+        // Предупреждение мягкое: все ночи покрыты, шаг всё равно готов.
+        $this->assertTrue($step['ready']);
+        $this->assertSame(
+            ['«Отель «Волга»» и «Хостел «Кремль»» на одни и те же ночи (16–17 июня) — оставьте одно жильё, иначе маршрут дня запутается'],
+            $this->hintTexts($step, 'warnings'),
+        );
+    }
+
+    public function test_moving_from_one_stay_to_another_on_the_same_day_gives_no_warning(): void
+    {
+        $trip = $this->makeTrip();
+        $this->addStay($trip, '2026-06-15 15:00', '2026-06-16 12:00');
+        $this->addStay($trip, '2026-06-16 14:00', '2026-06-17 11:00', ['name' => 'Хостел «Кремль»']);
+
+        $this->assertSame([], $this->readiness($trip)->step('accommodation')['warnings']);
+    }
+
     // ——— Что взять ———
 
     public function test_packing_step_is_not_ready_with_an_empty_list(): void

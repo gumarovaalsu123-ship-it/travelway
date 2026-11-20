@@ -2301,8 +2301,15 @@
 .full-map-area {
   position: relative;
   width: 100%;
-  height: 800px; /* Высота подстраивается под экраны через медиа-запросы */
-  min-height: 600px;
+  /* Высота шапки сайта (.navbar) — меняется в медиа-запросах ниже */
+  --site-header-height: 83px;
+  /* Карта целиком помещается в экран под закреплённой шапкой: кнопки сверху и снизу видны без прокрутки.
+     dvh учитывает панель адреса в мобильных браузерах. */
+  height: calc(100vh - var(--site-header-height) - 32px);
+  height: calc(100dvh - var(--site-header-height) - 32px);
+  min-height: 480px;
+  /* При прокрутке к карте она встаёт прямо под шапкой */
+  scroll-margin-top: calc(var(--site-header-height) + 16px);
   background-color: #E9E4D9;
   border-radius: 24px;
   overflow: hidden;
@@ -4290,13 +4297,13 @@
 /* === АДАПТИВНОСТЬ === */
 @media (max-width: 1024px) {
   .full-map-area {
-    height: 600px;
+    --site-header-height: 76px;
   }
 }
 
 @media (max-width: 768px) {
   .full-map-area {
-    height: 700px; /* Даем больше высоты, чтобы вместить форму и кусок карты */
+    --site-header-height: 68px;
   }
 
   .map-overlay-form {

@@ -6684,6 +6684,22 @@ section[id] {
     min-height: 420px;
 }
 
+/* Поиск над картой дня (как на интерактивной карте): слева сверху, поэтому зум уезжает вправо */
+.day-map__search {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    width: 320px;
+    max-width: calc(100% - 76px);
+}
+
+.day-map .map-zoom-controls {
+    left: auto;
+    right: 12px;
+    top: 12px;
+}
+
 .day-map--empty {
     display: flex;
     align-items: center;

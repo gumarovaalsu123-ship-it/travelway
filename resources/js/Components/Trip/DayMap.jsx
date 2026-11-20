@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { AttributionControl, MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import AddPlaceOnMap from './AddPlaceOnMap';
 import CustomZoomControl from '../Map/UI/CustomZoomControl';
 import FitToPlaces from '../Map/Logic/FitToPlaces';
 import Loader from '../Loader';
+import MapSearch from '../Map/UI/MapSearch';
+import useCategorySearch from '../Map/Logic/useCategorySearch';
 import useRouteLines from '../Map/Logic/useRouteLines';
-import { lodgingIcon, stopIcon } from '../../utils/mapIcons';
+import { foundIcon, lodgingIcon, stopIcon } from '../../utils/mapIcons';
 import { dayLodgings, dayRoute } from '../../utils/dayRoute';
 import { findArea } from '../../utils/geocoding';
 import { timeLabel } from '../../utils/travel';
@@ -19,7 +21,8 @@ import { timeLabel } from '../../utils/travel';
  *
  * selectedPlaceId — место, выбранное в списке: его маркер подсвечен, карта сдвигается к нему.
  * onMarkerClick(id) — нажали на маркер: страница подсвечивает место в списке и прокручивает к нему.
- * categories — передаёт только вкладка «План» владельца: тогда кликом по карте можно добавить место (AddPlaceOnMap).
+ * categories — передаёт только вкладка «План» владельца: тогда кликом по карте можно добавить место (AddPlaceOnMap),
+ * а сверху есть тот же поиск, что на интерактивной карте (MapSearch): по названию или по категории («отели»).
  * canEdit — можно ли менять план (Trip::tabs()); у завершённой поездки false — карта только для просмотра.
  * emptyCenter / destination — куда смотреть карте, если в дне пока ничего нет: точка поездки с сервера,
  * а если её нет — город поездки, найденный по названию в Nominatim.
@@ -43,6 +46,17 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
     // Карта владельца (вкладка «План»), а не публичная страница: пустой день центрируем по городу.
     const isOwnerMap = Boolean(tripId && categories);
     const canAddPlaces = isOwnerMap && canEdit;
+
+    // Поиск над картой: категория («отели») — маркеры подгружаются сами; выбранное место открывается в плашке добавления.
+    const [searchCategory, setSearchCategory] = useState(null);
+    const categoryResult = useCategorySearch(canAddPlaces ? map : null, searchCategory);
+    const [pickedPlace, setPickedPlace] = useState(null);
+
+    function pickSearchResult(place) {
+        // pickedAt — новый объект на каждый выбор: повторный выбор того же места снова откроет плашку.
+        setPickedPlace({ ...place, pickedAt: Date.now() });
+        map?.flyTo([place.lat, place.lng], Math.max(map.getZoom(), 16));
+    }
 
     // Пустой день у владельца: карту всё равно показываем — на ней добавляют первое место.
     const [foundCenter, setFoundCenter] = useState(null);
@@ -102,7 +116,7 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
                     attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                {canAddPlaces && <AddPlaceOnMap tripId={tripId} day={day} categories={categories} />}
+                {canAddPlaces && <AddPlaceOnMap tripId={tripId} day={day} categories={categories} pickedPlace={pickedPlace} />}
 
                 {/* Вписываем карту во все точки дня, при переходе к жилью — центрируем на нём.
                     key: добавили или убрали место — вписываем заново, чтобы новое место было видно. */}
@@ -138,6 +152,17 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
                     </Marker>
                 ))}
 
+                {categoryResult.places.map((place) => (
+                    <Marker
+                        key={`found-${place.id}`}
+                        position={[place.lat, place.lng]}
+                        icon={foundIcon(place.categorySlug, pickedPlace?.id === place.id)}
+                        eventHandlers={{ click: () => pickSearchResult(place) }}
+                    >
+                        <Tooltip direction="top" offset={[0, -10]}>{place.name}</Tooltip>
+                    </Marker>
+                ))}
+
                 {day.places.map((place, index) => (
                     <Marker
                         key={place.id}
@@ -158,6 +183,18 @@ export default function DayMap({ tripId, day, focusLodging, selectedPlaceId, onM
                     </Marker>
                 ))}
             </MapContainer>
+
+            {canAddPlaces && (
+                <div className="day-map__search">
+                    <MapSearch
+                        map={map}
+                        onSelect={pickSearchResult}
+                        category={searchCategory}
+                        onCategoryChange={setSearchCategory}
+                        categoryResult={categoryResult}
+                    />
+                </div>
+            )}
 
             {isLoading && points.length > 1 && <div className="map-route-note"><Loader text="Строим маршрут по дорогам…" /></div>}
             {hasStraightLines && (

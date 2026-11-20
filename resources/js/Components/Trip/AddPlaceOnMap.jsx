@@ -14,9 +14,12 @@ import { reverseGeocode } from '../../utils/geocoding';
  * так же, как на интерактивной карте (reverseGeocode). Кнопка «Добавить» ставит место
  * в конец выбранного дня через маршрут trips.days.places.store.
  *
+ * pickedPlace — место, выбранное в поиске над картой (название и адрес уже известны, геокодировать не нужно):
+ * для него открывается та же плашка. Новый объект на каждый выбор, чтобы повторный выбор того же места сработал.
+ *
  * Рисуется внутри MapContainer (компонент DayMap), только у владельца поездки.
  */
-export default function AddPlaceOnMap({ tripId, day, categories }) {
+export default function AddPlaceOnMap({ tripId, day, categories, pickedPlace = null }) {
     // Выбранная точка: { key, lat, lng, isLoading, name, address, categorySlug } или null.
     const [draft, setDraft] = useState(null);
     const [isSaving, setSaving] = useState(false);
@@ -24,6 +27,13 @@ export default function AddPlaceOnMap({ tripId, day, categories }) {
 
     // Ушли со страницы или сменили день — недоделанный запрос к Nominatim не нужен.
     useEffect(() => () => geocodeRequest.current?.abort(), []);
+
+    useEffect(() => {
+        if (pickedPlace) {
+            geocodeRequest.current?.abort();
+            setDraft({ ...pickedPlace, key: `search:${pickedPlace.id}:${pickedPlace.pickedAt}`, isLoading: false });
+        }
+    }, [pickedPlace]);
 
     async function selectPoint({ lat, lng }) {
         geocodeRequest.current?.abort();
@@ -47,6 +57,14 @@ export default function AddPlaceOnMap({ tripId, day, categories }) {
     function close() {
         geocodeRequest.current?.abort();
         setDraft(null);
+    }
+
+    /**
+     * Плашка закрылась. Если к этому моменту уже выбрана другая точка (например, из поиска),
+     * старая плашка не должна сбросить новую — закрываем, только если это всё ещё та же точка.
+     */
+    function closeIfCurrent(key) {
+        setDraft((current) => (current?.key === key ? null : current));
     }
 
     function add() {
@@ -81,7 +99,7 @@ export default function AddPlaceOnMap({ tripId, day, categories }) {
                         key={draft.key}
                         position={[draft.lat, draft.lng]}
                         offset={[0, -14]}
-                        eventHandlers={{ remove: close }}
+                        eventHandlers={{ remove: () => closeIfCurrent(draft.key) }}
                     >
                         <div className="map-add-popup">
                             {draft.isLoading ? (

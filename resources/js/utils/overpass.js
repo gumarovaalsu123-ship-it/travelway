@@ -362,7 +362,8 @@ function toPlace(element, placeSet) {
     return {
         id: `${element.type}/${element.id}`,
         // Длина как в валидации на сервере (255), чтобы слишком длинное значение не помешало сохранить.
-        name: tags.name.slice(0, 255),
+        // За границей основное имя на местном языке («ქარაბაქ»); русское, если его кто-то вписал, лежит в name:ru.
+        name: (tags['name:ru'] ?? tags.name).slice(0, 255),
         lat: element.lat ?? element.center?.lat,
         lng: element.lon ?? element.center?.lon,
         categorySlug: info.slug,

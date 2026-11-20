@@ -20,6 +20,36 @@ function categoryIdFor(categories, slug) {
 }
 
 /**
+ * Типы жилья, которые можно выбрать на карте. Ключи — Accommodation::Types на сервере
+ * («У знакомых» здесь нет: это не объект на карте).
+ */
+const LODGING_TYPES = {
+    hotel: 'Отель',
+    hostel: 'Хостел',
+    apartment: 'Квартира',
+    other: 'Другое',
+};
+
+/**
+ * Даты, которые форма жилья подставит сама: заезд в первый день поездки в 14:00, выезд в последний в 12:00.
+ * У черновика без дат подставлять нечего. Сервер всё равно проверит даты (AccommodationRequest).
+ *
+ * @returns {{check_in: string, check_out: string}}
+ */
+function defaultStayDates(trip) {
+    const dates = (trip?.days ?? []).map((day) => day.date).filter(Boolean).sort();
+
+    if (dates.length === 0) {
+        return { check_in: '', check_out: '' };
+    }
+
+    const first = dates[0];
+    const last = dates.at(-1);
+
+    return { check_in: `${first}T14:00`, check_out: last > first ? `${last}T12:00` : '' };
+}
+
+/**
  * Карточка «Добавить место». Работает в двух режимах:
  * - draft.place отсутствует — новая точка с карты (можно сохранить в план или в избранное);
  * - draft.place задан — уже сохранённое место добавляется в план поездки.
@@ -44,9 +74,19 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
         website: null,
         phone: null,
         wiki_url: null,
+        // Поля для режима «Здесь живу» — уходят на вкладку «Проживание» (TripAccommodationController@store).
+        lodging_type: 'hotel',
+        ...defaultStayDates(focusTrip ?? trips[0]),
     });
     const { data, setData, errors, processing, clearErrors } = form;
     const [isWikiLoading, setIsWikiLoading] = useState(false);
+
+    // Отель на карте может быть и местом для посещения (красивое здание, ресторан внутри), и жильём.
+    // purpose: 'visit' — обычное место в план дня, 'stay' — проживание в поездке.
+    const [purpose, setPurpose] = useState('visit');
+    const hotelCategoryId = categories.find((category) => category.slug === 'hotel')?.id;
+    const isLodgingCategory = hotelCategoryId !== undefined && data.category_id === hotelCategoryId;
+    const isStay = !existingPlace && trips.length > 0 && isLodgingCategory && purpose === 'stay';
 
     // Новая точка — заполняем форму заново.
     useEffect(() => {
@@ -65,6 +105,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
             phone: null,
             wiki_url: null,
         }));
+        setPurpose('visit');
     }, [draft.key]);
 
     // Результат обратного геокодирования приходит позже: подставляем его, не затирая то, что ввёл пользователь.
@@ -82,7 +123,13 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
             website: draft.website ?? null,
             phone: draft.phone ?? null,
             wiki_url: draft.wikiUrl ?? null,
+            lodging_type: draft.lodgingType ?? 'hotel',
         }));
+
+        // Чаще всего отель на карте выбирают, чтобы в нём жить, — сразу включаем этот режим.
+        if (draft.categorySlug === 'hotel') {
+            setPurpose('stay');
+        }
     }, [draft.key, draft.isLoading]);
 
     // Если у объекта есть статья в Википедии — подтягиваем фото и описание как предпросмотр.
@@ -116,10 +163,27 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
     const changeTrip = (value) => {
         setTripId(value);
         const trip = trips.find((item) => item.id === Number(value));
-        setData('trip_day_id', trip?.days[0]?.id ?? '');
+        setData((current) => ({ ...current, trip_day_id: trip?.days[0]?.id ?? '', ...defaultStayDates(trip) }));
     };
 
     const submit = (destination) => {
+        // Проживание сохраняется не как место плана, а как жильё поездки.
+        // После сохранения сервер откроет вкладку «Проживание» с новой карточкой.
+        if (isStay) {
+            form.transform((formData) => ({
+                type: formData.lodging_type,
+                name: formData.name,
+                address: formData.address || null,
+                latitude: formData.latitude,
+                longitude: formData.longitude,
+                check_in: formData.check_in || null,
+                check_out: formData.check_out || null,
+            }));
+            form.post(`/my-trips/${tripId}/accommodation`);
+
+            return;
+        }
+
         const options = {
             preserveScroll: true,
             preserveState: true,
@@ -211,6 +275,26 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             {errors.category_id && <span className="form-error">{errors.category_id}</span>}
                         </div>
 
+                        {isLodgingCategory && hasTrips && (
+                            <div className="form-group">
+                                <span className="form-label">Что это для вас?</span>
+                                <div className="place-purpose" role="radiogroup" aria-label="Что это для вас?">
+                                    {[['stay', 'Здесь живу'], ['visit', 'Хочу посетить']].map(([value, label]) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={purpose === value}
+                                            className={`btn btn--sm ${purpose === value ? 'btn--solid-dark' : 'btn--outline-dark'}`}
+                                            onClick={() => setPurpose(value)}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {isWikiLoading && <Loader variant="block" rows={1} text="Загружаем фото из Википедии…" />}
 
                         {data.image && (
@@ -251,6 +335,55 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             </div>
                         </div>
 
+                        {isStay ? (
+                            <>
+                                <div className={`form-group ${errors.type ? 'has-error' : ''}`}>
+                                    <label className="form-label" htmlFor="place-lodging-type">Тип жилья</label>
+                                    <div className="form-input-inner">
+                                        <select
+                                            id="place-lodging-type"
+                                            className="form-input form-input--filled form-select"
+                                            value={data.lodging_type}
+                                            onChange={(event) => setData('lodging_type', event.target.value)}
+                                        >
+                                            {Object.entries(LODGING_TYPES).map(([value, label]) => (
+                                                <option key={value} value={value}>{label}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronIcon />
+                                    </div>
+                                    {errors.type && <span className="form-error">{errors.type}</span>}
+                                </div>
+
+                                <div className={`form-group ${errors.check_in ? 'has-error' : ''}`}>
+                                    <label className="form-label" htmlFor="place-check-in">Заезд</label>
+                                    <input
+                                        id="place-check-in"
+                                        type="datetime-local"
+                                        className="form-input form-input--filled"
+                                        value={data.check_in}
+                                        onChange={(event) => setData('check_in', event.target.value)}
+                                    />
+                                    {errors.check_in && <span className="form-error">{errors.check_in}</span>}
+                                </div>
+
+                                <div className={`form-group ${errors.check_out ? 'has-error' : ''}`}>
+                                    <label className="form-label" htmlFor="place-check-out">Выезд</label>
+                                    <input
+                                        id="place-check-out"
+                                        type="datetime-local"
+                                        className="form-input form-input--filled"
+                                        min={data.check_in || undefined}
+                                        value={data.check_out}
+                                        onChange={(event) => setData('check_out', event.target.value)}
+                                    />
+                                    {errors.check_out && <span className="form-error">{errors.check_out}</span>}
+                                </div>
+
+                                <p className="form-hint">Бронь, заметки и номер подтверждения можно добавить потом на вкладке «Проживание».</p>
+                            </>
+                        ) : (
+                        <>
                         <div className={`form-group ${errors.trip_day_id ? 'has-error' : ''}`}>
                             <label className="form-label" htmlFor="place-day">День поездки</label>
                             <div className="form-input-inner">
@@ -280,6 +413,8 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             />
                             {errors.start_time && <span className="form-error">{errors.start_time}</span>}
                         </div>
+                        </>
+                        )}
                     </>
                 ) : (
                     <p className="form-hint">
@@ -291,10 +426,10 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                 <div className="map-overlay__actions mt-16">
                     {hasTrips && (
                         <button type="submit" className="btn btn--solid-dark btn--full" disabled={processing}>
-                            {existingPlace ? 'Добавить в план' : 'Сохранить место'}
+                            {existingPlace ? 'Добавить в план' : (isStay ? 'Добавить проживание' : 'Сохранить место')}
                         </button>
                     )}
-                    {!existingPlace && (
+                    {!existingPlace && !isStay && (
                         <button
                             type="button"
                             className={`btn ${hasTrips ? 'btn--outline-dark' : 'btn--solid-dark'} btn--full`}

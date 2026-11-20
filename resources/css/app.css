@@ -2447,6 +2447,13 @@
   margin-bottom: 0;
 }
 
+/* Переключатель «Здесь живу / Хочу посетить» для отелей на карте */
+.place-purpose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Группа кнопок идет в колонку */
 .map-overlay__actions {
   display: flex;

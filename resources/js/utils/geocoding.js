@@ -41,6 +41,14 @@ const OSM_CLASS_TO_CATEGORY = {
     public_transport: 'transport',
 };
 
+/**
+ * Тип жилья (Accommodation::Types) для объекта OSM — подставляется, если человек решит здесь жить.
+ */
+const OSM_TYPE_TO_LODGING = {
+    hostel: 'hostel',
+    apartment: 'apartment',
+};
+
 function categorySlugFor(result) {
     return OSM_TYPE_TO_CATEGORY[result.type]
         ?? OSM_CLASS_TO_CATEGORY[result.class ?? result.category]
@@ -111,6 +119,7 @@ function toPlace(result) {
         name: result.name || address || result.display_name?.split(',')[0] || '',
         address: address ?? result.display_name ?? null,
         categorySlug: categorySlugFor(result),
+        lodgingType: OSM_TYPE_TO_LODGING[result.type] ?? 'hotel',
         ...detailsFrom(result.extratags ?? {}),
     };
 }

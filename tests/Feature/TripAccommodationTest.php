@@ -112,6 +112,31 @@ class TripAccommodationTest extends TestCase
         $this->assertTrue($accommodation->is_booked);
     }
 
+    /**
+     * Форма на интерактивной карте («Здесь живу») шлёт только эти поля: без брони и заметки.
+     */
+    public function test_stay_can_be_added_from_the_map(): void
+    {
+        $this->actingAs($this->user)
+            ->post($this->url(), [
+                'type' => 'hostel',
+                'name' => 'Goodmorning Hostel',
+                'address' => null,
+                'latitude' => 38.7139,
+                'longitude' => -9.1394,
+                'check_in' => '2026-06-15T14:00',
+                'check_out' => '2026-06-20T12:00',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect($this->url());
+
+        $accommodation = $this->trip->accommodations()->sole();
+        $this->assertSame('hostel', $accommodation->type);
+        $this->assertSame(5, $accommodation->nights());
+        $this->assertEqualsWithDelta(-9.1394, $accommodation->longitude, 0.0001);
+        $this->assertFalse($accommodation->is_booked);
+    }
+
     public function test_only_type_and_name_are_required(): void
     {
         $this->actingAs($this->user)

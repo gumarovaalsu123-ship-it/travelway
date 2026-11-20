@@ -4654,6 +4654,63 @@
     list-style: none;
 }
 
+/* Панель найденного: строка-заголовок «Еда · 118 мест  Свернуть» и под ней список; свёрнутая — одна строка */
+.map-search__panel {
+    margin-top: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.map-search__panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 8px 8px 14px;
+}
+
+.map-search__panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.map-search__panel-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-bg-alt);
+    font-family: var(--font-main);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent-green);
+    cursor: pointer;
+}
+
+.map-search__panel-toggle:hover {
+    background: #E8EFE5;
+}
+
+/* Список внутри панели — без своей рамки и тени, отделён от заголовка линией */
+.map-search__panel .map-search__results {
+    margin-top: 0;
+    border: none;
+    border-top: 1px solid var(--color-border-light);
+    border-radius: 0;
+    box-shadow: none;
+    max-height: 240px;
+}
+
 .map-search__result {
     width: 100%;
     display: flex;

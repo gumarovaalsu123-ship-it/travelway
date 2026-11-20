@@ -17,7 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Отдаём только то, что нужно для просмотра маршрута. Личное не уходит в браузер совсем
  * (а не просто прячется на странице): название и описание поездки, заметки к местам, отметки и данные броней,
- * заметки к билетам, адрес и координаты жилья, имя «у знакомых», владелец поездки.
+ * заметки к билетам, адрес и координаты жилья, имя «у знакомых», почта автора.
+ * Автора показываем только по имени и аватару — чтобы было видно, чей это маршрут.
  */
 class PublicTripController extends Controller
 {
@@ -32,9 +33,14 @@ class PublicTripController extends Controller
             );
         }
 
-        $trip->load('days.tripPlaces.place.category', 'transports', 'accommodations');
+        $trip->load('user', 'days.tripPlaces.place.category', 'transports', 'accommodations');
 
         return $this->noindex(Inertia::render('Trips/Public', [
+            'author' => [
+                'name' => $trip->user->name,
+                'avatarUrl' => $trip->user->avatarUrl(),
+                'initials' => $trip->user->initials(),
+            ],
             'trip' => [
                 'destination' => $trip->destination,
                 'coverImage' => $trip->cover_image,
@@ -51,18 +57,26 @@ class PublicTripController extends Controller
                 'morningLodging' => null,
                 'eveningLodging' => null,
                 'returnMode' => null,
-                'places' => $day->tripPlaces->map(fn (TripPlace $visit) => [
+                'places' => $day->tripPlaces->map(fn (TripPlace $visit, int $index) => [
                     'id' => $visit->id,
                     'name' => $visit->place->name,
                     'address' => $visit->place->address,
                     // Описание самого места (из Википедии/OSM), а не личная заметка путешественника.
                     'category' => $visit->place->category?->name,
+                    'image' => $visit->place->image,
                     'lat' => $visit->place->latitude,
                     'lng' => $visit->place->longitude,
                     'startTime' => $visit->start_time ? substr($visit->start_time, 0, 5) : null,
                     'endTime' => $visit->end_time ? substr($visit->end_time, 0, 5) : null,
+                    'stayMinutes' => $visit->stayMinutes(),
                     // Способ добраться — по нему карта рисует отрезок пешком или по дорогам.
                     'mode' => $visit->calculated_mode ?? $visit->travel_mode,
+                    // Дорога от предыдущего места (как на вкладке «План»). У первого места отрезок идёт от жилья — его не показываем.
+                    'segment' => $index > 0 && $visit->travel_minutes !== null ? [
+                        'mode' => $visit->calculated_mode,
+                        'minutes' => $visit->travel_minutes,
+                        'approximate' => $visit->calculated_mode === 'transit',
+                    ] : null,
                 ])->values(),
             ])->values(),
             'transports' => $trip->transports
@@ -81,8 +95,9 @@ class PublicTripController extends Controller
                     'type' => $lodging->type,
                     // «У знакомых» обычно назван по имени человека — его не показываем.
                     'name' => $lodging->type === 'friends' ? null : $lodging->name,
-                    'checkIn' => $lodging->check_in?->toDateString(),
-                    'checkOut' => $lodging->check_out?->toDateString(),
+                    'checkIn' => $lodging->check_in?->format('Y-m-d\TH:i'),
+                    'checkOut' => $lodging->check_out?->format('Y-m-d\TH:i'),
+                    'nights' => $lodging->nights(),
                 ])->values(),
         ])->toResponse($request));
     }

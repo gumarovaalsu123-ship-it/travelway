@@ -6762,6 +6762,12 @@ section[id] {
     grid-row: 1 / span 2;
 }
 
+/* Карта занимает обе строки и выше списка короткого дня. Лишнюю высоту отдаём второй строке (списку),
+   иначе сетка делит её поровну и между переключателем дней и списком появляется пустота. */
+.trip-plan-grid {
+    grid-template-rows: auto 1fr;
+}
+
 .day-switcher__arrow--off {
     opacity: 0.35;
     cursor: default;
@@ -8217,4 +8223,65 @@ img {
         padding: 12px 0;
         border-radius: 0;
     }
+}
+
+/* =========================================
+   ПУБЛИЧНАЯ СТРАНИЦА: АВТОР И ВКЛАДКИ (Trips/Public.jsx)
+   Страница повторяет страницу поездки у автора (обложка + вкладки), только без кнопок изменения.
+   ========================================= */
+.public-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.public-author__avatar {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #E0D1B0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--color-text-dark);
+}
+
+.public-author__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.public-author__text {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.public-author__name {
+    font-size: 16px;
+    font-weight: 700;
+    opacity: 1;
+}
+
+/* Вкладки у автора — ссылки, здесь — кнопки (переключаются на месте), поэтому сбрасываем шрифт и курсор кнопки. */
+button.tab-btn {
+    font-family: var(--font-main);
+    cursor: pointer;
+}
+
+/* Переключатель дней на публичной странице: пункты списка — кнопки, а не ссылки. */
+button.day-switcher__item {
+    width: 100%;
+    border: none;
+    background: none;
+    font-family: var(--font-main);
+    text-align: left;
+    cursor: pointer;
 }

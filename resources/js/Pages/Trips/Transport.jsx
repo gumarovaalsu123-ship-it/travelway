@@ -9,7 +9,7 @@ import { confirmDialog } from '../../utils/confirm';
 /**
  * Подписи и иконки видов транспорта. Ключи совпадают с Transport::Types на сервере.
  */
-const TYPE_LABELS = {
+export const TYPE_LABELS = {
     plane: 'Самолёт',
     train: 'Поезд',
     bus: 'Автобус',
@@ -22,7 +22,7 @@ const TYPE_LABELS = {
 /**
  * Направление переезда. Ключи совпадают с Transport::Directions на сервере.
  */
-const DIRECTION_LABELS = {
+export const DIRECTION_LABELS = {
     to: 'Туда',
     back: 'Обратно',
     onward: 'Дальше',
@@ -63,12 +63,12 @@ const ICON_PATHS = {
  * search — подпись кнопки поиска станций (нет — станций у этого вида нет, поле обычное).
  * Номер рейса или поезда пишут в заметку — отдельного поля нет, подсказка в placeholder.
  */
-const GENERIC_FORM = {
+export const GENERIC_FORM = {
     from: 'Откуда', to: 'Куда', fromPlaceholder: 'Город или адрес', toPlaceholder: 'Город или адрес',
     departure: 'Отправление', arrival: 'Прибытие', ticket: 'Билет куплен', note: 'Что важно не забыть в дороге',
 };
 
-const TYPE_FORM = {
+export const TYPE_FORM = {
     plane: {
         ...GENERIC_FORM, from: 'Аэропорт вылета', to: 'Аэропорт прилёта', fromPlaceholder: 'Например, Шереметьево',
         toPlaceholder: 'Например, Казань', departure: 'Вылет', arrival: 'Прилёт', search: 'Найти аэропорт',
@@ -112,10 +112,10 @@ const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 
 /**
  * Время приходит строкой «2026-06-15T13:15»: часы берём прямо из строки, дату показываем словами.
  */
-const formatTime = (dateTime) => (dateTime ? dateTime.slice(11, 16) : '—');
-const formatDate = (dateTime) => (dateTime ? dateFormatter.format(new Date(dateTime)) : 'Время не указано');
+export const formatTime = (dateTime) => (dateTime ? dateTime.slice(11, 16) : '—');
+export const formatDate = (dateTime) => (dateTime ? dateFormatter.format(new Date(dateTime)) : 'Время не указано');
 
-function TransportIcon({ type }) {
+export function TransportIcon({ type }) {
     return (
         <div className="transport-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

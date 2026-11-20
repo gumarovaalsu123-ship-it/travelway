@@ -2,55 +2,213 @@ import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import DayMap from '../../Components/Trip/DayMap';
 import Footer from '../../Components/Footer';
-import { formatDateRange, formatDayLabel, formatDuration, plural } from '../../utils/format';
-import { timeLabel } from '../../utils/travel';
+import Avatar from '../../Components/Profile/Avatar';
+import { DaySwitcher, PlacePhotoBox, SegmentRow } from './Plan';
+import {
+    DIRECTION_LABELS,
+    GENERIC_FORM,
+    TYPE_FORM,
+    TYPE_LABELS as TRANSPORT_LABELS,
+    TransportIcon,
+    formatDate,
+    formatTime,
+} from './Transport';
+import { CheckBlock, TYPE_LABELS as LODGING_LABELS, nightsLabel, timePart } from './Accommodation';
+import { formatDateRange, formatDuration, plural } from '../../utils/format';
+import { formatMinutes, timeLabel } from '../../utils/travel';
 
 /**
- * Названия типов — как на вкладках «Транспорт» и «Проживание» (ключи совпадают с Transport::Types и Accommodation::Types).
+ * Вкладки публичной страницы — те же, что у автора (TRIP_TABS в TripLayout.jsx), но только для просмотра маршрута.
+ * «Подготовка», «Список вещей», «Заранее» и «Настройки» — личные, их тут нет.
+ * Все данные приходят сразу, поэтому вкладка переключается на месте, без перехода по адресу.
  */
-const TRANSPORT_LABELS = {
-    plane: 'Самолёт',
-    train: 'Поезд',
-    bus: 'Автобус',
-    own_car: 'Своё авто',
-    car: 'Такси или аренда авто',
-    ferry: 'Паром',
-    other: 'Другое',
-};
+const PUBLIC_TABS = [
+    { key: 'plan', label: 'План' },
+    { key: 'transport', label: 'Транспорт' },
+    { key: 'accommodation', label: 'Проживание' },
+];
 
-const DIRECTION_LABELS = { to: 'Туда', back: 'Обратно', onward: 'Дальше' };
+/**
+ * Место в плане дня — как PlaceRow на вкладке «План», но без стрелок порядка, меню «⋮» и личной заметки.
+ * Клик выбирает место: его маркер подсвечивается на карте.
+ */
+function PublicPlaceRow({ place, number, isSelected, onSelect }) {
+    const badgeClass = `stop-number-badge ${isSelected ? 'stop-number-badge--active' : ''}`;
 
-const LODGING_LABELS = {
-    hotel: 'Отель',
-    apartment: 'Квартира',
-    hostel: 'Хостел',
-    friends: 'У знакомых',
-    other: 'Другое',
-};
+    return (
+        <li id={`plan-place-${place.id}`} className={`stop-item plan-stop ${isSelected ? 'plan-stop--selected' : ''}`} onClick={() => onSelect(place.id)}>
+            <PlacePhotoBox image={place.image} alt={place.name} number={number} badgeClass={badgeClass} />
 
-const dateTimeFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
+            <div className="stop-info">
+                {place.startTime && <span className="stop-time plan-stop__time">{timeLabel(place)}</span>}
+                <span className="stop-name">{place.name}</span>
+                {(place.address || place.category) && <span className="stop-desc">{place.address || place.category}</span>}
+            </div>
 
-const formatDateTime = (value) => (value ? dateTimeFormatter.format(new Date(value)) : null);
-const formatDate = (value) => (value ? dateFormatter.format(new Date(`${value}T00:00:00`)) : null);
+            <span className="plan-stop__stay" title={`На месте ${formatMinutes(place.stayMinutes)}`}>
+                {formatMinutes(place.stayMinutes)}
+                <span className="plan-stop__stay-label">на месте</span>
+            </span>
+        </li>
+    );
+}
 
-const stopsLabel = (count) => `${count} ${plural(count, ['остановка', 'остановки', 'остановок'])}`;
+/**
+ * Вкладка «План»: переключатель дней, список мест дня и карта этого дня — та же сетка, что у автора.
+ */
+function PublicPlan({ trip, days }) {
+    const [selectedNumber, setSelectedNumber] = useState(days[0]?.number);
+    const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+
+    if (days.length === 0) {
+        return <p className="form-hint">В маршруте пока нет дней.</p>;
+    }
+
+    // DaySwitcher ждёт у дня id, число мест и их названия — собираем из того, что уже пришло.
+    const switcherDays = days.map((day) => ({
+        id: day.number,
+        number: day.number,
+        date: day.date,
+        placesCount: day.places.length,
+        placeNames: day.places.map((place) => place.name),
+    }));
+    const day = days.find((item) => item.number === selectedNumber) ?? days[0];
+    const selectedDay = { ...day, id: day.number };
+
+    function selectDay(switcherDay) {
+        setSelectedNumber(switcherDay.number);
+        setSelectedPlaceId(null);
+    }
+
+    /** Клик по маркеру: подсвечиваем место в списке и прокручиваем к нему (как в Plan.jsx). */
+    function selectFromMap(placeId) {
+        setSelectedPlaceId(placeId);
+        document.getElementById(`plan-place-${placeId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+
+    return (
+        <div className="trip-plan-grid">
+            <DaySwitcher trip={trip} days={switcherDays} selectedDay={selectedDay} onSelectDay={selectDay} />
+
+            <div className="trip-plan__main-col">
+                <div className="day-itinerary-card">
+                    <div className="itinerary-block">
+                        {selectedDay.places.length === 0 ? (
+                            <p className="form-hint">В этот день мест в плане нет.</p>
+                        ) : (
+                            <ul className="stop-list">
+                                {selectedDay.places.map((place, index) => (
+                                    <React.Fragment key={place.id}>
+                                        {index > 0 && <SegmentRow segment={place.segment} onShowAlong={null} />}
+                                        <PublicPlaceRow
+                                            place={place}
+                                            number={index + 1}
+                                            isSelected={place.id === selectedPlaceId}
+                                            onSelect={setSelectedPlaceId}
+                                        />
+                                    </React.Fragment>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* key: другой день — новая карта, масштаб вписывается заново. tripId не передаём — ссылок во вкладки автора нет. */}
+            <div className="trip-plan__map-col">
+                <DayMap
+                    key={selectedDay.id}
+                    day={selectedDay}
+                    selectedPlaceId={selectedPlaceId}
+                    onMarkerClick={selectFromMap}
+                    canEdit={false}
+                    destination={trip.destination}
+                />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Карточка переезда — как TransportCard у автора, но без отметки о билете, заметки и кнопок «Изменить/Удалить».
+ */
+function PublicTransportCard({ transport }) {
+    const labels = TYPE_FORM[transport.type] ?? GENERIC_FORM;
+
+    return (
+        <article className="transport-card">
+            <header className="transport-card__header">
+                <div className="transport-card__title-group">
+                    <TransportIcon type={transport.type} />
+                    <div className="transport-card__headings">
+                        <h3 className="transport-title">{transport.departurePlace || '…'} → {transport.arrivalPlace || '…'}</h3>
+                        <p className="transport-subtitle">{formatDate(transport.departureAt)}</p>
+                    </div>
+                </div>
+                <div className="transport-card__badges">
+                    {DIRECTION_LABELS[transport.direction] && <span className="day-badge">{DIRECTION_LABELS[transport.direction]}</span>}
+                    <span className="day-badge">{TRANSPORT_LABELS[transport.type]}</span>
+                </div>
+            </header>
+
+            <div className="transport-card__body">
+                <div className="time-block">
+                    <div className="time-block__time">{formatTime(transport.departureAt)}</div>
+                    <div className="time-block__place">{labels.departure}</div>
+                </div>
+                <div className="time-block__arrow">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div className="time-block">
+                    <div className="time-block__time">{formatTime(transport.arrivalAt)}</div>
+                    <div className="time-block__place">{labels.arrival}</div>
+                </div>
+            </div>
+        </article>
+    );
+}
+
+/**
+ * Карточка жилья — как AccommodationCard у автора, но без адреса, брони, заметки и кнопок.
+ * У «знакомых» имени нет (сервер его не отдаёт) — вместо него пишем тип жилья.
+ */
+function PublicAccommodationCard({ accommodation }) {
+    const { checkIn, checkOut, nights } = accommodation;
+    const checkOutHint = [checkOut && `До ${timePart(checkOut)}`, nights !== null && nightsLabel(nights)].filter(Boolean).join(' · ');
+
+    return (
+        <article className="acc-card">
+            <div className="acc-card__body">
+                <header className="acc-header">
+                    <div className="acc-title-group">
+                        <h3 className="acc-title">{accommodation.name ?? LODGING_LABELS[accommodation.type]}</h3>
+                    </div>
+                    {nights !== null && <span className="acc-badge">{nightsLabel(nights)}</span>}
+                </header>
+
+                <div className="acc-card__statuses">
+                    <span className="day-badge">{LODGING_LABELS[accommodation.type]}</span>
+                </div>
+
+                <div className="check-blocks-row">
+                    <CheckBlock label="Заезд" dateTime={checkIn} hint={checkIn && `С ${timePart(checkIn)}`} />
+                    <CheckBlock label="Выезд" dateTime={checkOut} hint={checkOutHint} />
+                </div>
+            </div>
+        </article>
+    );
+}
 
 /**
  * Публичная страница поездки по секретной ссылке /t/{token} (PublicTripController): только просмотр, без входа.
- * Гость и вошедший пользователь видят одно и то же, поэтому шапка своя, а не общая Header с личным меню.
- * Слева — все дни подряд, справа — карта выбранного дня (тот же компонент DayMap, что на вкладке «План»).
+ * Выглядит как страница поездки у автора (обложка + вкладки), но гость и вошедший видят одно и то же,
+ * поэтому шапка своя, а не общая Header с личным меню. Кнопок изменения нет совсем.
  */
-export default function PublicTrip({ trip, days, transports, accommodations }) {
-    const [selectedNumber, setSelectedNumber] = useState(days[0]?.number);
-    const selectedDay = days.find((day) => day.number === selectedNumber);
+export default function PublicTrip({ author, trip, days, transports, accommodations }) {
+    const [activeTab, setActiveTab] = useState('plan');
     const cover = trip.coverImage ?? '/images/trips-first.png';
-
-    // Выбрали день сверху — показываем его на карте и прокручиваем ленту к нему.
-    const selectDay = (number) => {
-        setSelectedNumber(number);
-        document.getElementById(`day-${number}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
 
     return (
         <div className="page-bg-light">
@@ -75,154 +233,90 @@ export default function PublicTrip({ trip, days, transports, accommodations }) {
             </header>
 
             <section
-                className="trip-hero"
-                style={{ backgroundImage: `linear-gradient(0deg, rgba(30, 38, 32, 0.55), rgba(30, 38, 32, 0.55)), url('${cover}')` }}
+                className="trip-hero trip-hero--compact"
+                style={{ backgroundImage: `linear-gradient(0deg, rgba(30, 38, 32, 0.6), rgba(30, 38, 32, 0.6)), url('${cover}')` }}
             >
                 <div className="container trip-hero__inner">
                     <div className="trip-hero__info">
                         <span className="trip-hero__badge trip-hero__badge--public">Публичный маршрут · только просмотр</span>
                         <h1 className="trip-hero__title">{trip.destination} · {formatDuration(trip.daysCount)}</h1>
                         <div className="trip-hero__meta">
-                            <span className="meta-item">{formatDateRange(trip.startDate, trip.endDate)}</span>
-                            <span className="meta-item">{formatDuration(trip.daysCount)}</span>
+                            {trip.startDate && <span className="meta-item">{formatDateRange(trip.startDate, trip.endDate)}</span>}
+                            <span className="meta-item">{trip.placesCount} {plural(trip.placesCount, ['место', 'места', 'мест'])}</span>
+                        </div>
+                        <div className="public-author">
+                            <Avatar avatarUrl={author.avatarUrl} initials={author.initials} className="public-author__avatar" />
+                            <span className="public-author__text">
+                                Автор маршрута
+                                <span className="public-author__name">{author.name}</span>
+                            </span>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <main className="container public-trip-main mt-32 mb-40">
-                <div className="public-header-row mb-24">
-                    <h2 className="section-title">План по дням</h2>
-                    <span className="text-muted">
-                        Всего в путешествии {trip.placesCount} {plural(trip.placesCount, ['место', 'места', 'мест'])}
-                    </span>
-                </div>
-
-                <div className="days-calendar__list mb-32">
-                    {days.map((day) => (
+            <nav className="trip-tabs trip-tabs--white">
+                <div className="container trip-tabs__inner">
+                    {PUBLIC_TABS.map((tab) => (
                         <button
-                            key={day.number}
+                            key={tab.key}
                             type="button"
-                            className={`day-card ${day.number === selectedNumber ? 'active' : ''}`}
-                            onClick={() => selectDay(day.number)}
+                            className={`tab-btn ${tab.key === activeTab ? 'active' : ''}`}
+                            onClick={() => setActiveTab(tab.key)}
                         >
-                            <span className="day-card__name">День {day.number}</span>
-                            {day.date && <span className="day-card__date">{formatDate(day.date)}</span>}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
+            </nav>
 
-                <div className="trip-plan-grid">
-                    <div className="public-timeline-col">
-                        {days.map((day) => (
-                            <section key={day.number} id={`day-${day.number}`} className="public-day">
-                                <div className="public-day-header">
-                                    <span className="public-day-meta">{formatDayLabel(day.number, day.date)}</span>
-                                    <h3 className="public-day-title">{day.title || `День ${day.number}`}</h3>
-                                </div>
+            {activeTab === 'plan' && (
+                <main className="container trip-plan-main">
+                    <PublicPlan trip={trip} days={days} />
+                </main>
+            )}
 
-                                {day.places.length === 0 ? (
-                                    <p className="text-muted">В этот день мест пока нет.</p>
-                                ) : (
-                                    <div className="public-places-list">
-                                        {day.places.map((place, index) => (
-                                            <article key={place.id} className="public-place-card">
-                                                {timeLabel(place) && <div className="public-place__time">{timeLabel(place)}</div>}
-                                                <h4 className="public-place__title">{index + 1} · {place.name}</h4>
-                                                {place.address && place.address !== place.name && (
-                                                    <p className="public-place__address">{place.address}</p>
-                                                )}
-                                                {place.category && (
-                                                    <div className="public-place__tags">
-                                                        <span className="place-tag">{place.category}</span>
-                                                    </div>
-                                                )}
-                                            </article>
-                                        ))}
-                                    </div>
-                                )}
+            {activeTab === 'transport' && (
+                <main className="container trip-transport-main trip-content">
+                    <header className="section-header section-header--spaced">
+                        <div className="section-header__text">
+                            <h2 className="section-title">Транспорт</h2>
+                            <p className="section-subtitle section-subtitle--light">Как автор добирался туда, обратно и между городами.</p>
+                        </div>
+                    </header>
+
+                    <div className="transport-list">
+                        {transports.length === 0 ? (
+                            <section className="trips-empty">
+                                <h3 className="trips-empty__title">Переездов в маршруте нет</h3>
                             </section>
+                        ) : transports.map((transport, index) => (
+                            <PublicTransportCard key={index} transport={transport} />
                         ))}
                     </div>
+                </main>
+            )}
 
-                    {selectedDay && (
-                        <div className="public-map-col">
-                            <div className="public-map-header mb-16">
-                                <h3 className="section-title public-map-title">Маршрут на карте</h3>
-                                <p className="text-muted public-map-subtitle">
-                                    {formatDayLabel(selectedDay.number, selectedDay.date)} · {stopsLabel(selectedDay.places.length)}
-                                </p>
-                            </div>
-
-                            {/* key: другой день — новая карта, масштаб вписывается заново. tripId не передаём — ссылок во вкладки владельца нет. */}
-                            <DayMap key={selectedDay.number} day={selectedDay} />
-
-                            {selectedDay.places.length > 0 && (
-                                <div className="map-legend-card mt-16">
-                                    <h4 className="map-legend__title mb-16">Номера остановок совпадают с планом дня</h4>
-                                    <ul className="legend-list">
-                                        {selectedDay.places.map((place, index) => (
-                                            <li key={place.id} className="legend-item">
-                                                <span className="stop-number-badge">{index + 1}</span>
-                                                <span className="legend-name">{place.name}</span>
-                                                <span className="legend-time">{place.startTime}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+            {activeTab === 'accommodation' && (
+                <main className="container trip-accommodation-main mb-40">
+                    <header className="section-header section-header--spaced">
+                        <div className="section-header__text">
+                            <h2 className="section-title">Проживание</h2>
+                            <p className="section-subtitle section-subtitle--light">Где автор жил во время поездки.</p>
                         </div>
-                    )}
-                </div>
+                    </header>
 
-                {(transports.length > 0 || accommodations.length > 0) && (
-                    <div className="public-logistics mt-32">
-                        {transports.length > 0 && (
-                            <section>
-                                <h2 className="section-title mb-16">Транспорт</h2>
-                                <div className="public-places-list">
-                                    {transports.map((ride, index) => (
-                                        <article key={index} className="public-place-card">
-                                            <div className="public-place__time">
-                                                {[DIRECTION_LABELS[ride.direction], TRANSPORT_LABELS[ride.type]].filter(Boolean).join(' · ')}
-                                            </div>
-                                            <h4 className="public-place__title">
-                                                {ride.departurePlace || '…'} → {ride.arrivalPlace || '…'}
-                                            </h4>
-                                            {ride.departureAt && (
-                                                <p className="public-place__address">
-                                                    {formatDateTime(ride.departureAt)}
-                                                    {ride.arrivalAt && ` — ${formatDateTime(ride.arrivalAt)}`}
-                                                </p>
-                                            )}
-                                        </article>
-                                    ))}
-                                </div>
+                    <div className="accommodation-list mt-16">
+                        {accommodations.length === 0 ? (
+                            <section className="trips-empty">
+                                <h3 className="trips-empty__title">Жильё в маршруте не указано</h3>
                             </section>
-                        )}
-
-                        {accommodations.length > 0 && (
-                            <section>
-                                <h2 className="section-title mb-16">Проживание</h2>
-                                <div className="public-places-list">
-                                    {accommodations.map((lodging, index) => (
-                                        <article key={index} className="public-place-card">
-                                            <div className="public-place__time">{LODGING_LABELS[lodging.type] ?? 'Жильё'}</div>
-                                            {lodging.name && <h4 className="public-place__title">{lodging.name}</h4>}
-                                            {lodging.checkIn && (
-                                                <p className="public-place__address">
-                                                    {formatDate(lodging.checkIn)}
-                                                    {lodging.checkOut && ` — ${formatDate(lodging.checkOut)}`}
-                                                </p>
-                                            )}
-                                        </article>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
+                        ) : accommodations.map((accommodation, index) => (
+                            <PublicAccommodationCard key={index} accommodation={accommodation} />
+                        ))}
                     </div>
-                )}
-            </main>
+                </main>
+            )}
 
             <Footer />
         </div>

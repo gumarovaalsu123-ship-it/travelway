@@ -26,7 +26,7 @@ const placesLabel = (count) => `${count} ${plural(count, ['место', 'мес�
 /**
  * Отрезок пути: иконка способа и «12 мин». Время на общественном транспорте — только оценка, поэтому «≈».
  */
-function segmentLabel(segment) {
+export function segmentLabel(segment) {
     return (
         <>
             <TravelModeIcon mode={segment.mode} size={14} />
@@ -204,8 +204,11 @@ function placesPreview(day) {
  * Стрелки — соседний день, клик по названию открывает список всех дней с датой, числом мест и первыми местами.
  * Номер дня — в адресе (?day=N): ссылкой можно поделиться, а после любого действия сервер
  * возвращает back() и открыт тот же день.
+ *
+ * Публичная страница (Trips/Public.jsx) передаёт onSelectDay: там все дни уже пришли с сервера,
+ * поэтому день меняется на месте (кнопкой, а не ссылкой), и ссылки «Изменить даты поездки» нет.
  */
-function DaySwitcher({ trip, days, selectedDay }) {
+export function DaySwitcher({ trip, days, selectedDay, onSelectDay = null }) {
     const [isOpen, setOpen] = useState(false);
     const close = useCallback(() => setOpen(false), []);
     const switcherRef = useCloseOnOutside(isOpen, close);
@@ -216,10 +219,21 @@ function DaySwitcher({ trip, days, selectedDay }) {
     const dayUrl = (day) => `/my-trips/${trip.id}/plan?day=${day.number}`;
     const placesCount = selectedDay.places.length;
 
+    /** Переход к дню: ссылка с ?day=N у автора или кнопка на публичной странице. */
+    function dayLink(day, props, children) {
+        if (onSelectDay) {
+            return (
+                <button type="button" {...props} onClick={() => { close(); onSelectDay(day); }}>{children}</button>
+            );
+        }
+
+        return <Link href={dayUrl(day)} preserveScroll {...props} onClick={close}>{children}</Link>;
+    }
+
     /** Стрелка к соседнему дню; у первого и последнего дня — неактивная заглушка того же размера. */
     function arrow(day, label, symbol) {
         return day ? (
-            <Link href={dayUrl(day)} preserveScroll className="btn btn--outline-dark btn--icon-sm" aria-label={label} title={label}>{symbol}</Link>
+            dayLink(day, { className: 'btn btn--outline-dark btn--icon-sm', 'aria-label': label, title: label }, symbol)
         ) : (
             <span className="btn btn--outline-dark btn--icon-sm day-switcher__arrow--off" aria-hidden="true">{symbol}</span>
         );
@@ -251,24 +265,23 @@ function DaySwitcher({ trip, days, selectedDay }) {
                 <div className="day-switcher__menu" role="menu">
                     <div className="day-switcher__menu-head">{formatDateRange(trip.startDate, trip.endDate)}</div>
                     {days.map((day) => (
-                        <Link
-                            key={day.id}
-                            href={dayUrl(day)}
-                            preserveScroll
-                            role="menuitem"
-                            className={`day-switcher__item ${day.id === selectedDay.id ? 'is-active' : ''}`}
-                            onClick={close}
-                        >
-                            <span className="day-switcher__item-number">{day.number}</span>
-                            <span className="day-switcher__item-text">
-                                <span className="day-switcher__item-date">{dayDateLabel(day.date) || `День ${day.number}`}</span>
-                                <span className="day-switcher__item-places">{placesPreview(day)}</span>
-                            </span>
-                            <span className="day-switcher__item-count">{day.placesCount || '—'}</span>
-                        </Link>
+                        <React.Fragment key={day.id}>
+                            {dayLink(day, { role: 'menuitem', className: `day-switcher__item ${day.id === selectedDay.id ? 'is-active' : ''}` }, (
+                                <>
+                                    <span className="day-switcher__item-number">{day.number}</span>
+                                    <span className="day-switcher__item-text">
+                                        <span className="day-switcher__item-date">{dayDateLabel(day.date) || `День ${day.number}`}</span>
+                                        <span className="day-switcher__item-places">{placesPreview(day)}</span>
+                                    </span>
+                                    <span className="day-switcher__item-count">{day.placesCount || '—'}</span>
+                                </>
+                            ))}
+                        </React.Fragment>
                     ))}
                     {/* Длина поездки меняется только в форме редактирования, поэтому кнопки «+ Добавить день» здесь нет. */}
-                    <Link href={`/my-trips/${trip.id}/edit`} className="day-switcher__edit" onClick={close}>Изменить даты поездки</Link>
+                    {!onSelectDay && (
+                        <Link href={`/my-trips/${trip.id}/edit`} className="day-switcher__edit" onClick={close}>Изменить даты поездки</Link>
+                    )}
                 </div>
             )}
         </header>
@@ -279,7 +292,7 @@ function DaySwitcher({ trip, days, selectedDay }) {
  * Строка между местами: как добраться от предыдущей точки и сколько это займёт.
  * Точный маршрут в Яндекс.Картах — одной кнопкой на весь день (FullRouteLinks под списком), а не у каждого отрезка.
  */
-function SegmentRow({ segment, onShowAlong }) {
+export function SegmentRow({ segment, onShowAlong }) {
     return (
         <li className="plan-segment">
             {segment && <span className="plan-segment__label" title={TRAVEL_MODES[segment.mode]?.label}>{segmentLabel(segment)}</span>}
@@ -672,7 +685,7 @@ function RemovePlaceModal({ place, onClose }) {
  * Есть фото: пока оно грузится — блик-скелетон (как в Loader), номер в углу.
  * Нет фото или оно не загрузилось: пустая плашка с номером по центру.
  */
-function PlacePhotoBox({ image, alt, number, badgeClass }) {
+export function PlacePhotoBox({ image, alt, number, badgeClass }) {
     // 'loading' | 'loaded' | 'failed'
     const [status, setStatus] = useState('loading');
     const hasPhoto = image && status !== 'failed';

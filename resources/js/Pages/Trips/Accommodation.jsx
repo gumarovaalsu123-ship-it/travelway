@@ -12,7 +12,7 @@ import { confirmDialog } from '../../utils/confirm';
 /**
  * Подписи типов жилья. Ключи совпадают с Accommodation::Types на сервере.
  */
-const TYPE_LABELS = {
+export const TYPE_LABELS = {
     hotel: 'Отель',
     apartment: 'Квартира',
     hostel: 'Хостел',
@@ -25,11 +25,11 @@ const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', mon
 
 // Сервер присылает дату-время как «2026-06-15T15:00»: дата — до «T», время — после.
 const datePart = (dateTime) => dateTime.slice(0, 10);
-const timePart = (dateTime) => dateTime.slice(11, 16);
+export const timePart = (dateTime) => dateTime.slice(11, 16);
 const formatFullDate = (isoDate) => fullDateFormatter.format(new Date(`${isoDate}T00:00:00`));
 const formatDayMonth = (isoDate) => dayMonthFormatter.format(new Date(`${isoDate}T00:00:00`));
 
-const nightsLabel = (count) => `${count} ${plural(count, ['ночь', 'ночи', 'ночей'])}`;
+export const nightsLabel = (count) => `${count} ${plural(count, ['ночь', 'ночи', 'ночей'])}`;
 
 /**
  * «Ночь 19–20 июня» или «Ночи 17–19 июня» для промежутка ночей без жилья.
@@ -42,7 +42,7 @@ function missingRangeLabel({ from, to }) {
     return `${isOneNight ? 'Ночь' : 'Ночи'} ${fromLabel}–${formatDayMonth(to)}`;
 }
 
-function CheckBlock({ label, dateTime, hint }) {
+export function CheckBlock({ label, dateTime, hint }) {
     return (
         <div className="check-block">
             <span className="check-label">{label}</span>

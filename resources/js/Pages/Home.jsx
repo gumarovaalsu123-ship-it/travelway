@@ -4,11 +4,24 @@ import Footer from '../Components/Footer';
 import { formatDateRange, plural } from '../utils/format';
 import { STATUS_LABELS, coverFor } from '../utils/trips';
 
+const CALENDAR_PATH = 'M4.95833 1V2.58346M4.95833 2.58346V4.16692M4.95833 2.58346H2.58333C1.70888 2.58346 1 3.2924 1 4.16692V7.33384M4.95833 2.58346H11.2917M11.2917 1V2.58346M11.2917 2.58346V4.16692M11.2917 2.58346H13.6667C14.5411 2.58346 15.25 3.2924 15.25 4.16692V7.33384M1 7.33384H15.25M1 7.33384V15.2511C1 16.1257 1.70888 16.8346 2.58333 16.8346H13.6667C14.5411 16.8346 15.25 16.1257 15.25 15.2511V7.33384';
+
+/**
+ * Иконка календаря: в «Возможностях» (белая на зелёном) и у дат в карточках «Примеров маршрутов» (цвета текста).
+ */
+function CalendarIcon({ color = 'white', size = 17 }) {
+    return (
+        <svg width={size} height={Math.round(size * 18 / 17)} viewBox="0 0 17 18" fill="none" aria-hidden="true">
+            <path d={CALENDAR_PATH} strokeWidth="2" strokeLinecap="round" stroke={color} />
+        </svg>
+    );
+}
+
 const FEATURES = [
     {
         title: 'Планирование маршрута',
         text: 'Удобный таймлайн по дням: отмечайте время, добавляйте описание и локации без ограничений.',
-        icon: <svg width="17" height="18" viewBox="0 0 17 18" fill="none"><path d="M4.95833 1V2.58346M4.95833 2.58346V4.16692M4.95833 2.58346H2.58333C1.70888 2.58346 1 3.2924 1 4.16692V7.33384M4.95833 2.58346H11.2917M11.2917 1V2.58346M11.2917 2.58346V4.16692M11.2917 2.58346H13.6667C14.5411 2.58346 15.25 3.2924 15.25 4.16692V7.33384M1 7.33384H15.25M1 7.33384V15.2511C1 16.1257 1.70888 16.8346 2.58333 16.8346H13.6667C14.5411 16.8346 15.25 16.1257 15.25 15.2511V7.33384" strokeWidth="2" strokeLinecap="round" stroke="white" /></svg>,
+        icon: <CalendarIcon />,
     },
     {
         title: 'Интерактивная карта',
@@ -239,7 +252,7 @@ export default function Home({ stats, examples = [] }) {
                                 </div>
                                 <div className="route-content">
                                     <div className="route-meta">
-                                        <span className="route-duration">🕒 {route.dates}</span>
+                                        <span className="route-duration"><CalendarIcon color="currentColor" size={14} /> {route.dates}</span>
                                         <span className="route-places-count">{route.places} {plural(route.places, ['место', 'места', 'мест'])}</span>
                                     </div>
                                     <h3 className="route-title">{route.title}</h3>

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
@@ -85,5 +86,45 @@ class AuthTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get('/login')
             ->assertRedirect();
+    }
+
+    public function test_after_login_user_returns_to_the_page_they_wanted(): void
+    {
+        $user = User::factory()->create();
+        $trip = Trip::factory()->for($user)->create();
+
+        $this->get("/my-trips/{$trip->id}")->assertRedirect('/login');
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+            ->assertRedirect("/my-trips/{$trip->id}");
+    }
+
+    /**
+     * Вышли из одного аккаунта, открыли его страницу (например, кнопкой «Назад») и вошли под другим:
+     * чужая поездка или админка дали бы 403, поэтому такой адрес забываем и открываем карту.
+     */
+    public function test_after_login_forbidden_remembered_page_is_skipped(): void
+    {
+        $trip = Trip::factory()->create();
+        $other = User::factory()->create();
+
+        $this->get("/my-trips/{$trip->id}");
+        $this->post('/login', ['email' => $other->email, 'password' => 'password'])
+            ->assertRedirect(route('map.index'));
+
+        $this->post('/logout');
+
+        $this->get('/admin/trips');
+        $this->post('/login', ['email' => $other->email, 'password' => 'password'])
+            ->assertRedirect(route('map.index'));
+    }
+
+    public function test_admin_returns_to_the_admin_page_after_login(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::Admin]);
+
+        $this->get('/admin/trips');
+        $this->post('/login', ['email' => $admin->email, 'password' => 'password'])
+            ->assertRedirect('/admin/trips');
     }
 }

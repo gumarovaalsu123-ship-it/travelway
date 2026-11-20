@@ -7098,9 +7098,15 @@ a.navbar__user-name:hover {
 
 .admin-table__name {
   display: flex;
+  flex-wrap: wrap; /* длинное название — плашка уходит строкой ниже, а не сжимается */
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   font-weight: 600;
+}
+
+.admin-table__name .badge--light {
+  white-space: nowrap;
+  padding: 4px 10px;
 }
 
 .admin-table__email {

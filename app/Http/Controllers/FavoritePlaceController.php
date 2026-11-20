@@ -37,7 +37,7 @@ class FavoritePlaceController extends Controller
             $place->id => ['created_at' => now()],
         ]);
 
-        Inertia::flash('toast', 'Место добавлено в избранное.');
+        Inertia::flash('toast', 'Место добавлено в список «Хочу посетить».');
 
         return back();
     }
@@ -47,7 +47,7 @@ class FavoritePlaceController extends Controller
         $request->user()->favoritePlaces()->detach($place->id);
         $place->deleteIfUnused();
 
-        Inertia::flash('toast', 'Место удалено из избранного.');
+        Inertia::flash('toast', 'Место удалено из списка «Хочу посетить».');
 
         return back();
     }

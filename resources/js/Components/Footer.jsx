@@ -16,7 +16,7 @@ export default function Footer() {
                     <div className="footer__nav">
                         <Link href="/interactive-map">Интерактивная карта</Link>
                         <Link href="/my-trips">Мои путешествия</Link>
-                        <Link href="#">Избранное</Link>
+                        <Link href="/favorites">Хочу посетить</Link>
                         <Link href="#">Аккаунт</Link>
                     </div>
                     <div className="footer__desc">

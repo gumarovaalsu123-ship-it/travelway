@@ -233,7 +233,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             {!draft.isLoading && draft.geocodeFailed
                                 && 'Не удалось узнать адрес этой точки — сервис OpenStreetMap не ответил. Заполните название сами.'}
                             {!draft.isLoading && !draft.geocodeFailed
-                                && 'Вы выбрали точку на карте. Заполните данные, чтобы добавить её в избранное или маршрут путешествия.'}
+                                && 'Вы выбрали точку на карте. Заполните данные, чтобы добавить её в список «Хочу посетить» или в маршрут путешествия.'}
                         </p>
                     </>
                 )}
@@ -418,7 +418,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                     </>
                 ) : (
                     <p className="form-hint">
-                        У вас пока нет путешествий, поэтому место можно сохранить только в избранное.{' '}
+                        У вас пока нет путешествий, поэтому место можно сохранить только в список «Хочу посетить».{' '}
                         <Link href="/my-trips/create">Создать путешествие</Link>
                     </p>
                 )}
@@ -436,7 +436,7 @@ export default function PlaceFormOverlay({ draft, categories, trips, focusDayId 
                             disabled={processing}
                             onClick={() => submit('favorite')}
                         >
-                            В избранное
+                            Хочу посетить
                         </button>
                     )}
                     <button type="button" className="btn btn--outline-dark btn--full" onClick={onClose}>Отмена</button>

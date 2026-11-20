@@ -5,7 +5,7 @@ import Avatar from './Profile/Avatar';
 const navItems = [
     { href: '/interactive-map', label: 'Интерактивная карта' },
     { href: '/my-trips', label: 'Мои путешествия' },
-    { href: '/favorites', label: 'Избранное' },
+    { href: '/favorites', label: 'Хочу посетить' },
 ];
 
 /**

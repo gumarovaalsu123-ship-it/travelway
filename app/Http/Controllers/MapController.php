@@ -68,7 +68,7 @@ class MapController extends Controller
         if ($request->validated('destination') === 'favorite') {
             $user->favoritePlaces()->attach($place->id, ['created_at' => now()]);
 
-            Inertia::flash('toast', 'Место добавлено в избранное.');
+            Inertia::flash('toast', 'Место добавлено в список «Хочу посетить».');
         } else {
             $day->addPlace($place, $request->validated('start_time'));
 

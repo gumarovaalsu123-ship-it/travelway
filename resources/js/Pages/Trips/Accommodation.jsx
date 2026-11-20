@@ -92,7 +92,7 @@ function NearbyPanel({ point, categories, checkIn }) {
     const canAddToPlan = canEditTab(trip, 'plan');
 
     const actions = [
-        { label: 'В избранное', savedLabel: 'В избранном', url: '/interactive-map/places', extra: { destination: 'favorite' } },
+        { label: 'Хочу посетить', savedLabel: 'В списке', url: '/interactive-map/places', extra: { destination: 'favorite' } },
     ];
 
     if (canAddToPlan && selectedDay) {

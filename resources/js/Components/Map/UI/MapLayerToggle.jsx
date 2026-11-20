@@ -4,7 +4,7 @@ import MapMenuButton from './MapMenuButton';
 export const MAP_LAYERS = [
     { value: 'all', label: 'Все места' },
     { value: 'trips', label: 'В поездках' },
-    { value: 'favorites', label: 'Избранное' },
+    { value: 'favorites', label: 'Хочу посетить' },
     { value: 'hidden', label: 'Скрыть мои места' },
 ];
 

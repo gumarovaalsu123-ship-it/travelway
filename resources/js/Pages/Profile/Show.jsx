@@ -105,9 +105,9 @@ export default function ProfileShow({ profile, stats }) {
                         hint={plural(stats.cities, ['город посещён', 'города посещено', 'городов посещено'])}
                     />
                     <StatCard
-                        label="Избранных мест"
+                        label="Хочу посетить"
                         value={stats.favorites}
-                        hint={<Link href="/favorites">открыть избранное</Link>}
+                        hint={<Link href="/favorites">открыть список</Link>}
                     />
                 </section>
 

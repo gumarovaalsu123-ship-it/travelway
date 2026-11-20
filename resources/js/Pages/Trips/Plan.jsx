@@ -123,7 +123,7 @@ function FoundPlacesDialog({ title, load, emptyText, tripId, day, afterPlace, ca
     ];
     const actions = [
         ...(canEdit ? addToPlan : []),
-        { label: 'В избранное', savedLabel: 'В избранном', url: '/interactive-map/places', extra: { destination: 'favorite' } },
+        { label: 'Хочу посетить', savedLabel: 'В списке', url: '/interactive-map/places', extra: { destination: 'favorite' } },
     ];
 
     return (
@@ -672,7 +672,7 @@ function RemovePlaceModal({ place, onClose }) {
 
     return (
         <Modal title="Убрать из плана?" onClose={onClose}>
-            <p>Место «{place.name}» пропадёт из этого дня. В избранном оно останется, если вы его туда сохраняли.</p>
+            <p>Место «{place.name}» пропадёт из этого дня. В списке «Хочу посетить» оно останется, если вы его туда сохраняли.</p>
             <div className="plan-place-form__actions">
                 <button type="button" className="btn btn--solid-dark btn--sm" disabled={isProcessing} onClick={remove}>Убрать</button>
                 <button type="button" className="btn btn--outline-dark btn--sm" onClick={onClose}>Отмена</button>
@@ -845,7 +845,7 @@ function AddPlaceCard({ favorites: tripFavorites, day }) {
                     <span className="plan-add-card__title">Добавить место в день {day.number}</span>
                     <span className="plan-add-card__hint">
                         Нажмите на любую точку карты — появится плашка с кнопкой «Добавить».
-                        {favorites.length > 0 && ' Или выберите из избранного.'}
+                        {favorites.length > 0 && ' Или выберите из списка «Хочу посетить» — там места этого города.'}
                     </span>
                 </div>
                 {favorites.length > 0 && (
@@ -855,7 +855,7 @@ function AddPlaceCard({ favorites: tripFavorites, day }) {
                         aria-expanded={isFavoritesOpen}
                         onClick={() => setFavoritesOpen(!isFavoritesOpen)}
                     >
-                        ★ Избранное ({favorites.length}) {isFavoritesOpen ? '▴' : '▾'}
+                        ♥ Хочу посетить ({favorites.length}) {isFavoritesOpen ? '▴' : '▾'}
                     </button>
                 )}
             </div>

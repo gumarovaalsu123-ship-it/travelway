@@ -70,7 +70,7 @@ export default function PlaceMarker({ place, isSelected, isFocused = false, onAd
 
                     <div className="place-popup__actions">
                         <button type="button" className="btn btn--outline-dark btn--sm" onClick={toggleFavorite}>
-                            {place.isFavorite ? '♥ В избранном' : '♡ В избранное'}
+                            {place.isFavorite ? '♥ В списке' : '♡ Хочу посетить'}
                         </button>
                         <button type="button" className="btn btn--solid-dark btn--sm" onClick={() => onAddToTrip(place)}>
                             В поездку

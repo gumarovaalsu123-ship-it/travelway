@@ -9,7 +9,7 @@ const WITHOUT_CATEGORY = 'none';
 
 function FavoriteCard({ place }) {
     const remove = async () => {
-        if (await confirmDialog({ title: 'Убрать из избранного?', message: `«${place.name}» пропадёт из списка избранного.`, confirmLabel: 'Убрать', danger: true })) {
+        if (await confirmDialog({ title: 'Убрать из списка?', message: `«${place.name}» пропадёт из списка «Хочу посетить».`, confirmLabel: 'Убрать', danger: true })) {
             router.delete(`/places/${place.id}/favorite`, { preserveScroll: true });
         }
     };
@@ -59,11 +59,11 @@ export default function FavoritesIndex({ places }) {
         : places.filter((place) => (place.category?.slug ?? WITHOUT_CATEGORY) === activeFilter);
 
     return (
-        <AppLayout title="Избранное">
+        <AppLayout title="Хочу посетить">
             <main className="container trips-main">
                 <section className="page-header">
                     <div className="page-header__text">
-                        <h1 className="page-title">Избранное</h1>
+                        <h1 className="page-title">Хочу посетить</h1>
                         <p className="page-subtitle">
                             {places.length > 0
                                 ? `${places.length} ${plural(places.length, ['место', 'места', 'мест'])}, которые вы хотите посетить`
@@ -77,7 +77,7 @@ export default function FavoritesIndex({ places }) {
                     <section className="trips-empty">
                         <h2 className="trips-empty__title">Здесь пока пусто</h2>
                         <p className="trips-empty__text">
-                            Откройте интерактивную карту, выберите точку и сохраните её в избранное — она появится здесь.
+                            Откройте интерактивную карту, выберите точку и нажмите «Хочу посетить» — она появится здесь.
                         </p>
                         <Link href="/interactive-map" className="btn btn--solid">Открыть карту</Link>
                     </section>

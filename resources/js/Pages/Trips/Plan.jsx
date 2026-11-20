@@ -821,11 +821,13 @@ function useTripFavorites(favorites, destination) {
  * клик по карте справа (см. Components/Trip/AddPlaceOnMap.jsx) и избранное — список раскрывается прямо в карточке.
  * Место из избранного встаёт в конец дня через уже существующий маршрут trip-places.store.
  * favorites — уже отфильтрованные по городу поездки (useTripFavorites); null — ещё ищем город.
+ * Места, которые уже стоят в этом дне, в списке не показываем.
  */
 function AddPlaceCard({ favorites: tripFavorites, day }) {
     const [isFavoritesOpen, setFavoritesOpen] = useState(false);
     const [processingId, setProcessingId] = useState(null);
-    const favorites = tripFavorites ?? [];
+    const placeIdsInDay = new Set(day.places.map((place) => place.placeId));
+    const favorites = (tripFavorites ?? []).filter((place) => !placeIdsInDay.has(place.id));
 
     function add(place) {
         setProcessingId(place.id);

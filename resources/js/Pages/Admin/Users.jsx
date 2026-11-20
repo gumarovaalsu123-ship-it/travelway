@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '../../Components/AdminLayout';
 import AdminPagination from '../../Components/AdminPagination';
+import AdminSearch from '../../Components/AdminSearch';
 import { plural } from '../../utils/format';
 import { confirmDialog } from '../../utils/confirm';
 
@@ -78,29 +79,8 @@ function UserRow({ user }) {
 
 export default function AdminUsers({ users, search }) {
     const { errors } = usePage().props;
-    const [query, setQuery] = useState(search);
 
-    const submitSearch = (event) => {
-        event.preventDefault();
-        // Новый поиск — снова с первой страницы. replace: не засоряем историю браузера каждым поиском.
-        router.get('/admin/users', query.trim() ? { search: query.trim() } : {}, { preserveState: true, replace: true });
-    };
-
-    const searchForm = (
-        <form className="admin-search-wrapper" onSubmit={submitSearch} role="search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-                type="search"
-                className="admin-search-input"
-                placeholder="Имя или почта, Enter — найти"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-            />
-        </form>
-    );
+    const searchForm = <AdminSearch url="/admin/users" search={search} placeholder="Имя или почта, Enter — найти" />;
 
     return (
         <AdminLayout

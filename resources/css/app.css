@@ -3911,6 +3911,32 @@
   color: #8C9C90;
 }
 
+/* Встроенный крестик браузера у type="search" прячем — вместо него свой (.admin-search-clear) */
+.admin-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.admin-search-clear {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-right: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.admin-search-clear:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-text-dark);
+}
+
 /* === СТАТИСТИКА (РЯД КАРТОЧЕК) === */
 .admin-stats-row {
   display: grid;

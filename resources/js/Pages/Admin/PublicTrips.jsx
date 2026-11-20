@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '../../Components/AdminLayout';
 import AdminPagination from '../../Components/AdminPagination';
+import AdminSearch from '../../Components/AdminSearch';
 import { formatDateRange, plural } from '../../utils/format';
 import { confirmDialog } from '../../utils/confirm';
 
@@ -59,29 +60,9 @@ function TripRow({ trip, canFeatureMore }) {
  */
 export default function AdminPublicTrips({ trips, search, featuredCount, featuredLimit }) {
     const { errors } = usePage().props;
-    const [query, setQuery] = useState(search);
     const canFeatureMore = featuredCount < featuredLimit;
 
-    const submitSearch = (event) => {
-        event.preventDefault();
-        router.get('/admin/trips', query.trim() ? { search: query.trim() } : {}, { preserveState: true, replace: true });
-    };
-
-    const searchForm = (
-        <form className="admin-search-wrapper" onSubmit={submitSearch} role="search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-                type="search"
-                className="admin-search-input"
-                placeholder="Название, город или автор"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-            />
-        </form>
-    );
+    const searchForm = <AdminSearch url="/admin/trips" search={search} placeholder="Название, город или автор" />;
 
     return (
         <AdminLayout
